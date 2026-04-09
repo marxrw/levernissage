@@ -92,12 +92,55 @@ export default function App(){
     return 0;
   });
 
-  // Google Maps — loaded via script tag, no npm package needed
+  // Google Maps — script tag load + geocoding + MarkerClusterer
   useEffect(()=>{
     if(tab!=="map")return;
     if(gMapRef.current){return;}
 
-    const initMap=()=>{
+    const buildMarker=(google,map,s,position)=>{
+      const icon={
+        url:"data:image/svg+xml;charset=UTF-8,"+encodeURIComponent(pinSVG(s.featured,s.id)),
+        scaledSize:new google.maps.Size(34,48),
+        anchor:new google.maps.Point(17,48),
+      };
+      const marker=new google.maps.Marker({position,icon,title:s.gallery});
+      const shortAddr=s.address.replace(", Montréal, QC","");
+      const infoContent=`
+        <div style="width:220px;font-family:'DM Sans',sans-serif;background:#fff;border-radius:6px;overflow:hidden;">
+          <div style="height:5px;background:${s.between?"#D8D4CC":s.color};"></div>
+          <div style="padding:14px 15px;">
+            <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#2B5BE8;font-weight:700;margin-bottom:6px;">${s.gallery}</div>
+            ${s.between
+              ?`<div style="font-size:13px;color:#6B6560;font-style:italic;margin-bottom:10px;">Between exhibitions</div>`
+              :`<div style="font-family:'Cormorant Garamond',serif;font-size:17px;font-style:italic;font-weight:600;color:#0F0E0C;line-height:1.2;margin-bottom:3px;">${s.title}</div>
+                <div style="font-size:12px;color:#6B6560;margin-bottom:10px;">${s.artist}</div>`
+            }
+            <div style="font-size:11px;color:#9B9590;margin-bottom:13px;">📍 ${shortAddr}</div>
+            <div style="display:flex;gap:8px;">
+              <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(s.address)}"
+                target="_blank"
+                style="flex:1;background:#F4F4F4;color:#0F0E0C;border:none;padding:10px 0;border-radius:3px;font-size:9px;letter-spacing:.10em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;display:flex;align-items:center;justify-content:center;text-align:center;">
+                Directions
+              </a>
+              <button
+                onclick="window.__lvOpen('${s.id}')"
+                ontouchend="event.preventDefault();window.__lvOpen('${s.id}')"
+                style="flex:1;background:#0F0E0C;color:#fff;border:none;padding:10px 0;border-radius:3px;font-size:9px;letter-spacing:.10em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">
+                View →
+              </button>
+            </div>
+          </div>
+        </div>`;
+      const infoWindow=new google.maps.InfoWindow({content:infoContent,disableAutoPan:false});
+      marker.addListener("click",()=>{
+        markersRef.current.forEach(m=>m.iw.close());
+        infoWindow.open({anchor:marker,map});
+      });
+      markersRef.current.push({marker,iw:infoWindow});
+      return marker;
+    };
+
+    const initMap=async()=>{
       if(!mapRef.current||gMapRef.current)return;
       const google=window.google;
       const map=new google.maps.Map(mapRef.current,{
@@ -114,56 +157,31 @@ export default function App(){
         ],
       });
       gMapRef.current=map;
+      map.addListener("click",()=>{ markersRef.current.forEach(m=>m.iw.close()); });
 
-      const showsToRender=mapMode==="plan"?SHOWS.filter(s=>saved.has(s.id)):SHOWS;
+      const geocoder=new google.maps.Geocoder();
+      const showsToRender=SHOWS;
 
-      showsToRender.forEach(s=>{
-        const icon={
-          url:"data:image/svg+xml;charset=UTF-8,"+encodeURIComponent(pinSVG(s.featured,s.id)),
-          scaledSize:new google.maps.Size(34,48),
-          anchor:new google.maps.Point(17,48),
-        };
-        const marker=new google.maps.Marker({position:{lat:s.lat,lng:s.lng},map,icon,title:s.gallery});
-        const shortAddr=s.address.replace(", Montréal, QC","");
-        const infoContent=`
-          <div style="width:220px;font-family:'DM Sans',sans-serif;background:#fff;border-radius:6px;overflow:hidden;">
-            <div style="height:5px;background:${s.between?"#D8D4CC":s.color};"></div>
-            <div style="padding:14px 15px;">
-              <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#2B5BE8;font-weight:700;margin-bottom:6px;">${s.gallery}</div>
-              ${s.between
-                ?`<div style="font-size:13px;color:#6B6560;font-style:italic;margin-bottom:10px;">Between exhibitions</div>`
-                :`<div style="font-family:'Cormorant Garamond',serif;font-size:17px;font-style:italic;font-weight:600;color:#0F0E0C;line-height:1.2;margin-bottom:3px;">${s.title}</div>
-                  <div style="font-size:12px;color:#6B6560;margin-bottom:10px;">${s.artist}</div>`
-              }
-              <div style="font-size:11px;color:#9B9590;margin-bottom:13px;">📍 ${shortAddr}</div>
-              <div style="display:flex;gap:8px;">
-                <a
-                  href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(s.address)}"
-                  target="_blank"
-                  style="flex:1;background:#F4F4F4;color:#0F0E0C;border:none;padding:10px 0;border-radius:3px;font-size:9px;letter-spacing:.10em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;display:flex;align-items:center;justify-content:center;text-align:center;">
-                  Directions
-                </a>
-                <button
-                  onclick="window.__lvOpen('${s.id}')"
-                  ontouchend="event.preventDefault();window.__lvOpen('${s.id}')"
-                  style="flex:1;background:#0F0E0C;color:#fff;border:none;padding:10px 0;border-radius:3px;font-size:9px;letter-spacing:.10em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">
-                  View →
-                </button>
-              </div>
-            </div>
-          </div>`;
-
-        const infoWindow=new google.maps.InfoWindow({content:infoContent,disableAutoPan:false});
-        marker.addListener("click",()=>{
-          markersRef.current.forEach(m=>m.iw.close());
-          infoWindow.open({anchor:marker,map});
+      // Geocode all addresses in parallel then add to clusterer
+      const markers=await Promise.all(showsToRender.map(s=>new Promise(resolve=>{
+        geocoder.geocode({address:s.address},(results,status)=>{
+          const pos=(status==="OK"&&results[0])
+            ?results[0].geometry.location
+            :{lat:s.lat,lng:s.lng};
+          resolve(buildMarker(google,map,s,pos));
         });
-        markersRef.current.push({marker,iw:infoWindow});
-      });
+      })));
 
-      map.addListener("click",()=>{
-        markersRef.current.forEach(m=>m.iw.close());
-      });
+      // Load MarkerClusterer from CDN then cluster
+      if(!window.markerClusterer){
+        await new Promise((res,rej)=>{
+          const sc=document.createElement("script");
+          sc.src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js";
+          sc.onload=res;sc.onerror=rej;
+          document.head.appendChild(sc);
+        });
+      }
+      new window.markerClusterer.MarkerClusterer({map,markers});
     };
 
     if(window.google&&window.google.maps){
@@ -277,7 +295,7 @@ export default function App(){
       </div>
 
       {detail&&(
-        <div style={{position:"fixed",inset:0,background:WHITE,zIndex:200,overflowY:"auto",animation:"slideUp 0.32s cubic-bezier(0.16,1,0.3,1)",maxWidth:430,margin:"0 auto"}}>
+        <div style={{position:"fixed",inset:0,background:WHITE,zIndex:2000,overflowY:"auto",animation:"slideUp 0.32s cubic-bezier(0.16,1,0.3,1)",maxWidth:430,margin:"0 auto"}}>
           <div style={{position:"sticky",top:0,background:WHITE,borderBottom:`1px solid ${BORDER}`,height:54,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",zIndex:10}}>
             <button onClick={()=>setDetail(null)} style={{fontSize:12,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:700,color:MID,background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:7,fontFamily:"'DM Sans',sans-serif"}}><span style={{fontSize:18,color:INK,lineHeight:1}}>←</span>{t.back}</button>
             <PinButton id={detail.id} size={40}/>
