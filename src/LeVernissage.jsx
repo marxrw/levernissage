@@ -73,7 +73,7 @@ function buildPopupHTML(s) {
           ${shortAddr}
         </p>
         <button
-          data-lv-id="${s.id}"
+          onclick="window.__lvSelectShow && window.__lvSelectShow('${s.id}')"
           style="width:100%;background:#0F0E0C;color:#fff;border:none;padding:11px 0;border-radius:3px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;">
           View exhibition <span style="font-size:13px;letter-spacing:0;">→</span>
         </button>
@@ -120,17 +120,13 @@ export default function App(){
     return 0;
   });
 
-  // ─── Popup click delegation — attached once to document ───────────────────
+  // ─── Global bridge so Leaflet popup button can reach React setDetail ────────
   useEffect(()=>{
-    const handlePopupClick=(e)=>{
-      const btn=e.target.closest("[data-lv-id]");
-      if(!btn)return;
-      const id=btn.getAttribute("data-lv-id");
+    window.__lvSelectShow=(id)=>{
       const show=SHOWS.find(x=>x.id===id);
       if(show)setDetail(show);
     };
-    document.addEventListener("click",handlePopupClick);
-    return()=>document.removeEventListener("click",handlePopupClick);
+    return()=>{ delete window.__lvSelectShow; };
   },[]);
 
   function addMarker(L,map,s){
@@ -212,7 +208,7 @@ export default function App(){
 
   const PinButton=({id,size=42})=>{const on=saved.has(id);return(<button onClick={e=>{e.stopPropagation();toggleSave(id);}} style={{width:size,height:size,borderRadius:4,border:`1.5px solid ${on?BLUE:BORDER}`,background:on?BLUE:WHITE,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,transition:"all 0.15s"}}><svg width="20" height="20" viewBox="0 0 24 24" fill={on?WHITE:"#C0BBB5"} xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></button>);};
 
-  const FILTERS=[["featured",t.featured],["all",t.all],["reviewed",t.reviewed],["closing",t.closing],["opening",t.opening],["nearby",t.nearby],["mile-end",t.mileEnd],["downtown",t.downtown],["rosemont",t.rosemont],["griffintown",t.griffintown],["saint-henri",t.saintHenri],["plateau",t.plateau]];
+  const FILTERS=[["featured",t.featured],["all",t.all],["closing",t.closing],["opening",t.opening],["nearby",t.nearby],["mile-end",t.mileEnd],["downtown",t.downtown],["rosemont",t.rosemont],["griffintown",t.griffintown],["saint-henri",t.saintHenri],["plateau",t.plateau]];
   const shortAddr=a=>a.replace(", Montréal, QC","");
 
   // ─── Tab list — reviews gated by feature flag ─────────────────────────────
