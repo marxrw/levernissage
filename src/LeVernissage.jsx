@@ -63,9 +63,9 @@ function MapPin({show, isActive, onClick}){
   const headR=isActive?14:11;
   const totalH=size+12;
   return(
-    <div
+    <button
       onClick={e=>{e.stopPropagation();onClick(show);}}
-      style={{position:"relative",width:size,height:totalH,cursor:"pointer",transform:"translate(-50%, -100%)",transition:"all 0.15s"}}
+      style={{position:"relative",width:size,height:totalH,cursor:"pointer",transform:"translate(-50%, -100%)",transition:"all 0.15s",background:"none",border:"none",padding:0,display:"block"}}
     >
       <svg width={size} height={totalH} viewBox={`0 0 ${size} ${totalH}`} xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -80,7 +80,7 @@ function MapPin({show, isActive, onClick}){
         <circle cx={size/2} cy={headR+1} r={headR} fill="none" stroke="white" strokeWidth="2"/>
         {show.featured&&<text x={size/2} y={headR+6} fontFamily="sans-serif" fontSize="12" fill="white" textAnchor="middle">✦</text>}
       </svg>
-    </div>
+    </button>
   );
 }
 
