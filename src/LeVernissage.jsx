@@ -1,10 +1,6 @@
-import { useState, useCallback, useRef } from "react";
-import { GoogleMap, useJsApiLoader, OverlayView } from "@react-google-maps/api";
+import { useState, useEffect, useRef } from "react";
 
-// ─── Feature flags ────────────────────────────────────────────────────────────
-const FEATURES = {
-  reviews: false, // Hidden for stealth launch. Planned re-enable ~3 months out.
-};
+const FEATURES = { reviews: false };
 
 const GMAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
 
@@ -19,38 +15,23 @@ const SHOWS = [
   { id:"pangee", gallery:"Pangée", title:"Matière première", artist:"Sébastien Cliche", dates:"Apr 2 – May 8", openDate:"2026-04-02", closeDate:"2026-05-08", hood:"Mile-End", color:"#A89070", reviewed:false, featured:true, between:false, desc:"Cliche's sculptural practice excavates industrial materials, finding tenderness in concrete, rust, and reclaimed steel.", address:"1305 avenue des Pins Ouest, Montréal, QC", lat:45.5092, lng:-73.5932 },
   { id:"duran", gallery:"Duran Contemporain", title:"How to Hold Hands", artist:"Holly MacKinnon", dates:"Mar 26 – Apr 18", openDate:"2026-03-26", closeDate:"2026-04-18", hood:"Downtown", color:"#B0A090", reviewed:false, featured:true, between:false, desc:"MacKinnon's paintings explore the quiet language of touch and proximity — gestures of care rendered in soft, luminous fields of colour.", address:"372 rue Sainte-Catherine Ouest, Montréal, QC", lat:45.5011, lng:-73.5694 },
   { id:"nicolasrobert", gallery:"Galerie Nicolas Robert", title:"Chambres d'écho", artist:"Maude Corriveau", dates:"Mar – Apr 2026", openDate:"2026-03-01", closeDate:"2026-04-30", hood:"Griffintown", color:"#9AA8B0", reviewed:false, featured:true, between:false, desc:"Corriveau's practice investigates resonance and repetition — spaces where image and memory fold back on themselves.", address:"201 rue Bartlett, Montréal, QC", lat:45.4892, lng:-73.5669 },
-  { id:"chiguer", gallery:"Chiguer Art Contemporain", title:"Façades", artist:"Various Artists", dates:"Mar – Apr 2026", openDate:"2026-03-01", closeDate:"2026-04-30", hood:"Downtown", color:"#C0B8A8", reviewed:false, featured:false, between:false, desc:"An exhibition exploring the relationship between architectural surfaces and pictorial representation — what is presented as visible, and what lies beneath.", address:"372 rue Sainte-Catherine Ouest, Montréal, QC", lat:45.5011, lng:-73.5694 },
-  { id:"elikerr", gallery:"Galerie Eli Kerr", title:"Between Exhibitions", artist:"", dates:"", openDate:"2026-04-08", closeDate:"2026-04-08", hood:"Mile-End", color:"#D8D4CC", reviewed:false, featured:false, between:true, desc:"Galerie Eli Kerr is currently between exhibitions. The gallery represents an intergenerational program of artists working across sculpture, drawing, video, photography, and installation.", address:"4647 boulevard Saint-Laurent, Montréal, QC", lat:45.5201, lng:-73.5983 },
-  { id:"patrickmikhail", gallery:"Patrick Mikhail Gallery", title:"Between Exhibitions", artist:"", dates:"", openDate:"2026-04-08", closeDate:"2026-04-08", hood:"Mile-End", color:"#D8D4CC", reviewed:false, featured:false, between:true, desc:"Patrick Mikhail Gallery is currently between exhibitions. The gallery represents emerging and mid-career women artists working across painting, photography, installation, and new media.", address:"4815 boulevard Saint-Laurent, Montréal, QC", lat:45.5218, lng:-73.5979 },
-  { id:"robertsonares", gallery:"Galerie Robertson Arès", title:"Between Exhibitions", artist:"", dates:"", openDate:"2026-04-08", closeDate:"2026-04-08", hood:"Downtown", color:"#D8D4CC", reviewed:false, featured:false, between:true, desc:"Galerie Robertson Arès is currently between exhibitions. The gallery focuses on bold contemporary work by international and Canadian artists.", address:"1350 rue Sherbrooke Ouest, Montréal, QC", lat:45.4983, lng:-73.5793 },
-  { id:"robertpoulin", gallery:"Galerie Robert Poulin", title:"Between Exhibitions", artist:"", dates:"", openDate:"2026-04-08", closeDate:"2026-04-08", hood:"Mile-End", color:"#D8D4CC", reviewed:false, featured:false, between:true, desc:"Galerie Robert Poulin is currently between exhibitions. The gallery specializes in art brut, underground art, and narrative figuration.", address:"6341 boulevard Saint-Laurent, Montréal, QC", lat:45.5341, lng:-73.5973 },
-  { id:"patelbrownmtl", gallery:"Patel Brown", title:"Between Exhibitions", artist:"", dates:"", openDate:"2026-04-08", closeDate:"2026-04-08", hood:"Downtown", color:"#D8D4CC", reviewed:false, featured:false, between:true, desc:"Patel Brown's Montreal location is currently between exhibitions. The gallery represents emerging and established Canadian artists.", address:"372 rue Sainte-Catherine Ouest, Montréal, QC", lat:45.5011, lng:-73.5694 },
-  { id:"pfoac", gallery:"Pierre-François Ouellette art contemporain", title:"Between Exhibitions", artist:"", dates:"", openDate:"2026-04-08", closeDate:"2026-04-08", hood:"Plateau", color:"#D8D4CC", reviewed:false, featured:false, between:true, desc:"PFOAC is currently between exhibitions. One of Montreal's most respected galleries, located on Rachel Street near Parc La Fontaine.", address:"4402 boulevard Saint-Laurent, Montréal, QC", lat:45.5189, lng:-73.5863 },
-  { id:"tian", gallery:"TIAN Contemporain", title:"Between Exhibitions", artist:"", dates:"", openDate:"2026-04-08", closeDate:"2026-04-08", hood:"Downtown", color:"#D8D4CC", reviewed:false, featured:false, between:true, desc:"TIAN Contemporain is currently between exhibitions. The gallery presents contemporary art with a focus on emerging voices.", address:"372 rue Sainte-Catherine Ouest, Montréal, QC", lat:45.5011, lng:-73.5694 },
-  { id:"galcoa", gallery:"Galerie C.O.A", title:"Between Exhibitions", artist:"", dates:"", openDate:"2026-04-08", closeDate:"2026-04-08", hood:"Downtown", color:"#D8D4CC", reviewed:false, featured:false, between:true, desc:"Galerie C.O.A is currently between exhibitions. A dynamic space in the Belgo Building presenting contemporary Quebec and Canadian art.", address:"372 rue Sainte-Catherine Ouest, Montréal, QC", lat:45.5011, lng:-73.5694 },
-  { id:"bellemarelambert", gallery:"Galeries Bellemare Lambert", title:"Between Exhibitions", artist:"", dates:"", openDate:"2026-04-08", closeDate:"2026-04-08", hood:"Downtown", color:"#D8D4CC", reviewed:false, featured:false, between:true, desc:"Galeries Bellemare Lambert is currently between exhibitions. The gallery presents historical modern and contemporary Quebec art.", address:"372 rue Sainte-Catherine Ouest, Montréal, QC", lat:45.5011, lng:-73.5694 },
-  { id:"yves", gallery:"Yves Laroche Galerie d'art", title:"Between Exhibitions", artist:"", dates:"", openDate:"2026-04-08", closeDate:"2026-04-08", hood:"Mile-End", color:"#D8D4CC", reviewed:false, featured:false, between:true, desc:"Yves Laroche Galerie d'art is currently between exhibitions. The gallery specializes in street art, pop art, and urban contemporary art.", address:"4 rue de Castelnau E, Montréal, QC", lat:45.5323, lng:-73.6015 },
+  { id:"chiguer", gallery:"Chiguer Art Contemporain", title:"Façades", artist:"Various Artists", dates:"Mar – Apr 2026", openDate:"2026-03-01", closeDate:"2026-04-30", hood:"Downtown", color:"#C0B8A8", reviewed:false, featured:false, between:false, desc:"An exhibition exploring the relationship between architectural surfaces and pictorial representation.", address:"372 rue Sainte-Catherine Ouest, Montréal, QC", lat:45.5011, lng:-73.5694 },
+  { id:"elikerr", gallery:"Galerie Eli Kerr", title:"Between Exhibitions", artist:"", dates:"", openDate:"2026-04-08", closeDate:"2026-04-08", hood:"Mile-End", color:"#D8D4CC", reviewed:false, featured:false, between:true, desc:"Galerie Eli Kerr is currently between exhibitions.", address:"4647 boulevard Saint-Laurent, Montréal, QC", lat:45.5201, lng:-73.5983 },
+  { id:"patrickmikhail", gallery:"Patrick Mikhail Gallery", title:"Between Exhibitions", artist:"", dates:"", openDate:"2026-04-08", closeDate:"2026-04-08", hood:"Mile-End", color:"#D8D4CC", reviewed:false, featured:false, between:true, desc:"Patrick Mikhail Gallery is currently between exhibitions.", address:"4815 boulevard Saint-Laurent, Montréal, QC", lat:45.5218, lng:-73.5979 },
+  { id:"robertsonares", gallery:"Galerie Robertson Arès", title:"Between Exhibitions", artist:"", dates:"", openDate:"2026-04-08", closeDate:"2026-04-08", hood:"Downtown", color:"#D8D4CC", reviewed:false, featured:false, between:true, desc:"Galerie Robertson Arès is currently between exhibitions.", address:"1350 rue Sherbrooke Ouest, Montréal, QC", lat:45.4983, lng:-73.5793 },
+  { id:"robertpoulin", gallery:"Galerie Robert Poulin", title:"Between Exhibitions", artist:"", dates:"", openDate:"2026-04-08", closeDate:"2026-04-08", hood:"Mile-End", color:"#D8D4CC", reviewed:false, featured:false, between:true, desc:"Galerie Robert Poulin is currently between exhibitions.", address:"6341 boulevard Saint-Laurent, Montréal, QC", lat:45.5341, lng:-73.5973 },
+  { id:"patelbrownmtl", gallery:"Patel Brown", title:"Between Exhibitions", artist:"", dates:"", openDate:"2026-04-08", closeDate:"2026-04-08", hood:"Downtown", color:"#D8D4CC", reviewed:false, featured:false, between:true, desc:"Patel Brown's Montreal location is currently between exhibitions.", address:"372 rue Sainte-Catherine Ouest, Montréal, QC", lat:45.5011, lng:-73.5694 },
+  { id:"pfoac", gallery:"Pierre-François Ouellette art contemporain", title:"Between Exhibitions", artist:"", dates:"", openDate:"2026-04-08", closeDate:"2026-04-08", hood:"Plateau", color:"#D8D4CC", reviewed:false, featured:false, between:true, desc:"PFOAC is currently between exhibitions.", address:"4402 boulevard Saint-Laurent, Montréal, QC", lat:45.5189, lng:-73.5863 },
+  { id:"tian", gallery:"TIAN Contemporain", title:"Between Exhibitions", artist:"", dates:"", openDate:"2026-04-08", closeDate:"2026-04-08", hood:"Downtown", color:"#D8D4CC", reviewed:false, featured:false, between:true, desc:"TIAN Contemporain is currently between exhibitions.", address:"372 rue Sainte-Catherine Ouest, Montréal, QC", lat:45.5011, lng:-73.5694 },
+  { id:"galcoa", gallery:"Galerie C.O.A", title:"Between Exhibitions", artist:"", dates:"", openDate:"2026-04-08", closeDate:"2026-04-08", hood:"Downtown", color:"#D8D4CC", reviewed:false, featured:false, between:true, desc:"Galerie C.O.A is currently between exhibitions.", address:"372 rue Sainte-Catherine Ouest, Montréal, QC", lat:45.5011, lng:-73.5694 },
+  { id:"bellemarelambert", gallery:"Galeries Bellemare Lambert", title:"Between Exhibitions", artist:"", dates:"", openDate:"2026-04-08", closeDate:"2026-04-08", hood:"Downtown", color:"#D8D4CC", reviewed:false, featured:false, between:true, desc:"Galeries Bellemare Lambert is currently between exhibitions.", address:"372 rue Sainte-Catherine Ouest, Montréal, QC", lat:45.5011, lng:-73.5694 },
+  { id:"yves", gallery:"Yves Laroche Galerie d'art", title:"Between Exhibitions", artist:"", dates:"", openDate:"2026-04-08", closeDate:"2026-04-08", hood:"Mile-End", color:"#D8D4CC", reviewed:false, featured:false, between:true, desc:"Yves Laroche Galerie d'art is currently between exhibitions.", address:"4 rue de Castelnau E, Montréal, QC", lat:45.5323, lng:-73.6015 },
 ];
 
-const T={en:{exhibitions:"Exhibitions",map:"Map",reviews:"Reviews",allShows:"All Shows",myPlan:"My Plan",all:"All",featured:"Featured",reviewed:"Reviewed",closing:"Closing This Week",opening:"Opening This Week",nearby:"Nearby",mileEnd:"Mile-End",downtown:"Downtown",rosemont:"Rosemont",griffintown:"Griffintown",saintHenri:"Saint-Henri",plateau:"Plateau",featuredReview:"Featured Review",moreReviews:"More Reviews",getDirections:"Get Directions",share:"Share",back:"Back",dates:"Dates",hours:"Hours",area:"Area",noShowsInPlan:"No shows in your plan yet",addFromShows:"Star shows in the Exhibitions tab",locationDenied:"Location access denied. Please enable in settings.",gettingLocation:"Getting your location…",vernissageReview:"Vernissage Review",closingSoon:"Closing",openingSoon:"Opening",away:"away",betweenShows:"Between exhibitions"},fr:{exhibitions:"Expositions",map:"Carte",reviews:"Critiques",allShows:"Toutes",myPlan:"Mon Plan",all:"Tout",featured:"En vedette",reviewed:"Critiquées",closing:"Ferme cette semaine",opening:"Ouvre cette semaine",nearby:"À proximité",mileEnd:"Mile-End",downtown:"Centre-ville",rosemont:"Rosemont",griffintown:"Griffintown",saintHenri:"Saint-Henri",plateau:"Plateau",featuredReview:"Critique en vedette",moreReviews:"Plus de critiques",getDirections:"Itinéraire",share:"Partager",back:"Retour",dates:"Dates",hours:"Heures",area:"Quartier",noShowsInPlan:"Aucune exposition dans votre plan",addFromShows:"Ajoutez des expositions depuis Expositions",locationDenied:"Accès à la localisation refusé.",gettingLocation:"Localisation en cours…",vernissageReview:"Critique du Vernissage",closingSoon:"Ferme bientôt",openingSoon:"Ouvre bientôt",away:"de vous",betweenShows:"Entre expositions"}};
+const T={en:{exhibitions:"Exhibitions",map:"Map",reviews:"Reviews",allShows:"All Shows",myPlan:"My Plan",all:"All",featured:"Featured",reviewed:"Reviewed",closing:"Closing This Week",opening:"Opening This Week",nearby:"Nearby",mileEnd:"Mile-End",downtown:"Downtown",rosemont:"Rosemont",griffintown:"Griffintown",saintHenri:"Saint-Henri",plateau:"Plateau",getDirections:"Get Directions",share:"Share",back:"Back",dates:"Dates",hours:"Hours",area:"Area",noShowsInPlan:"No shows in your plan yet",addFromShows:"Star shows in the Exhibitions tab",locationDenied:"Location access denied.",gettingLocation:"Getting your location…",vernissageReview:"Vernissage Review",closingSoon:"Closing",openingSoon:"Opening",away:"away",betweenShows:"Between exhibitions",featuredReview:"Featured Review",moreReviews:"More Reviews"},fr:{exhibitions:"Expositions",map:"Carte",reviews:"Critiques",allShows:"Toutes",myPlan:"Mon Plan",all:"Tout",featured:"En vedette",reviewed:"Critiquées",closing:"Ferme cette semaine",opening:"Ouvre cette semaine",nearby:"À proximité",mileEnd:"Mile-End",downtown:"Centre-ville",rosemont:"Rosemont",griffintown:"Griffintown",saintHenri:"Saint-Henri",plateau:"Plateau",getDirections:"Itinéraire",share:"Partager",back:"Retour",dates:"Dates",hours:"Heures",area:"Quartier",noShowsInPlan:"Aucune exposition dans votre plan",addFromShows:"Ajoutez des expositions depuis Expositions",locationDenied:"Accès refusé.",gettingLocation:"Localisation…",vernissageReview:"Critique du Vernissage",closingSoon:"Ferme bientôt",openingSoon:"Ouvre bientôt",away:"de vous",betweenShows:"Entre expositions",featuredReview:"Critique en vedette",moreReviews:"Plus de critiques"}};
 
 const INK="#0F0E0C",BLUE="#2B5BE8",WHITE="#FFFFFF",BORDER="#E8E5E0",MID="#6B6560",LIGHT="#F4F4F4";
 const TODAY=new Date("2026-04-08");
-const MAP_CENTER={lat:45.5080,lng:-73.5750};
-const LIBRARIES=["places"];
-const MAP_OPTIONS={styles:MAP_STYLE,disableDefaultUI:true,zoomControl:true,clickableIcons:false};
-
-const MAP_STYLE=[
-  {featureType:"all",elementType:"labels.text.fill",stylers:[{color:"#4a4a4a"}]},
-  {featureType:"water",elementType:"geometry",stylers:[{color:"#d4e4f0"}]},
-  {featureType:"landscape",elementType:"geometry",stylers:[{color:"#f5f4f0"}]},
-  {featureType:"road.highway",elementType:"geometry",stylers:[{color:"#ffffff"},{weight:1.5}]},
-  {featureType:"road.arterial",elementType:"geometry",stylers:[{color:"#ffffff"},{weight:1}]},
-  {featureType:"road.local",elementType:"geometry",stylers:[{color:"#ffffff"},{weight:0.8}]},
-  {featureType:"poi.park",elementType:"geometry",stylers:[{color:"#e8f0e0"}]},
-  {featureType:"poi",elementType:"labels",stylers:[{visibility:"off"}]},
-  {featureType:"transit",elementType:"labels",stylers:[{visibility:"off"}]},
-];
 
 function isClosingThisWeek(s){const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<=7;}
 function isOpeningThisWeek(s){const d=(new Date(s.openDate)-TODAY)/86400000;return d>=-7&&d<=7;}
@@ -58,77 +39,10 @@ function distanceKm(lat1,lng1,lat2,lng2){const R=6371,dLat=(lat2-lat1)*Math.PI/1
 function mapsUrl(addr){return`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}`;}
 function badgeSVG(){return`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="13" fill="#7BA7D4" stroke="white" stroke-width="2"/><text x="14" y="19" font-family="sans-serif" font-size="14" fill="white" text-anchor="middle">✦</text></svg>`;}
 
-// ─── Pin rendered as React OverlayView ────────────────────────────────────────
-function MapPin({show, isActive, onClick}){
-  const size=isActive?42:34;
-  const headR=isActive?14:11;
-  const totalH=size+12;
-  return(
-    <div
-      onClick={e=>{e.stopPropagation();onClick(show);}}
-      onTouchEnd={e=>{e.stopPropagation();e.preventDefault();onClick(show);}}
-      style={{position:"relative",width:size,height:totalH,cursor:"pointer",transform:"translate(-50%, -100%)",transition:"all 0.15s"}}
-    >
-      <svg width={size} height={totalH} viewBox={`0 0 ${size} ${totalH}`} xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <filter id={`sh-${show.id}`} x="-60%" y="-20%" width="220%" height="180%">
-            <feDropShadow dx="0" dy="3" stdDeviation="2.5" floodColor="rgba(0,0,0,0.28)"/>
-          </filter>
-        </defs>
-        <ellipse cx={size/2} cy={totalH-1} rx={3.5} ry={1.5} fill="rgba(0,0,0,0.13)"/>
-        <line x1={size/2} y1={headR+3} x2={size/2} y2={totalH-3} stroke="#BBBBBB" strokeWidth="1.5" strokeLinecap="round"/>
-        <circle cx={size/2} cy={headR+1} r={headR+2} fill="white" filter={`url(#sh-${show.id})`}/>
-        <circle cx={size/2} cy={headR+1} r={headR} fill={show.featured?"#7BA7D4":"#E8251A"}/>
-        <circle cx={size/2} cy={headR+1} r={headR} fill="none" stroke="white" strokeWidth="2"/>
-        {show.featured&&<text x={size/2} y={headR+6} fontFamily="sans-serif" fontSize="12" fill="white" textAnchor="middle">✦</text>}
-      </svg>
-    </div>
-  );
-}
-
-// ─── Info card — pure React, zero DOM hacks ───────────────────────────────────
-function MapInfoCard({show, onView, onClose}){
-  const shortAddr=show.address.replace(", Montréal, QC","");
-  return(
-    <div
-      onClick={e=>e.stopPropagation()}
-      style={{
-        width:230,background:WHITE,borderRadius:6,overflow:"hidden",
-        boxShadow:"0 12px 40px rgba(0,0,0,0.16),0 2px 8px rgba(0,0,0,0.06)",
-        border:`1px solid ${BORDER}`,
-        transform:"translate(-50%, calc(-100% - 58px))",
-        fontFamily:"'DM Sans',system-ui,sans-serif",
-        position:"relative",
-      }}
-    >
-      <button
-        onClick={onClose}
-        style={{position:"absolute",top:8,right:8,width:22,height:22,borderRadius:"50%",border:"none",background:"rgba(0,0,0,0.06)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:MID,lineHeight:1,padding:0,zIndex:1}}
-      >×</button>
-      <div style={{height:5,background:show.between?"#D8D4CC":show.color}}/>
-      <div style={{padding:"14px 16px 14px"}}>
-        <p style={{margin:"0 0 7px",fontSize:10,letterSpacing:".12em",textTransform:"uppercase",color:BLUE,fontWeight:700,paddingRight:20}}>{show.gallery}</p>
-        {show.between?(
-          <p style={{margin:"0 0 12px",fontSize:13,color:MID,fontStyle:"italic"}}>Between exhibitions</p>
-        ):(
-          <>
-            <p style={{margin:"0 0 3px",fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:17,fontStyle:"italic",fontWeight:600,color:INK,lineHeight:1.25}}>{show.title}</p>
-            <p style={{margin:"0 0 12px",fontSize:12,color:MID}}>{show.artist}</p>
-          </>
-        )}
-        <p style={{margin:"0 0 14px",fontSize:11,color:"#9B9590",display:"flex",alignItems:"center",gap:4}}>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="#9B9590"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-          {shortAddr}
-        </p>
-        <button
-          onClick={()=>onView(show)}
-          style={{width:"100%",background:INK,color:WHITE,border:"none",padding:"11px 0",borderRadius:3,fontSize:10,letterSpacing:".12em",textTransform:"uppercase",fontWeight:700,cursor:"pointer",fontFamily:"'DM Sans',system-ui,sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}
-        >
-          View exhibition <span style={{fontSize:13}}>→</span>
-        </button>
-      </div>
-    </div>
-  );
+function pinSVG(featured,id){
+  const fid=id||"x";
+  if(featured){return`<svg xmlns="http://www.w3.org/2000/svg" width="34" height="48" viewBox="0 0 34 48"><defs><filter id="pf${fid}"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="rgba(0,0,0,0.32)"/></filter></defs><ellipse cx="17" cy="46.5" rx="5" ry="1.5" fill="rgba(0,0,0,0.14)"/><line x1="17" y1="18" x2="17" y2="44" stroke="#BBBBBB" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="15" r="14" fill="white" filter="url(#pf${fid})"/><circle cx="17" cy="15" r="12" fill="#7BA7D4"/><circle cx="17" cy="15" r="12" fill="none" stroke="white" stroke-width="2"/><text x="17" y="20" font-family="sans-serif" font-size="14" fill="white" text-anchor="middle">✦</text></svg>`;}
+  return`<svg xmlns="http://www.w3.org/2000/svg" width="34" height="48" viewBox="0 0 34 48"><defs><filter id="pn${fid}"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="rgba(0,0,0,0.32)"/></filter></defs><ellipse cx="17" cy="46.5" rx="5" ry="1.5" fill="rgba(0,0,0,0.14)"/><line x1="17" y1="18" x2="17" y2="44" stroke="#BBBBBB" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="15" r="14" fill="white" filter="url(#pn${fid})"/><circle cx="17" cy="15" r="12" fill="#E8251A"/><circle cx="17" cy="15" r="12" fill="none" stroke="white" stroke-width="2"/></svg>`;
 }
 
 export default function App(){
@@ -141,14 +55,23 @@ export default function App(){
   const[locError,setLocError]=useState(false);
   const[lang,setLang]=useState("en");
   const[showLangBanner,setShowLangBanner]=useState(false);
-  const[activePin,setActivePin]=useState(null);
+  const mapRef=useRef(null);
+  const gMapRef=useRef(null);
+  const markersRef=useRef([]);
   const t=T[lang];
 
-  const{isLoaded}=useJsApiLoader({googleMapsApiKey:GMAPS_KEY,libraries:LIBRARIES});
-  const onMapLoad=useCallback(()=>{},[]);
-  const handleMapClick=useCallback(()=>setActivePin(null),[]);
-
   const toggleSave=(id)=>setSaved(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n;});
+
+  // Register global so marker popups can open detail overlay
+  useEffect(()=>{
+    window.__lvOpen=(id)=>{
+      const s=SHOWS.find(x=>x.id===id);
+      if(s)setDetail(s);
+    };
+    return()=>{delete window.__lvOpen;};
+  },[]);
+
+  useEffect(()=>{if(filter==="nearby"&&!userLoc&&!locError){navigator.geolocation?.getCurrentPosition(pos=>setUserLoc({lat:pos.coords.latitude,lng:pos.coords.longitude}),()=>setLocError(true));}},[filter]);
 
   const filtered=SHOWS.filter(s=>{
     if(filter==="all")return!s.between;
@@ -169,36 +92,111 @@ export default function App(){
     return 0;
   });
 
-  const PinButton=({id,size=42})=>{const on=saved.has(id);return(<button onClick={e=>{e.stopPropagation();toggleSave(id);}} style={{width:size,height:size,borderRadius:4,border:`1.5px solid ${on?BLUE:BORDER}`,background:on?BLUE:WHITE,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,transition:"all 0.15s"}}><svg width="20" height="20" viewBox="0 0 24 24" fill={on?WHITE:"#C0BBB5"} xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></button>);};
+  // Google Maps — loaded via script tag, no npm package needed
+  useEffect(()=>{
+    if(tab!=="map")return;
+    if(gMapRef.current){return;}
+
+    const initMap=()=>{
+      if(!mapRef.current||gMapRef.current)return;
+      const google=window.google;
+      const map=new google.maps.Map(mapRef.current,{
+        center:{lat:45.5080,lng:-73.5750},
+        zoom:13,
+        disableDefaultUI:true,
+        zoomControl:true,
+        clickableIcons:false,
+        styles:[
+          {featureType:"poi",elementType:"labels",stylers:[{visibility:"off"}]},
+          {featureType:"transit",elementType:"labels",stylers:[{visibility:"off"}]},
+          {featureType:"water",elementType:"geometry",stylers:[{color:"#d4e4f0"}]},
+          {featureType:"landscape",elementType:"geometry",stylers:[{color:"#f5f4f0"}]},
+        ],
+      });
+      gMapRef.current=map;
+
+      const showsToRender=mapMode==="plan"?SHOWS.filter(s=>saved.has(s.id)):SHOWS;
+
+      showsToRender.forEach(s=>{
+        const icon={
+          url:"data:image/svg+xml;charset=UTF-8,"+encodeURIComponent(pinSVG(s.featured,s.id)),
+          scaledSize:new google.maps.Size(34,48),
+          anchor:new google.maps.Point(17,48),
+        };
+        const marker=new google.maps.Marker({position:{lat:s.lat,lng:s.lng},map,icon,title:s.gallery});
+        const shortAddr=s.address.replace(", Montréal, QC","");
+        const infoContent=`
+          <div style="width:220px;font-family:'DM Sans',sans-serif;background:#fff;border-radius:6px;overflow:hidden;">
+            <div style="height:5px;background:${s.between?"#D8D4CC":s.color};"></div>
+            <div style="padding:14px 15px;">
+              <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#2B5BE8;font-weight:700;margin-bottom:6px;">${s.gallery}</div>
+              ${s.between
+                ?`<div style="font-size:13px;color:#6B6560;font-style:italic;margin-bottom:10px;">Between exhibitions</div>`
+                :`<div style="font-family:'Cormorant Garamond',serif;font-size:17px;font-style:italic;font-weight:600;color:#0F0E0C;line-height:1.2;margin-bottom:3px;">${s.title}</div>
+                  <div style="font-size:12px;color:#6B6560;margin-bottom:10px;">${s.artist}</div>`
+              }
+              <div style="font-size:11px;color:#9B9590;margin-bottom:13px;">📍 ${shortAddr}</div>
+              <button
+                onclick="window.__lvOpen('${s.id}')"
+                ontouchend="window.__lvOpen('${s.id}')"
+                style="width:100%;background:#0F0E0C;color:#fff;border:none;padding:11px 0;border-radius:3px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">
+                View exhibition →
+              </button>
+            </div>
+          </div>`;
+
+        const infoWindow=new google.maps.InfoWindow({content:infoContent,disableAutoPan:false});
+        marker.addListener("click",()=>{
+          markersRef.current.forEach(m=>m.iw.close());
+          infoWindow.open({anchor:marker,map});
+        });
+        markersRef.current.push({marker,iw:infoWindow});
+      });
+
+      map.addListener("click",()=>{
+        markersRef.current.forEach(m=>m.iw.close());
+      });
+    };
+
+    if(window.google&&window.google.maps){
+      initMap();
+    } else {
+      const scriptId="gmap-script";
+      if(!document.getElementById(scriptId)){
+        window.__initGMap=initMap;
+        const sc=document.createElement("script");
+        sc.id=scriptId;
+        sc.src=`https://maps.googleapis.com/maps/api/js?key=${GMAPS_KEY}&callback=__initGMap`;
+        sc.async=true;
+        document.head.appendChild(sc);
+      }
+    }
+  },[tab]);
+
+  const PinButton=({id,size=42})=>{const on=saved.has(id);return(<button onClick={e=>{e.stopPropagation();toggleSave(id);}} style={{width:size,height:size,borderRadius:4,border:`1.5px solid ${on?BLUE:BORDER}`,background:on?BLUE:WHITE,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,transition:"all 0.15s"}}><svg width="20" height="20" viewBox="0 0 24 24" fill={on?WHITE:"#C0BBB5"}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></button>);};
 
   const FILTERS=[["featured",t.featured],["all",t.all],["closing",t.closing],["opening",t.opening],["nearby",t.nearby],["mile-end",t.mileEnd],["downtown",t.downtown],["rosemont",t.rosemont],["griffintown",t.griffintown],["saint-henri",t.saintHenri],["plateau",t.plateau]];
   const shortAddr=a=>a.replace(", Montréal, QC","");
   const tabs=[["exhibitions",t.exhibitions],["map",t.map],...(FEATURES.reviews?[["reviews",t.reviews]]:[])];
-  const showsForMap=mapMode==="plan"?SHOWS.filter(s=>saved.has(s.id)):SHOWS;
-  const activePinShow=activePin?SHOWS.find(s=>s.id===activePin):null;
 
   return(
     <div style={{fontFamily:"'DM Sans',sans-serif",background:WHITE,height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden",maxWidth:430,margin:"0 auto",position:"relative",boxShadow:"0 0 60px rgba(0,0,0,0.08)"}}>
-      {/* Header */}
       <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,height:56,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",flexShrink:0,zIndex:10}}>
         <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:600,letterSpacing:"0.04em"}}>Le Vernissage<span style={{color:BLUE}}>.</span></div>
-        <div style={{display:"flex",gap:4,alignItems:"center"}}>{["en","fr"].map(l=>(<button key={l} onClick={()=>{setLang(l);if(l==="fr")setShowLangBanner(true);}} style={{padding:"5px 10px",borderRadius:3,border:`1px solid ${lang===l?INK:BORDER}`,background:lang===l?INK:WHITE,color:lang===l?WHITE:MID,fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>{l}</button>))}</div>
+        <div style={{display:"flex",gap:4}}>{["en","fr"].map(l=>(<button key={l} onClick={()=>{setLang(l);if(l==="fr")setShowLangBanner(true);}} style={{padding:"5px 10px",borderRadius:3,border:`1px solid ${lang===l?INK:BORDER}`,background:lang===l?INK:WHITE,color:lang===l?WHITE:MID,fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>{l}</button>))}</div>
       </div>
       {showLangBanner&&lang==="fr"&&(<div style={{background:BLUE,color:WHITE,fontSize:12,padding:"10px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}><span>Version française bientôt disponible</span><button onClick={()=>setShowLangBanner(false)} style={{background:"none",border:"none",color:WHITE,fontSize:20,cursor:"pointer",lineHeight:1,padding:0}}>×</button></div>)}
-
-      {/* Tabs */}
       <div style={{background:LIGHT,borderBottom:`1px solid ${BORDER}`,display:"flex",flexShrink:0,zIndex:10,padding:"6px 6px 0"}}>
         {tabs.map(([key,label])=>(<button key={key} onClick={()=>setTab(key)} style={{flex:1,padding:"11px 6px 12px",fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:tab===key?INK:MID,background:tab===key?WHITE:"transparent",border:`1px solid ${tab===key?BORDER:"transparent"}`,borderBottom:tab===key?`1px solid ${WHITE}`:"none",borderRadius:"4px 4px 0 0",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",marginBottom:tab===key?-1:0,zIndex:tab===key?2:1,position:"relative"}}>{label}</button>))}
       </div>
 
       <div style={{flex:1,overflow:"hidden",position:"relative",background:WHITE}}>
 
-        {/* Exhibitions */}
         {tab==="exhibitions"&&(
           <div style={{height:"100%",display:"flex",flexDirection:"column"}}>
             <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,padding:"12px 0 12px 16px",flexShrink:0}}>
               <div style={{display:"flex",gap:8,overflowX:"auto",scrollbarWidth:"none",paddingRight:16}}>
-                {FILTERS.map(([val,label])=>(<button key={val} onClick={()=>{setFilter(val);if(val==="nearby"&&!userLoc&&!locError){navigator.geolocation?.getCurrentPosition(pos=>setUserLoc({lat:pos.coords.latitude,lng:pos.coords.longitude}),()=>setLocError(true));}}} style={{flexShrink:0,padding:"7px 15px",borderRadius:20,fontSize:12,letterSpacing:"0.06em",textTransform:"uppercase",fontWeight:500,border:`1.5px solid ${filter===val?BLUE:BORDER}`,background:filter===val?BLUE:WHITE,color:filter===val?WHITE:MID,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap"}}>{label}</button>))}
+                {FILTERS.map(([val,label])=>(<button key={val} onClick={()=>setFilter(val)} style={{flexShrink:0,padding:"7px 15px",borderRadius:20,fontSize:12,letterSpacing:"0.06em",textTransform:"uppercase",fontWeight:500,border:`1.5px solid ${filter===val?BLUE:BORDER}`,background:filter===val?BLUE:WHITE,color:filter===val?WHITE:MID,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap"}}>{label}</button>))}
               </div>
             </div>
             {filter==="nearby"&&locError&&<div style={{padding:"24px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.locationDenied}</div>}
@@ -245,49 +243,14 @@ export default function App(){
           </div>
         )}
 
-        {/* Map */}
-        {tab==="map"&&(
-          <div style={{height:"100%",display:"flex",flexDirection:"column",position:"relative"}}>
-            <div style={{position:"absolute",top:14,left:"50%",transform:"translateX(-50%)",zIndex:10,display:"flex",background:"rgba(255,255,255,0.35)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",border:"1px solid rgba(255,255,255,0.5)",borderRadius:6,overflow:"hidden",boxShadow:"0 2px 12px rgba(0,0,0,0.07)"}}>
-              {[["all",t.allShows],["plan",t.myPlan]].map(([mode,label])=>(<button key={mode} onClick={()=>setMapMode(mode)} style={{padding:"9px 20px",fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:700,background:mapMode===mode?"rgba(43,91,232,0.90)":"transparent",color:mapMode===mode?WHITE:"rgba(15,14,12,0.75)",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",transition:"all 0.15s"}}>{label}</button>))}
-            </div>
-            {mapMode==="plan"&&saved.size===0&&(
-              <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:9,textAlign:"center",pointerEvents:"none",padding:"0 40px"}}>
-                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic",color:MID,marginBottom:8}}>{t.noShowsInPlan}</div>
-                <div style={{fontSize:13,color:BORDER,lineHeight:1.6}}>{t.addFromShows}</div>
-              </div>
-            )}
-            {!isLoaded?(
-              <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:MID,fontSize:14}}>Loading map…</div>
-            ):(
-              <GoogleMap
-                mapContainerStyle={{flex:1,width:"100%"}}
-                center={MAP_CENTER}
-                zoom={13}
-                options={MAP_OPTIONS}
-                onLoad={onMapLoad}
-                onClick={handleMapClick}
-              >
-                {showsForMap.map(s=>(
-                  <OverlayView key={s.id} position={{lat:s.lat,lng:s.lng}} mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}>
-                    <MapPin show={s} isActive={activePin===s.id} onClick={show=>setActivePin(activePin===show.id?null:show.id)}/>
-                  </OverlayView>
-                ))}
-                {activePinShow&&(
-                  <OverlayView position={{lat:activePinShow.lat,lng:activePinShow.lng}} mapPaneName={OverlayView.FLOAT_PANE}>
-                    <MapInfoCard
-                      show={activePinShow}
-                      onView={show=>{setActivePin(null);setDetail(show);}}
-                      onClose={()=>setActivePin(null)}
-                    />
-                  </OverlayView>
-                )}
-              </GoogleMap>
-            )}
+        <div style={{display:tab==="map"?"flex":"none",flexDirection:"column",height:"100%",position:"relative"}}>
+          <div style={{position:"absolute",top:14,left:"50%",transform:"translateX(-50%)",zIndex:1000,display:"flex",background:"rgba(255,255,255,0.35)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",border:"1px solid rgba(255,255,255,0.5)",borderRadius:6,overflow:"hidden",boxShadow:"0 2px 12px rgba(0,0,0,0.07)"}}>
+            {[["all",t.allShows],["plan",t.myPlan]].map(([mode,label])=>(<button key={mode} onClick={()=>setMapMode(mode)} style={{padding:"9px 20px",fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:700,background:mapMode===mode?"rgba(43,91,232,0.90)":"transparent",color:mapMode===mode?WHITE:"rgba(15,14,12,0.75)",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",transition:"all 0.15s"}}>{label}</button>))}
           </div>
-        )}
+          {mapMode==="plan"&&saved.size===0&&(<div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:999,textAlign:"center",pointerEvents:"none",padding:"0 40px"}}><div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic",color:MID,marginBottom:8}}>{t.noShowsInPlan}</div><div style={{fontSize:13,color:BORDER,lineHeight:1.6}}>{t.addFromShows}</div></div>)}
+          <div ref={mapRef} style={{flex:1,width:"100%"}}/>
+        </div>
 
-        {/* Reviews — preserved, gated */}
         {FEATURES.reviews&&tab==="reviews"&&(
           <div style={{height:"100%",overflowY:"auto"}}>
             <div onClick={()=>setDetail(SHOWS[0])} style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,cursor:"pointer",paddingBottom:20}}>
@@ -305,7 +268,6 @@ export default function App(){
         )}
       </div>
 
-      {/* Detail overlay — fixed, covers full screen */}
       {detail&&(
         <div style={{position:"fixed",inset:0,background:WHITE,zIndex:200,overflowY:"auto",animation:"slideUp 0.32s cubic-bezier(0.16,1,0.3,1)",maxWidth:430,margin:"0 auto"}}>
           <div style={{position:"sticky",top:0,background:WHITE,borderBottom:`1px solid ${BORDER}`,height:54,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",zIndex:10}}>
@@ -328,7 +290,7 @@ export default function App(){
           </div>
         </div>
       )}
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}*{-webkit-font-smoothing:antialiased;}::-webkit-scrollbar{display:none;}`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}*{-webkit-font-smoothing:antialiased;}::-webkit-scrollbar{display:none;}.gm-style-iw{padding:0!important;border-radius:6px!important;overflow:hidden!important;}.gm-style-iw-d{overflow:hidden!important;padding:0!important;}.gm-style-iw-c{padding:0!important;border-radius:6px!important;box-shadow:0 12px 40px rgba(0,0,0,0.16)!important;}.gm-ui-hover-effect{top:4px!important;right:4px!important;}.gm-style-iw-tc{display:none!important;}`}</style>
     </div>
   );
 }
