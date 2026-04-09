@@ -124,7 +124,10 @@ export default function App(){
   useEffect(()=>{
     window.__lvSelectShow=(id)=>{
       const show=SHOWS.find(x=>x.id===id);
-      if(show)setDetail(show);
+      if(!show)return;
+      // Close any open Leaflet popups first
+      if(leafletMapRef.current)leafletMapRef.current.closePopup();
+      setDetail(show);
     };
     return()=>{ delete window.__lvSelectShow; };
   },[]);
@@ -312,7 +315,7 @@ export default function App(){
       </div>
 
       {detail&&(
-        <div style={{position:"absolute",inset:0,background:WHITE,zIndex:50,overflowY:"auto",animation:"slideUp 0.32s cubic-bezier(0.16,1,0.3,1)"}}>
+        <div style={{position:"fixed",inset:0,background:WHITE,zIndex:200,overflowY:"auto",animation:"slideUp 0.32s cubic-bezier(0.16,1,0.3,1)",maxWidth:430,margin:"0 auto"}}>
           <div style={{position:"sticky",top:0,background:WHITE,borderBottom:`1px solid ${BORDER}`,height:54,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",zIndex:10}}>
             <button onClick={()=>setDetail(null)} style={{fontSize:12,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:700,color:MID,background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:7,fontFamily:"'DM Sans',sans-serif"}}><span style={{fontSize:18,color:INK,lineHeight:1}}>←</span>{t.back}</button>
             <PinButton id={detail.id} size={40}/>
