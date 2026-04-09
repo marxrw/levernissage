@@ -163,12 +163,27 @@ export default function App(){
       const showsToRender=SHOWS;
 
       // Geocode all addresses in parallel then add to clusterer
+      // Track geocoded positions to offset duplicates (same-building galleries)
+      const seenPositions={};
       const markers=await Promise.all(showsToRender.map(s=>new Promise(resolve=>{
         geocoder.geocode({address:s.address},(results,status)=>{
-          const pos=(status==="OK"&&results[0])
-            ?results[0].geometry.location
-            :{lat:s.lat,lng:s.lng};
-          resolve(buildMarker(google,map,s,pos));
+          let lat,lng;
+          if(status==="OK"&&results[0]){
+            lat=results[0].geometry.location.lat();
+            lng=results[0].geometry.location.lng();
+          } else {
+            lat=s.lat; lng=s.lng;
+          }
+          // If another gallery already geocoded to this exact spot, add a tiny
+          // spiral offset (~8m) so pins are individually tappable at max zoom
+          const key=lat.toFixed(5)+","+lng.toFixed(5);
+          const count=seenPositions[key]=(seenPositions[key]||0)+1;
+          if(count>1){
+            const angle=(count-1)*(2*Math.PI/8);
+            lat+=0.00008*Math.cos(angle);
+            lng+=0.00008*Math.sin(angle);
+          }
+          resolve(buildMarker(google,map,s,{lat,lng}));
         });
       })));
 
