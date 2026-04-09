@@ -35,10 +35,16 @@ function distanceKm(lat1,lng1,lat2,lng2){const R=6371,dLat=(lat2-lat1)*Math.PI/1
 function mapsUrl(addr){return`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}`;}
 
 // A5 badge SVG: champagne shimmer, navy star, no outer ring
-function badgeSVG(){return`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="14" fill="#F5E6B8"/><circle cx="14" cy="14" r="10" fill="#D4B870"/><circle cx="11" cy="11" r="3" fill="rgba(255,255,255,0.55)"/><text x="14" y="19" font-family="sans-serif" font-size="13" fill="#1A3A7A" text-anchor="middle">✦</text></svg>`;}
+// Badge for exhibition cards: pale blue circle, white outline, white star
+function badgeSVG(){return`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="13" fill="#7BA7D4" stroke="white" stroke-width="2"/><text x="14" y="19" font-family="sans-serif" font-size="14" fill="white" text-anchor="middle">✦</text></svg>`;}
 
-// Pin: red for all. Featured gets A5 badge overlay.
-function pinSVG(featured){return`<svg xmlns="http://www.w3.org/2000/svg" width="32" height="46" viewBox="0 0 32 46"><defs><filter id="ps" x="-60%" y="-20%" width="220%" height="180%"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="rgba(0,0,0,0.28)"/></filter><radialGradient id="pg" cx="35%" cy="28%" r="65%"><stop offset="0%" stop-color="#FF6B5A"/><stop offset="100%" stop-color="${PIN_RED}"/></radialGradient></defs><ellipse cx="16" cy="44.5" rx="5" ry="1.5" fill="rgba(0,0,0,0.14)"/><line x1="16" y1="17" x2="16" y2="42" stroke="#AAAAAA" stroke-width="1.3" stroke-linecap="round"/><circle cx="16" cy="14" r="13" fill="url(#pg)" filter="url(#ps)"/><circle cx="13" cy="11" r="4" fill="white" opacity="0.22"/><circle cx="16" cy="14" r="3.5" fill="white" opacity="0.80"/>${featured?`<circle cx="24" cy="6" r="7" fill="#F5E6B8"/><circle cx="24" cy="6" r="5" fill="#D4B870"/><circle cx="22.5" cy="4.5" r="1.5" fill="rgba(255,255,255,0.55)"/><text x="24" y="10" font-family="sans-serif" font-size="7" fill="#1A3A7A" text-anchor="middle">✦</text>`:""}</svg>`;}
+// Pin SVG: red solid for non-featured, pale blue with white star for featured
+function pinSVG(featured){
+  if(featured){
+    return`<svg xmlns="http://www.w3.org/2000/svg" width="32" height="46" viewBox="0 0 32 46"><defs><filter id="psf" x="-60%" y="-20%" width="220%" height="180%"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="rgba(0,0,0,0.28)"/></filter></defs><ellipse cx="16" cy="44.5" rx="5" ry="1.5" fill="rgba(0,0,0,0.14)"/><line x1="16" y1="17" x2="16" y2="42" stroke="#AAAAAA" stroke-width="1.3" stroke-linecap="round"/><circle cx="16" cy="14" r="13" fill="#7BA7D4" stroke="white" stroke-width="2" filter="url(#psf)"/><text x="16" y="19" font-family="sans-serif" font-size="13" fill="white" text-anchor="middle">✦</text></svg>`;
+  }
+  return`<svg xmlns="http://www.w3.org/2000/svg" width="32" height="46" viewBox="0 0 32 46"><defs><filter id="psn" x="-60%" y="-20%" width="220%" height="180%"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="rgba(0,0,0,0.28)"/></filter></defs><ellipse cx="16" cy="44.5" rx="5" ry="1.5" fill="rgba(0,0,0,0.14)"/><line x1="16" y1="17" x2="16" y2="42" stroke="#AAAAAA" stroke-width="1.3" stroke-linecap="round"/><circle cx="16" cy="14" r="13" fill="#E8251A" filter="url(#psn)"/><circle cx="13" cy="11" r="4" fill="white" opacity="0.22"/><circle cx="16" cy="14" r="3.5" fill="white" opacity="0.80"/></svg>`;
+}
 
 export default function App(){
   const[tab,setTab]=useState("exhibitions");
@@ -188,7 +194,7 @@ export default function App(){
         )}
 
         <div style={{display:tab==="map"?"flex":"none",flexDirection:"column",height:"100%",position:"relative"}}>
-          <div style={{position:"absolute",top:14,left:"50%",transform:"translateX(-50%)",zIndex:1000,display:"flex",background:"rgba(255,255,255,0.75)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",border:"1px solid rgba(232,229,224,0.6)",borderRadius:6,overflow:"hidden",boxShadow:"0 2px 10px rgba(0,0,0,0.08)"}}>
+          <div style={{position:"absolute",top:14,left:"50%",transform:"translateX(-50%)",zIndex:1000,display:"flex",background:"rgba(255,255,255,0.55)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:6,overflow:"hidden",boxShadow:"0 2px 10px rgba(0,0,0,0.06)"}}>
             {[["all",t.allShows],["plan",t.myPlan]].map(([mode,label])=>(<button key={mode} onClick={()=>setMapMode(mode)} style={{padding:"9px 20px",fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:700,background:mapMode===mode?BLUE:"transparent",color:mapMode===mode?WHITE:MID,border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",transition:"all 0.15s"}}>{label}</button>))}
           </div>
           {mapMode==="plan"&&saved.size===0&&(<div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:999,textAlign:"center",pointerEvents:"none",padding:"0 40px"}}><div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic",color:MID,marginBottom:8}}>{t.noShowsInPlan}</div><div style={{fontSize:13,color:BORDER,lineHeight:1.6}}>{t.addFromShows}</div></div>)}
