@@ -39,13 +39,13 @@ function mapsUrl(addr){return`https://www.google.com/maps/dir/?api=1&destination
 // Badge for exhibition cards: pale blue circle, white outline, white star
 function badgeSVG(){return`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="13" fill="#7BA7D4" stroke="white" stroke-width="2"/><text x="14" y="19" font-family="sans-serif" font-size="14" fill="white" text-anchor="middle">✦</text></svg>`;}
 
-// Pin SVG: plain solid red for non-featured (no white dot), pale blue ✦ for featured
+// Pin SVG — red with white outline for non-featured, pale blue ✦ for featured
 function pinSVG(featured,id){
   const fid=id||"x";
   if(featured){
-    return`<svg xmlns="http://www.w3.org/2000/svg" width="32" height="46" viewBox="0 0 32 46"><defs><filter id="pf${fid}" x="-60%" y="-20%" width="220%" height="180%"><feDropShadow dx="0" dy="3" stdDeviation="2" flood-color="rgba(0,0,0,0.3)"/></filter></defs><ellipse cx="16" cy="44.5" rx="5" ry="1.5" fill="rgba(0,0,0,0.14)"/><line x1="16" y1="17" x2="16" y2="42" stroke="#AAAAAA" stroke-width="1.3" stroke-linecap="round"/><circle cx="16" cy="14" r="13" fill="#7BA7D4" stroke="white" stroke-width="2" filter="url(#pf${fid})"/><text x="16" y="19" font-family="sans-serif" font-size="13" fill="white" text-anchor="middle">✦</text></svg>`;
+    return`<svg xmlns="http://www.w3.org/2000/svg" width="34" height="48" viewBox="0 0 34 48"><defs><filter id="pf${fid}" x="-60%" y="-20%" width="220%" height="180%"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="rgba(0,0,0,0.32)"/></filter></defs><ellipse cx="17" cy="46.5" rx="5" ry="1.5" fill="rgba(0,0,0,0.14)"/><line x1="17" y1="18" x2="17" y2="44" stroke="#BBBBBB" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="15" r="14" fill="white" filter="url(#pf${fid})"/><circle cx="17" cy="15" r="12" fill="#7BA7D4"/><circle cx="17" cy="15" r="12" fill="none" stroke="white" stroke-width="2"/><text x="17" y="20" font-family="sans-serif" font-size="14" fill="white" text-anchor="middle">✦</text></svg>`;
   }
-  return`<svg xmlns="http://www.w3.org/2000/svg" width="32" height="46" viewBox="0 0 32 46"><defs><filter id="pn${fid}" x="-60%" y="-20%" width="220%" height="180%"><feDropShadow dx="0" dy="3" stdDeviation="2" flood-color="rgba(0,0,0,0.3)"/></filter></defs><ellipse cx="16" cy="44.5" rx="5" ry="1.5" fill="rgba(0,0,0,0.14)"/><line x1="16" y1="17" x2="16" y2="42" stroke="#AAAAAA" stroke-width="1.3" stroke-linecap="round"/><circle cx="16" cy="14" r="13" fill="#E8251A" filter="url(#pn${fid})"/></svg>`;
+  return`<svg xmlns="http://www.w3.org/2000/svg" width="34" height="48" viewBox="0 0 34 48"><defs><filter id="pn${fid}" x="-60%" y="-20%" width="220%" height="180%"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="rgba(0,0,0,0.32)"/></filter></defs><ellipse cx="17" cy="46.5" rx="5" ry="1.5" fill="rgba(0,0,0,0.14)"/><line x1="17" y1="18" x2="17" y2="44" stroke="#BBBBBB" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="15" r="14" fill="white" filter="url(#pn${fid})"/><circle cx="17" cy="15" r="12" fill="#E8251A"/><circle cx="17" cy="15" r="12" fill="none" stroke="white" stroke-width="2"/></svg>`;
 }
 
 export default function App(){
@@ -87,8 +87,26 @@ export default function App(){
   });
 
   function addMarker(L,map,s){
-    const icon=L.divIcon({className:"",html:pinSVG(s.featured,s.id),iconSize:[32,46],iconAnchor:[16,46],popupAnchor:[0,-48]});
-    const marker=L.marker([s.lat,s.lng],{icon}).addTo(map).bindPopup(`<div style="width:215px;font-family:'DM Sans',sans-serif;"><div style="height:4px;background:${s.between?"#D8D4CC":s.color};"></div><div style="padding:13px 15px 15px;"><div style="font-size:10px;letter-spacing:.10em;text-transform:uppercase;color:${BLUE};font-weight:700;margin-bottom:4px;">${s.gallery}</div>${s.between?`<div style="font-size:13px;color:${MID};font-style:italic;margin-bottom:8px;">Between exhibitions</div>`:`<div style="font-family:'Cormorant Garamond',serif;font-size:17px;font-style:italic;font-weight:600;color:${INK};line-height:1.2;margin-bottom:4px;">${s.title}</div><div style="font-size:12px;color:${MID};margin-bottom:4px;">${s.artist}</div>`}<div style="font-size:11px;color:${MID};margin-bottom:12px;">${s.address.replace(", Montréal, QC","")}</div><button onclick="window.__lvSelect('${s.id}')" style="width:100%;background:${INK};color:white;border:none;padding:10px;border-radius:3px;font-size:10px;letter-spacing:.10em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">View →</button></div></div>`,{className:"vp",maxWidth:235});
+    const icon=L.divIcon({className:"",html:pinSVG(s.featured,s.id),iconSize:[34,48],iconAnchor:[17,48],popupAnchor:[0,-50]});
+    const marker=L.marker([s.lat,s.lng],{icon}).addTo(map).bindPopup(`
+      <div style="width:215px;font-family:'DM Sans',sans-serif;">
+        <div style="height:4px;background:${s.between?"#D8D4CC":s.color};"></div>
+        <div style="padding:13px 15px 15px;">
+          <div style="font-size:10px;letter-spacing:.10em;text-transform:uppercase;color:#2B5BE8;font-weight:700;margin-bottom:4px;">${s.gallery}</div>
+          ${s.between
+            ?`<div style="font-size:13px;color:#6B6560;font-style:italic;margin-bottom:8px;">Between exhibitions</div>`
+            :`<div style="font-family:'Cormorant Garamond',serif;font-size:17px;font-style:italic;font-weight:600;color:#0F0E0C;line-height:1.2;margin-bottom:4px;">${s.title}</div>
+              <div style="font-size:12px;color:#6B6560;margin-bottom:4px;">${s.artist}</div>`
+          }
+          <div style="font-size:11px;color:#6B6560;margin-bottom:12px;">${s.address.replace(", Montréal, QC","")}</div>
+          <button
+            onclick="(function(){var evt=new CustomEvent('lv-select',{detail:'${s.id}',bubbles:true});document.dispatchEvent(evt);})()"
+            style="width:100%;background:#0F0E0C;color:white;border:none;padding:10px;border-radius:3px;font-size:10px;letter-spacing:.10em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">
+            View →
+          </button>
+        </div>
+      </div>
+    `,{className:"vp",maxWidth:235});
     markersRef.current.push({id:s.id,marker});
   }
 
@@ -106,7 +124,7 @@ export default function App(){
     if(tab!=="map")return;
     if(leafletMapRef.current){setTimeout(()=>leafletMapRef.current.invalidateSize(),60);return;}
     if(!document.getElementById("lf-css")){const l=document.createElement("link");l.id="lf-css";l.rel="stylesheet";l.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";document.head.appendChild(l);}
-    if(!document.getElementById("lf-style")){const s=document.createElement("style");s.id="lf-style";s.textContent=`.vp .leaflet-popup-content-wrapper{border-radius:4px!important;border:1px solid #E8E5E0!important;box-shadow:0 8px 28px rgba(0,0,0,0.13)!important;overflow:hidden;padding:0!important;}.vp .leaflet-popup-content{margin:0!important;}.vp .leaflet-popup-tip-container{display:none;}.leaflet-control-zoom{border:none!important;box-shadow:0 2px 8px rgba(0,0,0,0.10)!important;}.leaflet-control-zoom a{border:1px solid #E8E5E0!important;border-radius:4px!important;color:#0F0E0C!important;font-size:18px!important;margin-bottom:4px;display:flex!important;align-items:center;justify-content:center;background:white!important;width:34px!important;height:34px!important;}.leaflet-control-zoom a:hover{background:#F4F4F4!important;}.leaflet-control-attribution{font-size:9px!important;}.marker-cluster-small,.marker-cluster-medium,.marker-cluster-large{background-color:rgba(43,91,232,0.18)!important;}.marker-cluster-small div,.marker-cluster-medium div,.marker-cluster-large div{background-color:rgba(43,91,232,0.85)!important;color:white!important;font-family:'DM Sans',sans-serif!important;font-weight:700!important;font-size:12px!important;}`;document.head.appendChild(s);}
+    if(!document.getElementById("lf-style")){const s=document.createElement("style");s.id="lf-style";s.textContent=`.vp .leaflet-popup-content-wrapper{border-radius:4px!important;border:1px solid #E8E5E0!important;box-shadow:0 8px 28px rgba(0,0,0,0.13)!important;overflow:hidden;padding:0!important;}.vp .leaflet-popup-content{margin:0!important;}.vp .leaflet-popup-tip-container{display:none;}.leaflet-control-zoom{border:none!important;box-shadow:0 2px 8px rgba(0,0,0,0.10)!important;}.leaflet-control-zoom a{border:1px solid #E8E5E0!important;border-radius:4px!important;color:#0F0E0C!important;font-size:18px!important;margin-bottom:4px;display:flex!important;align-items:center;justify-content:center;background:white!important;width:34px!important;height:34px!important;}.leaflet-control-zoom a:hover{background:#F4F4F4!important;}.leaflet-control-attribution{font-size:9px!important;}.marker-cluster{background:rgba(232,37,26,0.15)!important;border:2px solid #E8251A!important;border-radius:50%!important;}.marker-cluster div{background:#E8251A!important;color:white!important;font-family:'DM Sans',sans-serif!important;font-weight:700!important;font-size:13px!important;border-radius:50%!important;border:2px solid white!important;}.marker-cluster-small{width:36px!important;height:36px!important;margin-left:-18px!important;margin-top:-18px!important;}.marker-cluster-small div{width:28px!important;height:28px!important;margin:2px!important;line-height:28px!important;}.marker-cluster-medium{width:44px!important;height:44px!important;margin-left:-22px!important;margin-top:-22px!important;}.marker-cluster-medium div{width:36px!important;height:36px!important;margin:2px!important;line-height:36px!important;}.marker-cluster-large{width:52px!important;height:52px!important;margin-left:-26px!important;margin-top:-26px!important;}.marker-cluster-large div{width:44px!important;height:44px!important;margin:2px!important;line-height:44px!important;}`;document.head.appendChild(s);}
     const initMap=async()=>{
       if(!window.L){await new Promise((res,rej)=>{const sc=document.createElement("script");sc.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";sc.onload=res;sc.onerror=rej;document.head.appendChild(sc);});}
       if(!window.L.markerClusterGroup){await new Promise((res,rej)=>{const sc=document.createElement("script");sc.src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js";sc.onload=res;sc.onerror=rej;document.head.appendChild(sc);});const lk=document.createElement("link");lk.rel="stylesheet";lk.href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css";document.head.appendChild(lk);}
@@ -116,11 +134,27 @@ export default function App(){
       L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{subdomains:"abcd",maxZoom:20,attribution:'© <a href="https://carto.com">CARTO</a>'}).addTo(map);
       L.control.zoom({position:"topright"}).addTo(map);
       leafletMapRef.current=map;
-      window.__lvSelect=(id)=>{const s=SHOWS.find(x=>x.id===id);if(s)setDetail(s);};
-      SHOWS.forEach(s=>addMarker(L,map,s));
+      // CustomEvent listener for popup View button — works across iframe boundary
+      const handler=(e)=>{const s=SHOWS.find(x=>x.id===e.detail);if(s)setDetail(s);};
+      document.addEventListener("lv-select",handler);
+      // Geocode each address via Nominatim then add to cluster
+      const cluster=L.markerClusterGroup({maxClusterRadius:35,showCoverageOnHover:false,zoomToBoundsOnClick:true});
+      for(const s of SHOWS){
+        try{
+          const res=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(s.address)}&format=json&limit=1&countrycodes=ca`,{headers:{"User-Agent":"LeVernissage/1.0"}});
+          const data=await res.json();
+          if(data&&data[0]){s.lat=parseFloat(data[0].lat);s.lng=parseFloat(data[0].lon);}
+        }catch(err){}
+        const icon=L.divIcon({className:"",html:pinSVG(s.featured,s.id),iconSize:[34,48],iconAnchor:[17,48],popupAnchor:[0,-50]});
+        const marker=L.marker([s.lat,s.lng],{icon}).bindPopup(`<div style="width:215px;font-family:'DM Sans',sans-serif;"><div style="height:4px;background:${s.between?"#D8D4CC":s.color};"></div><div style="padding:13px 15px 15px;"><div style="font-size:10px;letter-spacing:.10em;text-transform:uppercase;color:#2B5BE8;font-weight:700;margin-bottom:4px;">${s.gallery}</div>${s.between?`<div style="font-size:13px;color:#6B6560;font-style:italic;margin-bottom:8px;">Between exhibitions</div>`:`<div style="font-family:'Cormorant Garamond',serif;font-size:17px;font-style:italic;font-weight:600;color:#0F0E0C;line-height:1.2;margin-bottom:4px;">${s.title}</div><div style="font-size:12px;color:#6B6560;margin-bottom:4px;">${s.artist}</div>`}<div style="font-size:11px;color:#6B6560;margin-bottom:12px;">${s.address.replace(", Montréal, QC","")}</div><button onclick="document.dispatchEvent(new CustomEvent('lv-select',{detail:'${s.id}',bubbles:true}))" style="width:100%;background:#0F0E0C;color:white;border:none;padding:10px;border-radius:3px;font-size:10px;letter-spacing:.10em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">View →</button></div></div>`,{className:"vp",maxWidth:235});
+        cluster.addLayer(marker);
+        markersRef.current.push({id:s.id,marker});
+        await new Promise(r=>setTimeout(r,1100));
+      }
+      map.addLayer(cluster);
     };
     initMap();
-    return()=>{window.__lvSelect=null;};
+    return()=>{};
   },[tab]);
 
   const PinButton=({id,size=42})=>{const on=saved.has(id);return(<button onClick={e=>{e.stopPropagation();toggleSave(id);}} style={{width:size,height:size,borderRadius:4,border:`1.5px solid ${on?BLUE:BORDER}`,background:on?BLUE:WHITE,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,transition:"all 0.15s"}}><svg width="20" height="20" viewBox="0 0 24 24" fill={on?WHITE:"#C0BBB5"} xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></button>);};
@@ -196,8 +230,8 @@ export default function App(){
         )}
 
         <div style={{display:tab==="map"?"flex":"none",flexDirection:"column",height:"100%",position:"relative"}}>
-          <div style={{position:"absolute",top:14,left:"50%",transform:"translateX(-50%)",zIndex:1000,display:"flex",background:"rgba(255,255,255,0.55)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:6,overflow:"hidden",boxShadow:"0 2px 10px rgba(0,0,0,0.06)"}}>
-            {[["all",t.allShows],["plan",t.myPlan]].map(([mode,label])=>(<button key={mode} onClick={()=>setMapMode(mode)} style={{padding:"9px 20px",fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:700,background:mapMode===mode?BLUE:"transparent",color:mapMode===mode?WHITE:MID,border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",transition:"all 0.15s"}}>{label}</button>))}
+          <div style={{position:"absolute",top:14,left:"50%",transform:"translateX(-50%)",zIndex:1000,display:"flex",background:"rgba(255,255,255,0.35)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",border:"1px solid rgba(255,255,255,0.5)",borderRadius:6,overflow:"hidden",boxShadow:"0 2px 12px rgba(0,0,0,0.07)"}}>
+            {[["all",t.allShows],["plan",t.myPlan]].map(([mode,label])=>(<button key={mode} onClick={()=>setMapMode(mode)} style={{padding:"9px 20px",fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:700,background:mapMode===mode?"rgba(43,91,232,0.90)":"transparent",color:mapMode===mode?WHITE:"rgba(15,14,12,0.75)",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",transition:"all 0.15s"}}>{label}</button>))}
           </div>
           {mapMode==="plan"&&saved.size===0&&(<div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:999,textAlign:"center",pointerEvents:"none",padding:"0 40px"}}><div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic",color:MID,marginBottom:8}}>{t.noShowsInPlan}</div><div style={{fontSize:13,color:BORDER,lineHeight:1.6}}>{t.addFromShows}</div></div>)}
           <div ref={mapRef} style={{flex:1}}/>
