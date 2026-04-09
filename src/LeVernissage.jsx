@@ -1,12 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
+import { GoogleMap, useJsApiLoader, OverlayView } from "@react-google-maps/api";
 
 // ─── Feature flags ────────────────────────────────────────────────────────────
 const FEATURES = {
   reviews: false, // Hidden for stealth launch. Planned re-enable ~3 months out.
 };
 
+const GMAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
+
 const SHOWS = [
-  // Coordinates verified via OpenStreetMap Nominatim
   { id:"blouin", gallery:"Blouin Division", title:"Corps de mémoire", artist:"Marie-Claire Leblanc", dates:"Mar 15 – Apr 26", openDate:"2026-03-15", closeDate:"2026-04-26", hood:"Griffintown", color:"#C8A882", reviewed:true, featured:false, between:false, quote:'"This is painting that understands its own slowness. Leblanc isn\'t working against the speed of the contemporary image — she\'s simply uninterested in it. That refusal feels quietly radical."', by:"Sophie Tran · April 8, 2026", desc:"Leblanc's paintings arrive quietly. Layered in beeswax and pigment, each surface holds time the way skin does — recording pressure, warmth, and the slow work of forgetting.", address:"2020 rue William, Montréal, QC", lat:45.4887, lng:-73.5658 },
   { id:"bradley", gallery:"Bradley Ertaskiran", title:"Still Frequency", artist:"James Nizam", dates:"Mar 28 – May 3", openDate:"2026-03-28", closeDate:"2026-05-03", hood:"Saint-Henri", color:"#8BAEC4", reviewed:true, featured:false, between:false, quote:'"Nizam makes you aware of how much light is happening in any given room, unnoticed. These are arguments for a different quality of attention."', by:"Marc Durand · April 2, 2026", desc:"Nizam's photographs treat light as a sculptural material, capturing moments where beams, reflections and shadows form geometries too fleeting for the unaided eye.", address:"3550 rue Saint-Antoine Ouest, Montréal, QC", lat:45.4748, lng:-73.5831 },
   { id:"charbonneau", gallery:"Hugues Charbonneau", title:"Lisières", artist:"Dominique Blain", dates:"Mar 6 – Apr 19", openDate:"2026-03-06", closeDate:"2026-04-19", hood:"Downtown", color:"#8DAA88", reviewed:false, featured:true, between:false, desc:"Blain's practice occupies the space between document and testimony. Works on paper and installation navigating the edges of political memory.", address:"372 rue Sainte-Catherine Ouest, Montréal, QC", lat:45.5011, lng:-73.5694 },
@@ -32,54 +34,99 @@ const SHOWS = [
 
 const T={en:{exhibitions:"Exhibitions",map:"Map",reviews:"Reviews",allShows:"All Shows",myPlan:"My Plan",all:"All",featured:"Featured",reviewed:"Reviewed",closing:"Closing This Week",opening:"Opening This Week",nearby:"Nearby",mileEnd:"Mile-End",downtown:"Downtown",rosemont:"Rosemont",griffintown:"Griffintown",saintHenri:"Saint-Henri",plateau:"Plateau",featuredReview:"Featured Review",moreReviews:"More Reviews",getDirections:"Get Directions",share:"Share",back:"Back",dates:"Dates",hours:"Hours",area:"Area",noShowsInPlan:"No shows in your plan yet",addFromShows:"Star shows in the Exhibitions tab",locationDenied:"Location access denied. Please enable in settings.",gettingLocation:"Getting your location…",vernissageReview:"Vernissage Review",closingSoon:"Closing",openingSoon:"Opening",away:"away",betweenShows:"Between exhibitions"},fr:{exhibitions:"Expositions",map:"Carte",reviews:"Critiques",allShows:"Toutes",myPlan:"Mon Plan",all:"Tout",featured:"En vedette",reviewed:"Critiquées",closing:"Ferme cette semaine",opening:"Ouvre cette semaine",nearby:"À proximité",mileEnd:"Mile-End",downtown:"Centre-ville",rosemont:"Rosemont",griffintown:"Griffintown",saintHenri:"Saint-Henri",plateau:"Plateau",featuredReview:"Critique en vedette",moreReviews:"Plus de critiques",getDirections:"Itinéraire",share:"Partager",back:"Retour",dates:"Dates",hours:"Heures",area:"Quartier",noShowsInPlan:"Aucune exposition dans votre plan",addFromShows:"Ajoutez des expositions depuis Expositions",locationDenied:"Accès à la localisation refusé.",gettingLocation:"Localisation en cours…",vernissageReview:"Critique du Vernissage",closingSoon:"Ferme bientôt",openingSoon:"Ouvre bientôt",away:"de vous",betweenShows:"Entre expositions"}};
 
-const INK="#0F0E0C",BLUE="#2B5BE8",WHITE="#FFFFFF",BORDER="#E8E5E0",MID="#6B6560",LIGHT="#F4F4F4",PIN_RED="#E8251A";
+const INK="#0F0E0C",BLUE="#2B5BE8",WHITE="#FFFFFF",BORDER="#E8E5E0",MID="#6B6560",LIGHT="#F4F4F4";
 const TODAY=new Date("2026-04-08");
+const MAP_CENTER={lat:45.5080,lng:-73.5750};
+const LIBRARIES=["places"];
+
+const MAP_STYLE=[
+  {featureType:"all",elementType:"labels.text.fill",stylers:[{color:"#4a4a4a"}]},
+  {featureType:"water",elementType:"geometry",stylers:[{color:"#d4e4f0"}]},
+  {featureType:"landscape",elementType:"geometry",stylers:[{color:"#f5f4f0"}]},
+  {featureType:"road.highway",elementType:"geometry",stylers:[{color:"#ffffff"},{weight:1.5}]},
+  {featureType:"road.arterial",elementType:"geometry",stylers:[{color:"#ffffff"},{weight:1}]},
+  {featureType:"road.local",elementType:"geometry",stylers:[{color:"#ffffff"},{weight:0.8}]},
+  {featureType:"poi.park",elementType:"geometry",stylers:[{color:"#e8f0e0"}]},
+  {featureType:"poi",elementType:"labels",stylers:[{visibility:"off"}]},
+  {featureType:"transit",elementType:"labels",stylers:[{visibility:"off"}]},
+];
 
 function isClosingThisWeek(s){const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<=7;}
 function isOpeningThisWeek(s){const d=(new Date(s.openDate)-TODAY)/86400000;return d>=-7&&d<=7;}
 function distanceKm(lat1,lng1,lat2,lng2){const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
 function mapsUrl(addr){return`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}`;}
-
 function badgeSVG(){return`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="13" fill="#7BA7D4" stroke="white" stroke-width="2"/><text x="14" y="19" font-family="sans-serif" font-size="14" fill="white" text-anchor="middle">✦</text></svg>`;}
 
-function pinSVG(featured,id){
-  const fid=id||"x";
-  if(featured){
-    return`<svg xmlns="http://www.w3.org/2000/svg" width="34" height="48" viewBox="0 0 34 48"><defs><filter id="pf${fid}" x="-60%" y="-20%" width="220%" height="180%"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="rgba(0,0,0,0.32)"/></filter></defs><ellipse cx="17" cy="46.5" rx="5" ry="1.5" fill="rgba(0,0,0,0.14)"/><line x1="17" y1="18" x2="17" y2="44" stroke="#BBBBBB" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="15" r="14" fill="white" filter="url(#pf${fid})"/><circle cx="17" cy="15" r="12" fill="#7BA7D4"/><circle cx="17" cy="15" r="12" fill="none" stroke="white" stroke-width="2"/><text x="17" y="20" font-family="sans-serif" font-size="14" fill="white" text-anchor="middle">✦</text></svg>`;
-  }
-  return`<svg xmlns="http://www.w3.org/2000/svg" width="34" height="48" viewBox="0 0 34 48"><defs><filter id="pn${fid}" x="-60%" y="-20%" width="220%" height="180%"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="rgba(0,0,0,0.32)"/></filter></defs><ellipse cx="17" cy="46.5" rx="5" ry="1.5" fill="rgba(0,0,0,0.14)"/><line x1="17" y1="18" x2="17" y2="44" stroke="#BBBBBB" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="15" r="14" fill="white" filter="url(#pn${fid})"/><circle cx="17" cy="15" r="12" fill="#E8251A"/><circle cx="17" cy="15" r="12" fill="none" stroke="white" stroke-width="2"/></svg>`;
+// ─── Pin rendered as React OverlayView ────────────────────────────────────────
+function MapPin({show, isActive, onClick}){
+  const size=isActive?42:34;
+  const headR=isActive?14:11;
+  const totalH=size+12;
+  return(
+    <div
+      onClick={e=>{e.stopPropagation();onClick(show);}}
+      style={{position:"relative",width:size,height:totalH,cursor:"pointer",transform:"translate(-50%, -100%)",transition:"all 0.15s"}}
+    >
+      <svg width={size} height={totalH} viewBox={`0 0 ${size} ${totalH}`} xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id={`sh-${show.id}`} x="-60%" y="-20%" width="220%" height="180%">
+            <feDropShadow dx="0" dy="3" stdDeviation="2.5" floodColor="rgba(0,0,0,0.28)"/>
+          </filter>
+        </defs>
+        <ellipse cx={size/2} cy={totalH-1} rx={3.5} ry={1.5} fill="rgba(0,0,0,0.13)"/>
+        <line x1={size/2} y1={headR+3} x2={size/2} y2={totalH-3} stroke="#BBBBBB" strokeWidth="1.5" strokeLinecap="round"/>
+        <circle cx={size/2} cy={headR+1} r={headR+2} fill="white" filter={`url(#sh-${show.id})`}/>
+        <circle cx={size/2} cy={headR+1} r={headR} fill={show.featured?"#7BA7D4":"#E8251A"}/>
+        <circle cx={size/2} cy={headR+1} r={headR} fill="none" stroke="white" strokeWidth="2"/>
+        {show.featured&&<text x={size/2} y={headR+6} fontFamily="sans-serif" fontSize="12" fill="white" textAnchor="middle">✦</text>}
+      </svg>
+    </div>
+  );
 }
 
-// ─── Popup HTML builder — editorial card design ───────────────────────────────
-function buildPopupHTML(s) {
-  const accentBar = s.between ? "#D8D4CC" : s.color;
-  const shortAddr = s.address.replace(", Montréal, QC", "");
-
-  const inner = s.between
-    ? `<p style="margin:0 0 14px;font-size:13px;color:#9B9590;font-style:italic;letter-spacing:0.01em;">Between exhibitions</p>`
-    : `
-      <p style="margin:0 0 3px;font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-style:italic;font-weight:600;color:#0F0E0C;line-height:1.25;">${s.title}</p>
-      <p style="margin:0 0 14px;font-size:12px;color:#6B6560;font-weight:400;">${s.artist}</p>
-    `;
-
-  return `
-    <div style="width:230px;font-family:'DM Sans',system-ui,sans-serif;background:#fff;border-radius:6px;overflow:hidden;">
-      <div style="height:5px;background:${accentBar};"></div>
-      <div style="padding:16px 16px 14px;">
-        <p style="margin:0 0 8px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#2B5BE8;font-weight:700;">${s.gallery}</p>
-        ${inner}
-        <p style="margin:0 0 16px;font-size:11px;color:#9B9590;display:flex;align-items:center;gap:5px;">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="#9B9590" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-          ${shortAddr}
+// ─── Info card — pure React, zero DOM hacks ───────────────────────────────────
+function MapInfoCard({show, onView, onClose}){
+  const shortAddr=show.address.replace(", Montréal, QC","");
+  return(
+    <div
+      onClick={e=>e.stopPropagation()}
+      style={{
+        width:230,background:WHITE,borderRadius:6,overflow:"hidden",
+        boxShadow:"0 12px 40px rgba(0,0,0,0.16),0 2px 8px rgba(0,0,0,0.06)",
+        border:`1px solid ${BORDER}`,
+        transform:"translate(-50%, calc(-100% - 58px))",
+        fontFamily:"'DM Sans',system-ui,sans-serif",
+        position:"relative",
+      }}
+    >
+      <button
+        onClick={onClose}
+        style={{position:"absolute",top:8,right:8,width:22,height:22,borderRadius:"50%",border:"none",background:"rgba(0,0,0,0.06)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:MID,lineHeight:1,padding:0,zIndex:1}}
+      >×</button>
+      <div style={{height:5,background:show.between?"#D8D4CC":show.color}}/>
+      <div style={{padding:"14px 16px 14px"}}>
+        <p style={{margin:"0 0 7px",fontSize:10,letterSpacing:".12em",textTransform:"uppercase",color:BLUE,fontWeight:700,paddingRight:20}}>{show.gallery}</p>
+        {show.between?(
+          <p style={{margin:"0 0 12px",fontSize:13,color:MID,fontStyle:"italic"}}>Between exhibitions</p>
+        ):(
+          <>
+            <p style={{margin:"0 0 3px",fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:17,fontStyle:"italic",fontWeight:600,color:INK,lineHeight:1.25}}>{show.title}</p>
+            <p style={{margin:"0 0 12px",fontSize:12,color:MID}}>{show.artist}</p>
+          </>
+        )}
+        <p style={{margin:"0 0 14px",fontSize:11,color:"#9B9590",display:"flex",alignItems:"center",gap:4}}>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="#9B9590"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          {shortAddr}
         </p>
         <button
-          onclick="window.__lvSelectShow && window.__lvSelectShow('${s.id}')"
-          style="width:100%;background:#0F0E0C;color:#fff;border:none;padding:11px 0;border-radius:3px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;">
-          View exhibition <span style="font-size:13px;letter-spacing:0;">→</span>
+          onClick={()=>onView(show)}
+          style={{width:"100%",background:INK,color:WHITE,border:"none",padding:"11px 0",borderRadius:3,fontSize:10,letterSpacing:".12em",textTransform:"uppercase",fontWeight:700,cursor:"pointer",fontFamily:"'DM Sans',system-ui,sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}
+        >
+          View exhibition <span style={{fontSize:13}}>→</span>
         </button>
       </div>
     </div>
-  `;
+  );
 }
 
 export default function App(){
@@ -92,14 +139,14 @@ export default function App(){
   const[locError,setLocError]=useState(false);
   const[lang,setLang]=useState("en");
   const[showLangBanner,setShowLangBanner]=useState(false);
-  const mapRef=useRef(null);
-  const leafletMapRef=useRef(null);
-  const markersRef=useRef([]);
+  const[activePin,setActivePin]=useState(null);
   const t=T[lang];
 
-  const toggleSave=(id)=>setSaved(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n;});
+  const{isLoaded}=useJsApiLoader({googleMapsApiKey:GMAPS_KEY,libraries:LIBRARIES});
+  const onMapLoad=useCallback(()=>{},[]);
+  const handleMapClick=useCallback(()=>setActivePin(null),[]);
 
-  useEffect(()=>{if(filter==="nearby"&&!userLoc&&!locError){navigator.geolocation?.getCurrentPosition(pos=>setUserLoc({lat:pos.coords.latitude,lng:pos.coords.longitude}),()=>setLocError(true));}}, [filter]);
+  const toggleSave=(id)=>setSaved(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n;});
 
   const filtered=SHOWS.filter(s=>{
     if(filter==="all")return!s.between;
@@ -120,124 +167,36 @@ export default function App(){
     return 0;
   });
 
-  // ─── Global bridge so Leaflet popup button can reach React setDetail ────────
-  useEffect(()=>{
-    window.__lvSelectShow=(id)=>{
-      const show=SHOWS.find(x=>x.id===id);
-      if(!show)return;
-      // Close any open Leaflet popups first
-      if(leafletMapRef.current)leafletMapRef.current.closePopup();
-      setDetail(show);
-    };
-    return()=>{ delete window.__lvSelectShow; };
-  },[]);
-
-  function addMarker(L,map,s){
-    const icon=L.divIcon({className:"",html:pinSVG(s.featured,s.id),iconSize:[34,48],iconAnchor:[17,48],popupAnchor:[0,-52]});
-    const marker=L.marker([s.lat,s.lng],{icon}).addTo(map).bindPopup(buildPopupHTML(s),{className:"vp",maxWidth:248,minWidth:230});
-    markersRef.current.push({id:s.id,marker});
-  }
-
-  function redrawMarkers(){
-    if(!leafletMapRef.current||!window.L)return;
-    markersRef.current.forEach(m=>m.marker.remove());
-    markersRef.current=[];
-    const toShow=mapMode==="plan"?SHOWS.filter(s=>saved.has(s.id)):SHOWS;
-    toShow.forEach(s=>addMarker(window.L,leafletMapRef.current,s));
-  }
-
-  useEffect(()=>{redrawMarkers();},[saved,mapMode]);
-
-  useEffect(()=>{
-    if(tab!=="map")return;
-    if(leafletMapRef.current){setTimeout(()=>leafletMapRef.current.invalidateSize(),60);return;}
-    if(!document.getElementById("lf-css")){const l=document.createElement("link");l.id="lf-css";l.rel="stylesheet";l.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";document.head.appendChild(l);}
-    if(!document.getElementById("lf-style")){
-      const s=document.createElement("style");
-      s.id="lf-style";
-      s.textContent=`
-        .vp .leaflet-popup-content-wrapper{
-          border-radius:6px!important;
-          border:1px solid #E8E5E0!important;
-          box-shadow:0 12px 40px rgba(0,0,0,0.14),0 2px 8px rgba(0,0,0,0.06)!important;
-          overflow:hidden;
-          padding:0!important;
-        }
-        .vp .leaflet-popup-content{margin:0!important;line-height:1!important;}
-        .vp .leaflet-popup-tip-container{display:none;}
-        .leaflet-control-zoom{border:none!important;box-shadow:0 2px 8px rgba(0,0,0,0.10)!important;}
-        .leaflet-control-zoom a{border:1px solid #E8E5E0!important;border-radius:4px!important;color:#0F0E0C!important;font-size:18px!important;margin-bottom:4px;display:flex!important;align-items:center;justify-content:center;background:white!important;width:34px!important;height:34px!important;}
-        .leaflet-control-zoom a:hover{background:#F4F4F4!important;}
-        .leaflet-control-attribution{font-size:9px!important;}
-        .marker-cluster{background:rgba(232,37,26,0.15)!important;border:2px solid #E8251A!important;border-radius:50%!important;}
-        .marker-cluster div{background:#E8251A!important;color:white!important;font-family:'DM Sans',sans-serif!important;font-weight:700!important;font-size:13px!important;border-radius:50%!important;border:2px solid white!important;}
-        .marker-cluster-small{width:36px!important;height:36px!important;margin-left:-18px!important;margin-top:-18px!important;}
-        .marker-cluster-small div{width:28px!important;height:28px!important;margin:2px!important;line-height:28px!important;}
-        .marker-cluster-medium{width:44px!important;height:44px!important;margin-left:-22px!important;margin-top:-22px!important;}
-        .marker-cluster-medium div{width:36px!important;height:36px!important;margin:2px!important;line-height:36px!important;}
-        .marker-cluster-large{width:52px!important;height:52px!important;margin-left:-26px!important;margin-top:-26px!important;}
-        .marker-cluster-large div{width:44px!important;height:44px!important;margin:2px!important;line-height:44px!important;}
-      `;
-      document.head.appendChild(s);
-    }
-    const initMap=async()=>{
-      if(!window.L){await new Promise((res,rej)=>{const sc=document.createElement("script");sc.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";sc.onload=res;sc.onerror=rej;document.head.appendChild(sc);});}
-      if(!window.L.markerClusterGroup){await new Promise((res,rej)=>{const sc=document.createElement("script");sc.src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js";sc.onload=res;sc.onerror=rej;document.head.appendChild(sc);});const lk=document.createElement("link");lk.rel="stylesheet";lk.href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css";document.head.appendChild(lk);}
-      if(!mapRef.current||leafletMapRef.current)return;
-      const L=window.L;
-      const map=L.map(mapRef.current,{center:[45.5080,-73.5750],zoom:13,zoomControl:false});
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{subdomains:"abcd",maxZoom:20,attribution:'© <a href="https://carto.com">CARTO</a>'}).addTo(map);
-      L.control.zoom({position:"topright"}).addTo(map);
-      leafletMapRef.current=map;
-
-      const cluster=L.markerClusterGroup({maxClusterRadius:35,showCoverageOnHover:false,zoomToBoundsOnClick:true});
-      for(const s of SHOWS){
-        try{
-          const res=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(s.address)}&format=json&limit=1&countrycodes=ca`,{headers:{"User-Agent":"LeVernissage/1.0"}});
-          const data=await res.json();
-          if(data&&data[0]){s.lat=parseFloat(data[0].lat);s.lng=parseFloat(data[0].lon);}
-        }catch(err){}
-        const icon=L.divIcon({className:"",html:pinSVG(s.featured,s.id),iconSize:[34,48],iconAnchor:[17,48],popupAnchor:[0,-52]});
-        const marker=L.marker([s.lat,s.lng],{icon}).bindPopup(buildPopupHTML(s),{className:"vp",maxWidth:248,minWidth:230});
-        cluster.addLayer(marker);
-        markersRef.current.push({id:s.id,marker});
-        await new Promise(r=>setTimeout(r,1100));
-      }
-      map.addLayer(cluster);
-    };
-    initMap();
-    return()=>{};
-  },[tab]);
-
   const PinButton=({id,size=42})=>{const on=saved.has(id);return(<button onClick={e=>{e.stopPropagation();toggleSave(id);}} style={{width:size,height:size,borderRadius:4,border:`1.5px solid ${on?BLUE:BORDER}`,background:on?BLUE:WHITE,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,transition:"all 0.15s"}}><svg width="20" height="20" viewBox="0 0 24 24" fill={on?WHITE:"#C0BBB5"} xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></button>);};
 
   const FILTERS=[["featured",t.featured],["all",t.all],["closing",t.closing],["opening",t.opening],["nearby",t.nearby],["mile-end",t.mileEnd],["downtown",t.downtown],["rosemont",t.rosemont],["griffintown",t.griffintown],["saint-henri",t.saintHenri],["plateau",t.plateau]];
   const shortAddr=a=>a.replace(", Montréal, QC","");
-
-  // ─── Tab list — reviews gated by feature flag ─────────────────────────────
-  const tabs = [
-    ["exhibitions", t.exhibitions],
-    ["map", t.map],
-    ...(FEATURES.reviews ? [["reviews", t.reviews]] : []),
-  ];
+  const tabs=[["exhibitions",t.exhibitions],["map",t.map],...(FEATURES.reviews?[["reviews",t.reviews]]:[])];
+  const showsForMap=mapMode==="plan"?SHOWS.filter(s=>saved.has(s.id)):SHOWS;
+  const activePinShow=activePin?SHOWS.find(s=>s.id===activePin):null;
 
   return(
     <div style={{fontFamily:"'DM Sans',sans-serif",background:WHITE,height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden",maxWidth:430,margin:"0 auto",position:"relative",boxShadow:"0 0 60px rgba(0,0,0,0.08)"}}>
+      {/* Header */}
       <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,height:56,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",flexShrink:0,zIndex:10}}>
         <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:600,letterSpacing:"0.04em"}}>Le Vernissage<span style={{color:BLUE}}>.</span></div>
         <div style={{display:"flex",gap:4,alignItems:"center"}}>{["en","fr"].map(l=>(<button key={l} onClick={()=>{setLang(l);if(l==="fr")setShowLangBanner(true);}} style={{padding:"5px 10px",borderRadius:3,border:`1px solid ${lang===l?INK:BORDER}`,background:lang===l?INK:WHITE,color:lang===l?WHITE:MID,fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>{l}</button>))}</div>
       </div>
       {showLangBanner&&lang==="fr"&&(<div style={{background:BLUE,color:WHITE,fontSize:12,padding:"10px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}><span>Version française bientôt disponible</span><button onClick={()=>setShowLangBanner(false)} style={{background:"none",border:"none",color:WHITE,fontSize:20,cursor:"pointer",lineHeight:1,padding:0}}>×</button></div>)}
+
+      {/* Tabs */}
       <div style={{background:LIGHT,borderBottom:`1px solid ${BORDER}`,display:"flex",flexShrink:0,zIndex:10,padding:"6px 6px 0"}}>
         {tabs.map(([key,label])=>(<button key={key} onClick={()=>setTab(key)} style={{flex:1,padding:"11px 6px 12px",fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:tab===key?INK:MID,background:tab===key?WHITE:"transparent",border:`1px solid ${tab===key?BORDER:"transparent"}`,borderBottom:tab===key?`1px solid ${WHITE}`:"none",borderRadius:"4px 4px 0 0",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",marginBottom:tab===key?-1:0,zIndex:tab===key?2:1,position:"relative"}}>{label}</button>))}
       </div>
+
       <div style={{flex:1,overflow:"hidden",position:"relative",background:WHITE}}>
 
+        {/* Exhibitions */}
         {tab==="exhibitions"&&(
           <div style={{height:"100%",display:"flex",flexDirection:"column"}}>
             <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,padding:"12px 0 12px 16px",flexShrink:0}}>
               <div style={{display:"flex",gap:8,overflowX:"auto",scrollbarWidth:"none",paddingRight:16}}>
-                {FILTERS.map(([val,label])=>(<button key={val} onClick={()=>setFilter(val)} style={{flexShrink:0,padding:"7px 15px",borderRadius:20,fontSize:12,letterSpacing:"0.06em",textTransform:"uppercase",fontWeight:500,border:`1.5px solid ${filter===val?BLUE:BORDER}`,background:filter===val?BLUE:WHITE,color:filter===val?WHITE:MID,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap"}}>{label}</button>))}
+                {FILTERS.map(([val,label])=>(<button key={val} onClick={()=>{setFilter(val);if(val==="nearby"&&!userLoc&&!locError){navigator.geolocation?.getCurrentPosition(pos=>setUserLoc({lat:pos.coords.latitude,lng:pos.coords.longitude}),()=>setLocError(true));}}} style={{flexShrink:0,padding:"7px 15px",borderRadius:20,fontSize:12,letterSpacing:"0.06em",textTransform:"uppercase",fontWeight:500,border:`1.5px solid ${filter===val?BLUE:BORDER}`,background:filter===val?BLUE:WHITE,color:filter===val?WHITE:MID,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap"}}>{label}</button>))}
               </div>
             </div>
             {filter==="nearby"&&locError&&<div style={{padding:"24px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.locationDenied}</div>}
@@ -250,11 +209,7 @@ export default function App(){
                   <div key={s.id} onClick={()=>setDetail(s)} style={{position:"relative",cursor:"pointer",borderBottom:`1px solid ${BORDER}`}}>
                     <div style={{width:"100%",height:s.between?110:220,background:s.between?LIGHT:s.color,position:"relative",overflow:"hidden"}}>
                       {!s.between&&<div style={{position:"absolute",bottom:0,left:0,right:0,height:"70%",background:"linear-gradient(to top, rgba(0,0,0,0.70) 0%, rgba(0,0,0,0) 100%)"}}/>}
-                      {s.featured&&!s.between&&(
-                        <div style={{position:"absolute",top:12,left:12}}>
-                          <div dangerouslySetInnerHTML={{__html:badgeSVG()}}/>
-                        </div>
-                      )}
+                      {s.featured&&!s.between&&<div style={{position:"absolute",top:12,left:12}} dangerouslySetInnerHTML={{__html:badgeSVG()}}/>}
                       {!s.between&&(
                         <div style={{position:"absolute",top:12,right:12,display:"flex",gap:6,flexDirection:"column",alignItems:"flex-end"}}>
                           {s.reviewed&&<span style={{fontSize:10,padding:"3px 8px",background:INK,color:WHITE,borderRadius:3,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase"}}>Reviewed</span>}
@@ -288,16 +243,50 @@ export default function App(){
           </div>
         )}
 
-        <div style={{display:tab==="map"?"flex":"none",flexDirection:"column",height:"100%",position:"relative"}}>
-          <div style={{position:"absolute",top:14,left:"50%",transform:"translateX(-50%)",zIndex:1000,display:"flex",background:"rgba(255,255,255,0.35)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",border:"1px solid rgba(255,255,255,0.5)",borderRadius:6,overflow:"hidden",boxShadow:"0 2px 12px rgba(0,0,0,0.07)"}}>
-            {[["all",t.allShows],["plan",t.myPlan]].map(([mode,label])=>(<button key={mode} onClick={()=>setMapMode(mode)} style={{padding:"9px 20px",fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:700,background:mapMode===mode?"rgba(43,91,232,0.90)":"transparent",color:mapMode===mode?WHITE:"rgba(15,14,12,0.75)",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",transition:"all 0.15s"}}>{label}</button>))}
+        {/* Map */}
+        {tab==="map"&&(
+          <div style={{height:"100%",display:"flex",flexDirection:"column",position:"relative"}}>
+            <div style={{position:"absolute",top:14,left:"50%",transform:"translateX(-50%)",zIndex:10,display:"flex",background:"rgba(255,255,255,0.35)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",border:"1px solid rgba(255,255,255,0.5)",borderRadius:6,overflow:"hidden",boxShadow:"0 2px 12px rgba(0,0,0,0.07)"}}>
+              {[["all",t.allShows],["plan",t.myPlan]].map(([mode,label])=>(<button key={mode} onClick={()=>setMapMode(mode)} style={{padding:"9px 20px",fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:700,background:mapMode===mode?"rgba(43,91,232,0.90)":"transparent",color:mapMode===mode?WHITE:"rgba(15,14,12,0.75)",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",transition:"all 0.15s"}}>{label}</button>))}
+            </div>
+            {mapMode==="plan"&&saved.size===0&&(
+              <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:9,textAlign:"center",pointerEvents:"none",padding:"0 40px"}}>
+                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic",color:MID,marginBottom:8}}>{t.noShowsInPlan}</div>
+                <div style={{fontSize:13,color:BORDER,lineHeight:1.6}}>{t.addFromShows}</div>
+              </div>
+            )}
+            {!isLoaded?(
+              <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:MID,fontSize:14}}>Loading map…</div>
+            ):(
+              <GoogleMap
+                mapContainerStyle={{flex:1,width:"100%"}}
+                center={MAP_CENTER}
+                zoom={13}
+                options={{styles:MAP_STYLE,disableDefaultUI:true,zoomControl:true,clickableIcons:false}}
+                onLoad={onMapLoad}
+                onClick={handleMapClick}
+              >
+                {showsForMap.map(s=>(
+                  <OverlayView key={s.id} position={{lat:s.lat,lng:s.lng}} mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}>
+                    <MapPin show={s} isActive={activePin===s.id} onClick={show=>setActivePin(activePin===show.id?null:show.id)}/>
+                  </OverlayView>
+                ))}
+                {activePinShow&&(
+                  <OverlayView position={{lat:activePinShow.lat,lng:activePinShow.lng}} mapPaneName={OverlayView.FLOAT_PANE}>
+                    <MapInfoCard
+                      show={activePinShow}
+                      onView={show=>{setActivePin(null);setDetail(show);}}
+                      onClose={()=>setActivePin(null)}
+                    />
+                  </OverlayView>
+                )}
+              </GoogleMap>
+            )}
           </div>
-          {mapMode==="plan"&&saved.size===0&&(<div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:999,textAlign:"center",pointerEvents:"none",padding:"0 40px"}}><div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic",color:MID,marginBottom:8}}>{t.noShowsInPlan}</div><div style={{fontSize:13,color:BORDER,lineHeight:1.6}}>{t.addFromShows}</div></div>)}
-          <div ref={mapRef} style={{flex:1}}/>
-        </div>
+        )}
 
-        {/* Reviews tab — preserved but hidden via FEATURES.reviews flag */}
-        {FEATURES.reviews && tab==="reviews"&&(
+        {/* Reviews — preserved, gated */}
+        {FEATURES.reviews&&tab==="reviews"&&(
           <div style={{height:"100%",overflowY:"auto"}}>
             <div onClick={()=>setDetail(SHOWS[0])} style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,cursor:"pointer",paddingBottom:20}}>
               <div style={{width:"100%",height:240,background:SHOWS[0].color,marginBottom:18,position:"relative"}}><div style={{position:"absolute",top:16,left:18}}><span style={{fontSize:10,padding:"4px 10px",background:BLUE,color:WHITE,borderRadius:3,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase"}}>{t.featuredReview}</span></div></div>
@@ -314,6 +303,7 @@ export default function App(){
         )}
       </div>
 
+      {/* Detail overlay — fixed, covers full screen */}
       {detail&&(
         <div style={{position:"fixed",inset:0,background:WHITE,zIndex:200,overflowY:"auto",animation:"slideUp 0.32s cubic-bezier(0.16,1,0.3,1)",maxWidth:430,margin:"0 auto"}}>
           <div style={{position:"sticky",top:0,background:WHITE,borderBottom:`1px solid ${BORDER}`,height:54,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",zIndex:10}}>
