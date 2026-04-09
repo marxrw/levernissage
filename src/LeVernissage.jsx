@@ -1,5 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 
+// ─── Feature flags ────────────────────────────────────────────────────────────
+const FEATURES = {
+  reviews: false, // Hidden for stealth launch. Planned re-enable ~3 months out.
+};
+
 const SHOWS = [
   // Coordinates verified via OpenStreetMap Nominatim
   { id:"blouin", gallery:"Blouin Division", title:"Corps de mémoire", artist:"Marie-Claire Leblanc", dates:"Mar 15 – Apr 26", openDate:"2026-03-15", closeDate:"2026-04-26", hood:"Griffintown", color:"#C8A882", reviewed:true, featured:false, between:false, quote:'"This is painting that understands its own slowness. Leblanc isn\'t working against the speed of the contemporary image — she\'s simply uninterested in it. That refusal feels quietly radical."', by:"Sophie Tran · April 8, 2026", desc:"Leblanc's paintings arrive quietly. Layered in beeswax and pigment, each surface holds time the way skin does — recording pressure, warmth, and the slow work of forgetting.", address:"2020 rue William, Montréal, QC", lat:45.4887, lng:-73.5658 },
@@ -35,17 +40,46 @@ function isOpeningThisWeek(s){const d=(new Date(s.openDate)-TODAY)/86400000;retu
 function distanceKm(lat1,lng1,lat2,lng2){const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
 function mapsUrl(addr){return`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}`;}
 
-// A5 badge SVG: champagne shimmer, navy star, no outer ring
-// Badge for exhibition cards: pale blue circle, white outline, white star
 function badgeSVG(){return`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="13" fill="#7BA7D4" stroke="white" stroke-width="2"/><text x="14" y="19" font-family="sans-serif" font-size="14" fill="white" text-anchor="middle">✦</text></svg>`;}
 
-// Pin SVG — red with white outline for non-featured, pale blue ✦ for featured
 function pinSVG(featured,id){
   const fid=id||"x";
   if(featured){
     return`<svg xmlns="http://www.w3.org/2000/svg" width="34" height="48" viewBox="0 0 34 48"><defs><filter id="pf${fid}" x="-60%" y="-20%" width="220%" height="180%"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="rgba(0,0,0,0.32)"/></filter></defs><ellipse cx="17" cy="46.5" rx="5" ry="1.5" fill="rgba(0,0,0,0.14)"/><line x1="17" y1="18" x2="17" y2="44" stroke="#BBBBBB" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="15" r="14" fill="white" filter="url(#pf${fid})"/><circle cx="17" cy="15" r="12" fill="#7BA7D4"/><circle cx="17" cy="15" r="12" fill="none" stroke="white" stroke-width="2"/><text x="17" y="20" font-family="sans-serif" font-size="14" fill="white" text-anchor="middle">✦</text></svg>`;
   }
   return`<svg xmlns="http://www.w3.org/2000/svg" width="34" height="48" viewBox="0 0 34 48"><defs><filter id="pn${fid}" x="-60%" y="-20%" width="220%" height="180%"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="rgba(0,0,0,0.32)"/></filter></defs><ellipse cx="17" cy="46.5" rx="5" ry="1.5" fill="rgba(0,0,0,0.14)"/><line x1="17" y1="18" x2="17" y2="44" stroke="#BBBBBB" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="15" r="14" fill="white" filter="url(#pn${fid})"/><circle cx="17" cy="15" r="12" fill="#E8251A"/><circle cx="17" cy="15" r="12" fill="none" stroke="white" stroke-width="2"/></svg>`;
+}
+
+// ─── Popup HTML builder — editorial card design ───────────────────────────────
+function buildPopupHTML(s) {
+  const accentBar = s.between ? "#D8D4CC" : s.color;
+  const shortAddr = s.address.replace(", Montréal, QC", "");
+
+  const inner = s.between
+    ? `<p style="margin:0 0 14px;font-size:13px;color:#9B9590;font-style:italic;letter-spacing:0.01em;">Between exhibitions</p>`
+    : `
+      <p style="margin:0 0 3px;font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-style:italic;font-weight:600;color:#0F0E0C;line-height:1.25;">${s.title}</p>
+      <p style="margin:0 0 14px;font-size:12px;color:#6B6560;font-weight:400;">${s.artist}</p>
+    `;
+
+  return `
+    <div style="width:230px;font-family:'DM Sans',system-ui,sans-serif;background:#fff;border-radius:6px;overflow:hidden;">
+      <div style="height:5px;background:${accentBar};"></div>
+      <div style="padding:16px 16px 14px;">
+        <p style="margin:0 0 8px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#2B5BE8;font-weight:700;">${s.gallery}</p>
+        ${inner}
+        <p style="margin:0 0 16px;font-size:11px;color:#9B9590;display:flex;align-items:center;gap:5px;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="#9B9590" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          ${shortAddr}
+        </p>
+        <button
+          data-lv-id="${s.id}"
+          style="width:100%;background:#0F0E0C;color:#fff;border:none;padding:11px 0;border-radius:3px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;">
+          View exhibition <span style="font-size:13px;letter-spacing:0;">→</span>
+        </button>
+      </div>
+    </div>
+  `;
 }
 
 export default function App(){
@@ -86,27 +120,22 @@ export default function App(){
     return 0;
   });
 
+  // ─── Popup click delegation — attached once to document ───────────────────
+  useEffect(()=>{
+    const handlePopupClick=(e)=>{
+      const btn=e.target.closest("[data-lv-id]");
+      if(!btn)return;
+      const id=btn.getAttribute("data-lv-id");
+      const show=SHOWS.find(x=>x.id===id);
+      if(show)setDetail(show);
+    };
+    document.addEventListener("click",handlePopupClick);
+    return()=>document.removeEventListener("click",handlePopupClick);
+  },[]);
+
   function addMarker(L,map,s){
-    const icon=L.divIcon({className:"",html:pinSVG(s.featured,s.id),iconSize:[34,48],iconAnchor:[17,48],popupAnchor:[0,-50]});
-    const marker=L.marker([s.lat,s.lng],{icon}).addTo(map).bindPopup(`
-      <div style="width:215px;font-family:'DM Sans',sans-serif;">
-        <div style="height:4px;background:${s.between?"#D8D4CC":s.color};"></div>
-        <div style="padding:13px 15px 15px;">
-          <div style="font-size:10px;letter-spacing:.10em;text-transform:uppercase;color:#2B5BE8;font-weight:700;margin-bottom:4px;">${s.gallery}</div>
-          ${s.between
-            ?`<div style="font-size:13px;color:#6B6560;font-style:italic;margin-bottom:8px;">Between exhibitions</div>`
-            :`<div style="font-family:'Cormorant Garamond',serif;font-size:17px;font-style:italic;font-weight:600;color:#0F0E0C;line-height:1.2;margin-bottom:4px;">${s.title}</div>
-              <div style="font-size:12px;color:#6B6560;margin-bottom:4px;">${s.artist}</div>`
-          }
-          <div style="font-size:11px;color:#6B6560;margin-bottom:12px;">${s.address.replace(", Montréal, QC","")}</div>
-          <button
-            onclick="(function(){var evt=new CustomEvent('lv-select',{detail:'${s.id}',bubbles:true});document.dispatchEvent(evt);})()"
-            style="width:100%;background:#0F0E0C;color:white;border:none;padding:10px;border-radius:3px;font-size:10px;letter-spacing:.10em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">
-            View →
-          </button>
-        </div>
-      </div>
-    `,{className:"vp",maxWidth:235});
+    const icon=L.divIcon({className:"",html:pinSVG(s.featured,s.id),iconSize:[34,48],iconAnchor:[17,48],popupAnchor:[0,-52]});
+    const marker=L.marker([s.lat,s.lng],{icon}).addTo(map).bindPopup(buildPopupHTML(s),{className:"vp",maxWidth:248,minWidth:230});
     markersRef.current.push({id:s.id,marker});
   }
 
@@ -124,7 +153,34 @@ export default function App(){
     if(tab!=="map")return;
     if(leafletMapRef.current){setTimeout(()=>leafletMapRef.current.invalidateSize(),60);return;}
     if(!document.getElementById("lf-css")){const l=document.createElement("link");l.id="lf-css";l.rel="stylesheet";l.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";document.head.appendChild(l);}
-    if(!document.getElementById("lf-style")){const s=document.createElement("style");s.id="lf-style";s.textContent=`.vp .leaflet-popup-content-wrapper{border-radius:4px!important;border:1px solid #E8E5E0!important;box-shadow:0 8px 28px rgba(0,0,0,0.13)!important;overflow:hidden;padding:0!important;}.vp .leaflet-popup-content{margin:0!important;}.vp .leaflet-popup-tip-container{display:none;}.leaflet-control-zoom{border:none!important;box-shadow:0 2px 8px rgba(0,0,0,0.10)!important;}.leaflet-control-zoom a{border:1px solid #E8E5E0!important;border-radius:4px!important;color:#0F0E0C!important;font-size:18px!important;margin-bottom:4px;display:flex!important;align-items:center;justify-content:center;background:white!important;width:34px!important;height:34px!important;}.leaflet-control-zoom a:hover{background:#F4F4F4!important;}.leaflet-control-attribution{font-size:9px!important;}.marker-cluster{background:rgba(232,37,26,0.15)!important;border:2px solid #E8251A!important;border-radius:50%!important;}.marker-cluster div{background:#E8251A!important;color:white!important;font-family:'DM Sans',sans-serif!important;font-weight:700!important;font-size:13px!important;border-radius:50%!important;border:2px solid white!important;}.marker-cluster-small{width:36px!important;height:36px!important;margin-left:-18px!important;margin-top:-18px!important;}.marker-cluster-small div{width:28px!important;height:28px!important;margin:2px!important;line-height:28px!important;}.marker-cluster-medium{width:44px!important;height:44px!important;margin-left:-22px!important;margin-top:-22px!important;}.marker-cluster-medium div{width:36px!important;height:36px!important;margin:2px!important;line-height:36px!important;}.marker-cluster-large{width:52px!important;height:52px!important;margin-left:-26px!important;margin-top:-26px!important;}.marker-cluster-large div{width:44px!important;height:44px!important;margin:2px!important;line-height:44px!important;}`;document.head.appendChild(s);}
+    if(!document.getElementById("lf-style")){
+      const s=document.createElement("style");
+      s.id="lf-style";
+      s.textContent=`
+        .vp .leaflet-popup-content-wrapper{
+          border-radius:6px!important;
+          border:1px solid #E8E5E0!important;
+          box-shadow:0 12px 40px rgba(0,0,0,0.14),0 2px 8px rgba(0,0,0,0.06)!important;
+          overflow:hidden;
+          padding:0!important;
+        }
+        .vp .leaflet-popup-content{margin:0!important;line-height:1!important;}
+        .vp .leaflet-popup-tip-container{display:none;}
+        .leaflet-control-zoom{border:none!important;box-shadow:0 2px 8px rgba(0,0,0,0.10)!important;}
+        .leaflet-control-zoom a{border:1px solid #E8E5E0!important;border-radius:4px!important;color:#0F0E0C!important;font-size:18px!important;margin-bottom:4px;display:flex!important;align-items:center;justify-content:center;background:white!important;width:34px!important;height:34px!important;}
+        .leaflet-control-zoom a:hover{background:#F4F4F4!important;}
+        .leaflet-control-attribution{font-size:9px!important;}
+        .marker-cluster{background:rgba(232,37,26,0.15)!important;border:2px solid #E8251A!important;border-radius:50%!important;}
+        .marker-cluster div{background:#E8251A!important;color:white!important;font-family:'DM Sans',sans-serif!important;font-weight:700!important;font-size:13px!important;border-radius:50%!important;border:2px solid white!important;}
+        .marker-cluster-small{width:36px!important;height:36px!important;margin-left:-18px!important;margin-top:-18px!important;}
+        .marker-cluster-small div{width:28px!important;height:28px!important;margin:2px!important;line-height:28px!important;}
+        .marker-cluster-medium{width:44px!important;height:44px!important;margin-left:-22px!important;margin-top:-22px!important;}
+        .marker-cluster-medium div{width:36px!important;height:36px!important;margin:2px!important;line-height:36px!important;}
+        .marker-cluster-large{width:52px!important;height:52px!important;margin-left:-26px!important;margin-top:-26px!important;}
+        .marker-cluster-large div{width:44px!important;height:44px!important;margin:2px!important;line-height:44px!important;}
+      `;
+      document.head.appendChild(s);
+    }
     const initMap=async()=>{
       if(!window.L){await new Promise((res,rej)=>{const sc=document.createElement("script");sc.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";sc.onload=res;sc.onerror=rej;document.head.appendChild(sc);});}
       if(!window.L.markerClusterGroup){await new Promise((res,rej)=>{const sc=document.createElement("script");sc.src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js";sc.onload=res;sc.onerror=rej;document.head.appendChild(sc);});const lk=document.createElement("link");lk.rel="stylesheet";lk.href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css";document.head.appendChild(lk);}
@@ -134,10 +190,7 @@ export default function App(){
       L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{subdomains:"abcd",maxZoom:20,attribution:'© <a href="https://carto.com">CARTO</a>'}).addTo(map);
       L.control.zoom({position:"topright"}).addTo(map);
       leafletMapRef.current=map;
-      // CustomEvent listener for popup View button — works across iframe boundary
-      const handler=(e)=>{const s=SHOWS.find(x=>x.id===e.detail);if(s)setDetail(s);};
-      document.addEventListener("lv-select",handler);
-      // Geocode each address via Nominatim then add to cluster
+
       const cluster=L.markerClusterGroup({maxClusterRadius:35,showCoverageOnHover:false,zoomToBoundsOnClick:true});
       for(const s of SHOWS){
         try{
@@ -145,8 +198,8 @@ export default function App(){
           const data=await res.json();
           if(data&&data[0]){s.lat=parseFloat(data[0].lat);s.lng=parseFloat(data[0].lon);}
         }catch(err){}
-        const icon=L.divIcon({className:"",html:pinSVG(s.featured,s.id),iconSize:[34,48],iconAnchor:[17,48],popupAnchor:[0,-50]});
-        const marker=L.marker([s.lat,s.lng],{icon}).bindPopup(`<div style="width:215px;font-family:'DM Sans',sans-serif;"><div style="height:4px;background:${s.between?"#D8D4CC":s.color};"></div><div style="padding:13px 15px 15px;"><div style="font-size:10px;letter-spacing:.10em;text-transform:uppercase;color:#2B5BE8;font-weight:700;margin-bottom:4px;">${s.gallery}</div>${s.between?`<div style="font-size:13px;color:#6B6560;font-style:italic;margin-bottom:8px;">Between exhibitions</div>`:`<div style="font-family:'Cormorant Garamond',serif;font-size:17px;font-style:italic;font-weight:600;color:#0F0E0C;line-height:1.2;margin-bottom:4px;">${s.title}</div><div style="font-size:12px;color:#6B6560;margin-bottom:4px;">${s.artist}</div>`}<div style="font-size:11px;color:#6B6560;margin-bottom:12px;">${s.address.replace(", Montréal, QC","")}</div><button onclick="document.dispatchEvent(new CustomEvent('lv-select',{detail:'${s.id}',bubbles:true}))" style="width:100%;background:#0F0E0C;color:white;border:none;padding:10px;border-radius:3px;font-size:10px;letter-spacing:.10em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">View →</button></div></div>`,{className:"vp",maxWidth:235});
+        const icon=L.divIcon({className:"",html:pinSVG(s.featured,s.id),iconSize:[34,48],iconAnchor:[17,48],popupAnchor:[0,-52]});
+        const marker=L.marker([s.lat,s.lng],{icon}).bindPopup(buildPopupHTML(s),{className:"vp",maxWidth:248,minWidth:230});
         cluster.addLayer(marker);
         markersRef.current.push({id:s.id,marker});
         await new Promise(r=>setTimeout(r,1100));
@@ -162,6 +215,13 @@ export default function App(){
   const FILTERS=[["featured",t.featured],["all",t.all],["reviewed",t.reviewed],["closing",t.closing],["opening",t.opening],["nearby",t.nearby],["mile-end",t.mileEnd],["downtown",t.downtown],["rosemont",t.rosemont],["griffintown",t.griffintown],["saint-henri",t.saintHenri],["plateau",t.plateau]];
   const shortAddr=a=>a.replace(", Montréal, QC","");
 
+  // ─── Tab list — reviews gated by feature flag ─────────────────────────────
+  const tabs = [
+    ["exhibitions", t.exhibitions],
+    ["map", t.map],
+    ...(FEATURES.reviews ? [["reviews", t.reviews]] : []),
+  ];
+
   return(
     <div style={{fontFamily:"'DM Sans',sans-serif",background:WHITE,height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden",maxWidth:430,margin:"0 auto",position:"relative",boxShadow:"0 0 60px rgba(0,0,0,0.08)"}}>
       <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,height:56,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",flexShrink:0,zIndex:10}}>
@@ -170,7 +230,7 @@ export default function App(){
       </div>
       {showLangBanner&&lang==="fr"&&(<div style={{background:BLUE,color:WHITE,fontSize:12,padding:"10px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}><span>Version française bientôt disponible</span><button onClick={()=>setShowLangBanner(false)} style={{background:"none",border:"none",color:WHITE,fontSize:20,cursor:"pointer",lineHeight:1,padding:0}}>×</button></div>)}
       <div style={{background:LIGHT,borderBottom:`1px solid ${BORDER}`,display:"flex",flexShrink:0,zIndex:10,padding:"6px 6px 0"}}>
-        {[["exhibitions",t.exhibitions],["map",t.map],["reviews",t.reviews]].map(([key,label])=>(<button key={key} onClick={()=>setTab(key)} style={{flex:1,padding:"11px 6px 12px",fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:tab===key?INK:MID,background:tab===key?WHITE:"transparent",border:`1px solid ${tab===key?BORDER:"transparent"}`,borderBottom:tab===key?`1px solid ${WHITE}`:"none",borderRadius:"4px 4px 0 0",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",marginBottom:tab===key?-1:0,zIndex:tab===key?2:1,position:"relative"}}>{label}</button>))}
+        {tabs.map(([key,label])=>(<button key={key} onClick={()=>setTab(key)} style={{flex:1,padding:"11px 6px 12px",fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:tab===key?INK:MID,background:tab===key?WHITE:"transparent",border:`1px solid ${tab===key?BORDER:"transparent"}`,borderBottom:tab===key?`1px solid ${WHITE}`:"none",borderRadius:"4px 4px 0 0",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",marginBottom:tab===key?-1:0,zIndex:tab===key?2:1,position:"relative"}}>{label}</button>))}
       </div>
       <div style={{flex:1,overflow:"hidden",position:"relative",background:WHITE}}>
 
@@ -237,7 +297,8 @@ export default function App(){
           <div ref={mapRef} style={{flex:1}}/>
         </div>
 
-        {tab==="reviews"&&(
+        {/* Reviews tab — preserved but hidden via FEATURES.reviews flag */}
+        {FEATURES.reviews && tab==="reviews"&&(
           <div style={{height:"100%",overflowY:"auto"}}>
             <div onClick={()=>setDetail(SHOWS[0])} style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,cursor:"pointer",paddingBottom:20}}>
               <div style={{width:"100%",height:240,background:SHOWS[0].color,marginBottom:18,position:"relative"}}><div style={{position:"absolute",top:16,left:18}}><span style={{fontSize:10,padding:"4px 10px",background:BLUE,color:WHITE,borderRadius:3,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase"}}>{t.featuredReview}</span></div></div>
