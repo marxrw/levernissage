@@ -223,6 +223,13 @@ export default function App(){
   const[toastId,setToastId]=useState(null);
   const[toastVisible,setToastVisible]=useState(false);
   const toastTimer=useRef(null);
+  const[showGuide,setShowGuide]=useState(()=>!localStorage.getItem("lv_guide_seen"));
+  useEffect(()=>{
+    if(showGuide){
+      const t=setTimeout(()=>{setShowGuide(false);localStorage.setItem("lv_guide_seen","1");},4000);
+      return()=>clearTimeout(t);
+    }
+  },[showGuide]);
   const showToast=(id)=>{
     setToastId(id);
     setToastVisible(true);
@@ -244,20 +251,51 @@ export default function App(){
     clustererRef.current.addMarkers(toShow.map(m=>m.marker));
   },[mapMode,saved]);
 
+  // Pill toggle — grey+text when off, blue+pin icon when on
   const PinButton=({id,size=42})=>{
     const on=saved.has(id);
     return(
       <div style={{position:"relative",flexShrink:0}}>
         {toastId===id&&toastVisible&&(
-          <div style={{position:"absolute",bottom:size+6,right:0,background:INK,color:WHITE,fontSize:11,fontWeight:600,letterSpacing:"0.06em",whiteSpace:"nowrap",padding:"6px 10px",borderRadius:4,pointerEvents:"none",animation:"fadeIn 0.15s ease",zIndex:10}}>
-            {on?"Added to My Plan":"Removed from Plan"}
+          <div style={{position:"absolute",bottom:"calc(100% + 6px)",right:0,background:INK,color:WHITE,fontSize:11,fontWeight:600,letterSpacing:"0.06em",whiteSpace:"nowrap",padding:"6px 10px",borderRadius:4,pointerEvents:"none",animation:"fadeIn 0.15s ease",zIndex:10}}>
+            {on?"Added to My Plan ✓":"Removed from Plan"}
           </div>
         )}
         <button
           onClick={e=>{e.stopPropagation();toggleSave(id);showToast(id);}}
-          style={{width:size,height:size,borderRadius:4,border:`1.5px solid ${on?BLUE:BORDER}`,background:on?BLUE:WHITE,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",transition:"all 0.15s"}}
+          style={{height:34,padding:"0 12px",borderRadius:20,border:`1.5px solid ${on?BLUE:BORDER}`,background:on?BLUE:"transparent",display:"flex",alignItems:"center",gap:6,cursor:"pointer",transition:"all 0.2s",whiteSpace:"nowrap"}}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill={on?WHITE:"#C0BBB5"}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          {on?(
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill={WHITE}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+              <span style={{fontSize:11,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",color:WHITE}}>My Plan</span>
+            </>
+          ):(
+            <span style={{fontSize:11,fontWeight:600,letterSpacing:"0.06em",textTransform:"uppercase",color:MID}}>+ My Plan</span>
+          )}
+        </button>
+      </div>
+    );
+  };
+
+  // Full-width plan toggle for detail page
+  const PlanToggle=({id})=>{
+    const on=saved.has(id);
+    return(
+      <div style={{position:"relative"}}>
+        {toastId===id&&toastVisible&&(
+          <div style={{position:"absolute",top:-36,left:"50%",transform:"translateX(-50%)",background:INK,color:WHITE,fontSize:11,fontWeight:600,letterSpacing:"0.06em",whiteSpace:"nowrap",padding:"6px 10px",borderRadius:4,pointerEvents:"none",animation:"fadeIn 0.15s ease",zIndex:10}}>
+            {on?"Added to My Plan ✓":"Removed from Plan"}
+          </div>
+        )}
+        <button
+          onClick={e=>{e.stopPropagation();toggleSave(id);showToast(id);}}
+          style={{width:"100%",padding:"13px 0",borderRadius:4,border:`1.5px solid ${on?BLUE:BORDER}`,background:on?`${BLUE}12`:"transparent",display:"flex",alignItems:"center",justifyContent:"center",gap:8,cursor:"pointer",transition:"all 0.2s",marginBottom:24}}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill={on?BLUE:MID}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          <span style={{fontSize:12,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:on?BLUE:MID}}>
+            {on?"In My Plan ✓":"Add to My Plan"}
+          </span>
         </button>
       </div>
     );
@@ -321,7 +359,15 @@ export default function App(){
                         <div style={{fontSize:13,color:INK,fontWeight:500,marginBottom:2}}>{shortAddr(s.address)} · {s.hood}</div>
                         <div style={{fontSize:12,color:MID}}>{dist?`${dist.toFixed(1)} km ${t.away} · `:""}{s.between?"":s.dates}</div>
                       </div>
-                      <PinButton id={s.id} size={40}/>
+                      <div style={{position:"relative"}}>
+                        <PinButton id={s.id} size={40}/>
+                        {showGuide&&filtered.indexOf(s)===0&&(
+                          <div style={{position:"absolute",bottom:"calc(100% + 10px)",right:0,background:INK,color:WHITE,fontSize:11,fontWeight:600,padding:"8px 12px",borderRadius:4,whiteSpace:"nowrap",zIndex:100,animation:"fadeIn 0.3s ease",pointerEvents:"none",lineHeight:1.5}}>
+                            Tap to save to your plan
+                            <div style={{position:"absolute",bottom:-5,right:14,width:10,height:10,background:INK,transform:"rotate(45deg)"}}/>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -357,16 +403,16 @@ export default function App(){
 
       {detail&&(
         <div style={{position:"fixed",inset:0,background:WHITE,zIndex:2000,overflowY:"auto",animation:"slideUp 0.32s cubic-bezier(0.16,1,0.3,1)",maxWidth:430,margin:"0 auto"}}>
-          <div style={{position:"sticky",top:0,background:WHITE,borderBottom:`1px solid ${BORDER}`,height:54,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",zIndex:10}}>
+          <div style={{position:"sticky",top:0,background:WHITE,borderBottom:`1px solid ${BORDER}`,height:54,display:"flex",alignItems:"center",padding:"0 20px",zIndex:10}}>
             <button onClick={()=>setDetail(null)} style={{fontSize:12,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:700,color:MID,background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:7,fontFamily:"'DM Sans',sans-serif"}}><span style={{fontSize:18,color:INK,lineHeight:1}}>←</span>{t.back}</button>
-            <PinButton id={detail.id} size={40}/>
           </div>
           <div style={{width:"100%",height:detail.between?140:260,background:detail.between?LIGHT:detail.color,display:"flex",alignItems:"center",justifyContent:"center"}}>{detail.between&&<div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontStyle:"italic",color:MID}}>{t.betweenShows}</div>}</div>
           <div style={{padding:"24px 20px"}}>
             <div style={{fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:8}}>{detail.gallery}</div>
             {!detail.between&&<div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,fontStyle:"italic",fontWeight:500,lineHeight:1.15,marginBottom:6}}>{detail.title}</div>}
             {!detail.between&&detail.artist&&<div style={{fontSize:17,fontWeight:400,marginBottom:22,color:INK}}>{detail.artist}</div>}
-            {!detail.between&&(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",border:`1px solid ${BORDER}`,borderRadius:4,marginBottom:24,overflow:"hidden"}}>{[[t.dates,detail.dates],[t.hours,"Tue–Sat 11–18h"],[t.area,detail.hood]].map(([label,val],i)=>(<div key={label} style={{padding:"13px 10px",textAlign:"center",borderRight:i<2?`1px solid ${BORDER}`:"none"}}><div style={{fontSize:10,letterSpacing:"0.10em",textTransform:"uppercase",color:MID,fontWeight:600,marginBottom:5}}>{label}</div><div style={{fontSize:13,fontWeight:600,lineHeight:1.3,color:INK}}>{val}</div></div>))}</div>)}
+            {!detail.between&&(<div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",border:`1px solid ${BORDER}`,borderRadius:4,marginBottom:16,overflow:"hidden"}}>{[[t.dates,detail.dates],[t.hours,"Tue–Sat 11–18h"],[t.area,detail.hood]].map(([label,val],i)=>(<div key={label} style={{padding:"13px 10px",textAlign:"center",borderRight:i<2?`1px solid ${BORDER}`:"none"}}><div style={{fontSize:10,letterSpacing:"0.10em",textTransform:"uppercase",color:MID,fontWeight:600,marginBottom:5}}>{label}</div><div style={{fontSize:13,fontWeight:600,lineHeight:1.3,color:INK}}>{val}</div></div>))}</div>)}
+            {!detail.between&&<PlanToggle id={detail.id}/>}
             <div style={{fontSize:14,color:MID,marginBottom:16}}>📍 {shortAddr(detail.address)}, {detail.hood}</div>
             <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:400,lineHeight:1.8,marginBottom:26,color:INK}}>{detail.desc}</div>
             {detail.reviewed&&(<div style={{background:"#EEF2FD",borderLeft:`3px solid ${BLUE}`,padding:"18px 16px",marginBottom:24,borderRadius:"0 4px 4px 0"}}><div style={{fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:10}}>{t.vernissageReview}</div><div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontStyle:"italic",lineHeight:1.8,marginBottom:10,color:INK}}>{detail.quote}</div><div style={{fontSize:12,color:MID}}>{detail.by}</div></div>)}
