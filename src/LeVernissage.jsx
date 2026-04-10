@@ -58,6 +58,8 @@ export default function App(){
   const mapRef=useRef(null);
   const gMapRef=useRef(null);
   const markersRef=useRef([]);
+  const clustererRef=useRef(null);
+  const geocodedPositions=useRef({});
   const t=T[lang];
 
   const toggleSave=(id)=>setSaved(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n;});
@@ -136,7 +138,7 @@ export default function App(){
         markersRef.current.forEach(m=>m.iw.close());
         infoWindow.open({anchor:marker,map});
       });
-      markersRef.current.push({marker,iw:infoWindow});
+      markersRef.current.push({id:s.id,marker,iw:infoWindow});
       return marker;
     };
 
@@ -196,7 +198,11 @@ export default function App(){
           document.head.appendChild(sc);
         });
       }
-      new window.markerClusterer.MarkerClusterer({map,markers});
+      // Store geocoded positions for redraw
+      showsToRender.forEach((s,i)=>{ geocodedPositions.current[s.id]=markers[i].getPosition(); });
+      const cl=new window.markerClusterer.MarkerClusterer({map,markers});
+      clustererRef.current=cl;
+      markersRef.current.forEach(m=>m.marker.setMap(map));
     };
 
     if(window.google&&window.google.maps){
@@ -214,7 +220,48 @@ export default function App(){
     }
   },[tab]);
 
-  const PinButton=({id,size=42})=>{const on=saved.has(id);return(<button onClick={e=>{e.stopPropagation();toggleSave(id);}} style={{width:size,height:size,borderRadius:4,border:`1.5px solid ${on?BLUE:BORDER}`,background:on?BLUE:WHITE,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,transition:"all 0.15s"}}><svg width="20" height="20" viewBox="0 0 24 24" fill={on?WHITE:"#C0BBB5"}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></button>);};
+  const[toastId,setToastId]=useState(null);
+  const[toastVisible,setToastVisible]=useState(false);
+  const toastTimer=useRef(null);
+  const showToast=(id)=>{
+    setToastId(id);
+    setToastVisible(true);
+    clearTimeout(toastTimer.current);
+    toastTimer.current=setTimeout(()=>setToastVisible(false),2000);
+  };
+  // Redraw map markers when My Plan / All Shows toggled
+  useEffect(()=>{
+    if(!gMapRef.current||!clustererRef.current)return;
+    const google=window.google;
+    // Remove old clusterer
+    clustererRef.current.clearMarkers();
+    markersRef.current.forEach(m=>m.marker.setMap(null));
+    // Show only relevant markers
+    const toShow=mapMode==="plan"
+      ?markersRef.current.filter(m=>saved.has(m.id))
+      :markersRef.current;
+    toShow.forEach(m=>m.marker.setMap(gMapRef.current));
+    clustererRef.current.addMarkers(toShow.map(m=>m.marker));
+  },[mapMode,saved]);
+
+  const PinButton=({id,size=42})=>{
+    const on=saved.has(id);
+    return(
+      <div style={{position:"relative",flexShrink:0}}>
+        {toastId===id&&toastVisible&&(
+          <div style={{position:"absolute",bottom:size+6,right:0,background:INK,color:WHITE,fontSize:11,fontWeight:600,letterSpacing:"0.06em",whiteSpace:"nowrap",padding:"6px 10px",borderRadius:4,pointerEvents:"none",animation:"fadeIn 0.15s ease",zIndex:10}}>
+            {on?"Added to My Plan":"Removed from Plan"}
+          </div>
+        )}
+        <button
+          onClick={e=>{e.stopPropagation();toggleSave(id);showToast(id);}}
+          style={{width:size,height:size,borderRadius:4,border:`1.5px solid ${on?BLUE:BORDER}`,background:on?BLUE:WHITE,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",transition:"all 0.15s"}}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill={on?WHITE:"#C0BBB5"}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        </button>
+      </div>
+    );
+  };;
 
   const FILTERS=[["featured",t.featured],["all",t.all],["closing",t.closing],["opening",t.opening],["nearby",t.nearby],["mile-end",t.mileEnd],["downtown",t.downtown],["rosemont",t.rosemont],["griffintown",t.griffintown],["saint-henri",t.saintHenri],["plateau",t.plateau]];
   const shortAddr=a=>a.replace(", Montréal, QC","");
@@ -222,8 +269,7 @@ export default function App(){
 
   return(
     <div style={{fontFamily:"'DM Sans',sans-serif",background:WHITE,height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden",maxWidth:430,margin:"0 auto",position:"relative",boxShadow:"0 0 60px rgba(0,0,0,0.08)"}}>
-      <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,height:56,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",flexShrink:0,zIndex:10}}>
-        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:600,letterSpacing:"0.04em"}}>Le Vernissage<span style={{color:BLUE}}>.</span></div>
+      <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,height:56,display:"flex",alignItems:"center",justifyContent:"flex-end",padding:"0 20px",flexShrink:0,zIndex:10}}>
         <div style={{display:"flex",gap:4}}>{["en","fr"].map(l=>(<button key={l} onClick={()=>{setLang(l);if(l==="fr")setShowLangBanner(true);}} style={{padding:"5px 10px",borderRadius:3,border:`1px solid ${lang===l?INK:BORDER}`,background:lang===l?INK:WHITE,color:lang===l?WHITE:MID,fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>{l}</button>))}</div>
       </div>
       {showLangBanner&&lang==="fr"&&(<div style={{background:BLUE,color:WHITE,fontSize:12,padding:"10px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}><span>Version française bientôt disponible</span><button onClick={()=>setShowLangBanner(false)} style={{background:"none",border:"none",color:WHITE,fontSize:20,cursor:"pointer",lineHeight:1,padding:0}}>×</button></div>)}
@@ -331,7 +377,7 @@ export default function App(){
           </div>
         </div>
       )}
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}*{-webkit-font-smoothing:antialiased;}::-webkit-scrollbar{display:none;}.gm-style-iw{padding:0!important;border-radius:6px!important;overflow:hidden!important;}.gm-style-iw-d{overflow:hidden!important;padding:0!important;}.gm-style-iw-c{padding:0!important;border-radius:6px!important;box-shadow:0 12px 40px rgba(0,0,0,0.16)!important;}.gm-ui-hover-effect{top:4px!important;right:4px!important;}.gm-style-iw-tc{display:none!important;}`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}*{-webkit-font-smoothing:antialiased;}::-webkit-scrollbar{display:none;}.gm-style-iw{padding:0!important;border-radius:6px!important;overflow:hidden!important;}.gm-style-iw-d{overflow:hidden!important;padding:0!important;}.gm-style-iw-c{padding:0!important;border-radius:6px!important;box-shadow:0 12px 40px rgba(0,0,0,0.16)!important;}.gm-ui-hover-effect{top:4px!important;right:4px!important;}.gm-style-iw-tc{display:none!important;}`}</style>
     </div>
   );
 }
