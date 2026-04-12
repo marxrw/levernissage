@@ -216,7 +216,7 @@ function AdminPage({ onExit }) {
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, padding: "16px", display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ flex: 1, padding: "16px", display: "flex", flexDirection: "column", gap: 32 }}>
         {loading && (
           <div style={{ textAlign: "center", padding: "60px 20px", color: MID, fontSize: 14 }}>
             Loading submissions…
@@ -229,11 +229,15 @@ function AdminPage({ onExit }) {
           </div>
         )}
 
-        {!loading && shows.map(s => (
-          <div key={s.id} style={{
-            background: WHITE, borderRadius: 8, overflow: "hidden",
-            boxShadow: "0 2px 12px rgba(0,0,0,0.06)", border: `1px solid ${BORDER}`
-          }}>
+        {!loading && shows.map((s, idx) => (
+          <div key={s.id}>
+            {/* Numbered divider */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 14, background: INK, color: WHITE, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{idx + 1}</div>
+              <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: MID, fontWeight: 600 }}>Submission {idx + 1} of {shows.length}</div>
+              <div style={{ flex: 1, height: 1, background: BORDER }} />
+            </div>
+            <div style={{ background: WHITE, borderRadius: 8, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.10)", border: `1px solid ${BORDER}` }}>
             {/* Image */}
             <div style={{
               width: "100%", height: 180, background: s.color || "#C8A882",
@@ -352,6 +356,7 @@ function AdminPage({ onExit }) {
                 {actionStates[s.id] === "approving" ? "Approving…" : "✓ Approve"}
               </button>
             </div>
+            </div>{/* end card */}
           </div>
         ))}
       </div>
@@ -526,7 +531,7 @@ export default function App(){
 
   // Tab bar config — bottom nav
   const tabs=[
-    { key:"exhibitions", label:"Exhibitions", icon:(active)=>(
+    { key:"exhibitions", label:"Shows", icon:(active)=>(
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active?BLUE:MID} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
         <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
@@ -545,7 +550,7 @@ export default function App(){
     )}]:[]),
   ];
 
-  const sourceLabel = detailSource === "exhibitions" ? "Exhibitions" : detailSource === "map" ? "Map" : "Reviews";
+  const sourceLabel = detailSource === "exhibitions" ? "Shows" : detailSource === "map" ? "Map" : "Reviews";
 
   if (showAdmin) return <AdminPage onExit={() => setShowAdmin(false)} />;
 
@@ -686,7 +691,7 @@ export default function App(){
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M19 12H5M12 5l-7 7 7 7"/>
               </svg>
-              <span style={{fontSize:13,fontWeight:600,color:INK,letterSpacing:"0.02em"}}>{sourceLabel}</span>
+              <span style={{fontSize:16,fontWeight:600,color:INK,letterSpacing:"0.01em"}}>{sourceLabel}</span>
             </button>
           </div>
 
