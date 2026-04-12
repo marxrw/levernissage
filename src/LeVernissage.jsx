@@ -721,7 +721,7 @@ export default function App(){
         @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
         @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
         @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
-        *{-webkit-font-smoothing:antialiased;}
+        *{-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;}
         ::-webkit-scrollbar{display:none;}
         .gm-style-iw{padding:0!important;border-radius:6px!important;overflow:hidden!important;}
         .gm-style-iw-d{overflow:hidden!important;padding:0!important;}
