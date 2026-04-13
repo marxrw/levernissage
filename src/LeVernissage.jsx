@@ -29,13 +29,13 @@ async function fetchShows(){
     image_url_3:s.image_url_3||null,image_url_4:s.image_url_4||null,
     image_url_5:s.image_url_5||null,
     website_url:s.website_url||null,instagram_url:s.instagram_url||null,
-    lat:parseFloat(s.lat)||45.5080,lng:parseFloat(s.lng)||-73.5750,
+    lat:parseFloat(s.lat)||null,lng:parseFloat(s.lng)||null,
   }));
 }
 
 async function fetchPendingShows(){
   const res=await fetch(`${SUPABASE_URL}/rest/v1/shows?status=eq.cleaned&order=created_at.desc`,{headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`}});
-  if(!res.ok)throw new Error("Failed to fetch pending shows");
+  if(!res.ok)throw new Error("Failed");
   return res.json();
 }
 
@@ -53,11 +53,10 @@ const T={
     myPlan:"My Plan",getDirections:"Directions to venue",openWebsite:"Open website",
     openInstagram:"Instagram",share:"Share",dates:"Dates",hours:"Hours",area:"Area",
     noShowsInPlan:"No shows in your plan yet",addFromShows:"Add shows from the Shows tab",
-    frameReview:"Frame Review",closingSoon:"Closing",openingSoon:"Opening",onNow:"On Now",
-    away:"away",betweenShows:"Between exhibitions",loading:"Loading…",error:"Could not load shows.",
+    frameReview:"Frame Review",onNow:"On Now",loading:"Loading…",error:"Could not load shows.",
     addToPlan:"Add to My Plan",inPlan:"In My Plan ✓",venue:"Venue",
     listYourShow:"List your show",featureYourShow:"Feature your show",
-    sayHello:"Say hello",followUs:"Instagram",back:"Back",
+    sayHello:"Say hello",followUs:"Instagram",
   },
   fr:{
     city:"Montréal",featured:"En vedette",shows:"Expositions",map:"Carte",reviews:"Critiques",
@@ -66,15 +65,13 @@ const T={
     myPlan:"Mon plan",getDirections:"Itinéraire",openWebsite:"Site web",
     openInstagram:"Instagram",share:"Partager",dates:"Dates",hours:"Heures",area:"Quartier",
     noShowsInPlan:"Aucune exposition dans votre plan",addFromShows:"Ajoutez des expositions depuis Expositions",
-    frameReview:"Critique Frame",closingSoon:"Ferme bientôt",openingSoon:"Ouvre bientôt",onNow:"En cours",
-    away:"de vous",betweenShows:"Entre expositions",loading:"Chargement…",error:"Impossible de charger.",
+    frameReview:"Critique Frame",onNow:"En cours",loading:"Chargement…",error:"Impossible de charger.",
     addToPlan:"Ajouter à mon plan",inPlan:"Dans mon plan ✓",venue:"Lieu",
     listYourShow:"Soumettre une expo",featureYourShow:"Mettre en vedette",
-    sayHello:"Nous écrire",followUs:"Instagram",back:"Retour",
+    sayHello:"Nous écrire",followUs:"Instagram",
   }
 };
 
-// ── Constants ─────────────────────────────────────────────────────────────────
 const INK="#0F0E0C",BLUE="#2B5BE8",WHITE="#FFFFFF",BORDER="#E8E5E0",MID="#6B6560",LIGHT="#F4F4F4";
 const FEATURED_COLOR="#F5A623";
 const TODAY=new Date();
@@ -84,11 +81,13 @@ function isClosingThisWeek(s){if(!s.closeDate)return false;const d=(new Date(s.c
 function isOpeningThisWeek(s){if(!s.openDate)return false;const d=(new Date(s.openDate)-TODAY)/86400000;return d>=-1&&d<=7;}
 function isOnNow(s){if(!s.openDate||!s.closeDate)return false;return new Date(s.openDate)<=TODAY&&new Date(s.closeDate)>=TODAY;}
 function statusBadge(s){
-  if(isOpeningThisWeek(s)&&!isOnNow(s)){const days=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];return`Opening ${days[new Date(s.openDate).getDay()]}`;}
+  if(isOpeningThisWeek(s)&&!isOnNow(s)){
+    const days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    return`Opening ${days[new Date(s.openDate).getDay()]}`;
+  }
   if(isOnNow(s))return"On Now";
   return null;
 }
-function distanceKm(lat1,lng1,lat2,lng2){const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
 function mapsUrl(addr){return`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}`;}
 function staticMapUrl(lat,lng){return`https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=600x300&scale=2&maptype=roadmap&markers=color:red%7C${lat},${lng}&key=${GMAPS_KEY}&style=feature:poi|visibility:off`;}
 function shortAddr(a){return a?a.replace(", Montréal, QC","").replace(", Montreal, QC",""):"";}
@@ -101,28 +100,48 @@ function pinSVG(featured,id){
 }
 
 // ── Image Carousel ────────────────────────────────────────────────────────────
-function ImageCarousel({images,mapUrl,height=260}){
+function ImageCarousel({slides,height=260}){
   const[idx,setIdx]=useState(0);
   const startX=useRef(null);
-  const allSlides=[...images,mapUrl].filter(Boolean);
-  if(allSlides.length===0)return<div style={{height,background:LIGHT}}/>;
-  if(allSlides.length===1)return<div style={{height,overflow:"hidden"}}><img src={allSlides[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/></div>;
-  const go=(n)=>setIdx(i=>Math.max(0,Math.min(allSlides.length-1,i+n)));
+  const startY=useRef(null);
+  const dragging=useRef(false);
+
+  if(!slides||slides.length===0)return<div style={{height,background:LIGHT}}/>;
+  if(slides.length===1)return(
+    <div style={{height,overflow:"hidden"}}>
+      <img src={slides[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
+    </div>
+  );
+
+  const go=(n)=>setIdx(i=>Math.max(0,Math.min(slides.length-1,i+n)));
+
   return(
-    <div style={{position:"relative",height,overflow:"hidden",userSelect:"none"}}
-      onTouchStart={e=>startX.current=e.touches[0].clientX}
-      onTouchEnd={e=>{if(startX.current===null)return;const dx=e.changedTouches[0].clientX-startX.current;if(Math.abs(dx)>40)go(dx<0?1:-1);startX.current=null;}}
+    <div style={{position:"relative",height,overflow:"hidden",touchAction:"pan-y"}}
+      onTouchStart={e=>{startX.current=e.touches[0].clientX;startY.current=e.touches[0].clientY;dragging.current=false;}}
+      onTouchMove={e=>{
+        if(startX.current===null)return;
+        const dx=Math.abs(e.touches[0].clientX-startX.current);
+        const dy=Math.abs(e.touches[0].clientY-startY.current);
+        if(dx>dy&&dx>10){dragging.current=true;e.stopPropagation();}
+      }}
+      onTouchEnd={e=>{
+        if(startX.current===null)return;
+        const dx=e.changedTouches[0].clientX-startX.current;
+        if(dragging.current&&Math.abs(dx)>40)go(dx<0?1:-1);
+        startX.current=null;startY.current=null;dragging.current=false;
+      }}
     >
-      <div style={{display:"flex",height:"100%",transition:"transform 0.3s ease",transform:`translateX(-${idx*100}%)`}}>
-        {allSlides.map((src,i)=>(
-          <div key={i} style={{minWidth:"100%",height:"100%",flexShrink:0}}>
-            <img src={src} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+      <div style={{display:"flex",height:"100%",transition:"transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)",transform:`translateX(-${idx*100}%)`}}>
+        {slides.map((src,i)=>(
+          <div key={i} style={{minWidth:"100%",height:"100%",flexShrink:0,overflow:"hidden"}}>
+            <img src={src} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
           </div>
         ))}
       </div>
-      <div style={{position:"absolute",bottom:10,left:"50%",transform:"translateX(-50%)",display:"flex",gap:5}}>
-        {allSlides.map((_,i)=>(
-          <div key={i} onClick={()=>setIdx(i)} style={{width:i===idx?16:6,height:6,borderRadius:3,background:i===idx?WHITE:"rgba(255,255,255,0.5)",transition:"all 0.2s",cursor:"pointer"}}/>
+      {/* Dots */}
+      <div style={{position:"absolute",bottom:12,left:"50%",transform:"translateX(-50%)",display:"flex",gap:6,pointerEvents:"none"}}>
+        {slides.map((_,i)=>(
+          <div key={i} style={{width:i===idx?18:6,height:6,borderRadius:3,background:i===idx?"rgba(255,255,255,0.95)":"rgba(255,255,255,0.4)",transition:"all 0.25s"}}/>
         ))}
       </div>
     </div>
@@ -134,17 +153,31 @@ function FeaturedCard({s,onClick}){
   const badge=statusBadge(s);
   const badgeColor=badge==="On Now"?"#22A06B":BLUE;
   const images=getImages(s);
-  const mapUrl=s.lat&&s.lng?staticMapUrl(s.lat,s.lng):null;
+  const mapUrl=(s.lat&&s.lng&&!isNaN(s.lat)&&!isNaN(s.lng))?staticMapUrl(s.lat,s.lng):null;
+  const slides=[...images,...(mapUrl?[mapUrl]:[])];
+
   return(
-    <div onClick={onClick} style={{cursor:"pointer",margin:"12px 12px 0",borderRadius:12,overflow:"hidden",boxShadow:"0 4px 20px rgba(0,0,0,0.10)",border:`1px solid ${BORDER}`,marginBottom:4}}>
+    <div onClick={onClick} style={{cursor:"pointer",borderBottom:`1px solid ${BORDER}`}}>
       <div style={{position:"relative"}}>
-        <ImageCarousel images={images} mapUrl={mapUrl} height={240}/>
-        {badge&&<div style={{position:"absolute",top:12,left:12,background:badgeColor,color:WHITE,fontSize:10,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",padding:"4px 10px",borderRadius:3,zIndex:2}}>{badge}</div>}
+        <ImageCarousel slides={slides} height={260}/>
+        {/* Badge top right, semi-transparent */}
+        {badge&&(
+          <div style={{
+            position:"absolute",top:12,right:12,
+            background:"rgba(0,0,0,0.42)",
+            backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",
+            color:WHITE,fontSize:10,fontWeight:700,
+            letterSpacing:"0.1em",textTransform:"uppercase",
+            padding:"5px 10px",borderRadius:4,zIndex:2,
+            border:"1px solid rgba(255,255,255,0.18)"
+          }}>{badge}</div>
+        )}
       </div>
-      <div style={{padding:"14px 16px",background:WHITE}}>
+      {/* White footer strip */}
+      <div style={{padding:"14px 16px 16px",background:WHITE}}>
         <div style={{fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:4}}>{s.gallery}</div>
         <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic",fontWeight:600,color:INK,lineHeight:1.2,marginBottom:3}}>{s.title}</div>
-        <div style={{fontSize:14,color:MID,marginBottom:4}}>{s.artist}</div>
+        <div style={{fontSize:14,color:MID,marginBottom:3}}>{s.artist}</div>
         <div style={{fontSize:12,color:MID}}>{s.hood}{s.dates?` · ${s.dates}`:""}</div>
       </div>
     </div>
@@ -157,10 +190,10 @@ function TextCard({s,onClick}){
   return(
     <div onClick={onClick} style={{padding:"16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
       <div style={{flex:1,minWidth:0}}>
-        <div style={{fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:4}}>{s.gallery}</div>
-        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic",fontWeight:600,color:INK,lineHeight:1.2,marginBottom:3}}>{s.title}</div>
-        <div style={{fontSize:14,color:MID,marginBottom:4}}>{s.artist}</div>
-        <div style={{fontSize:12,color:MID}}>{s.hood}{s.dates?` · ${s.dates}`:""}</div>
+        <div style={{fontSize:12,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:5}}>{s.gallery}</div>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontStyle:"italic",fontWeight:600,color:INK,lineHeight:1.2,marginBottom:4}}>{s.title}</div>
+        <div style={{fontSize:15,color:MID,marginBottom:4}}>{s.artist}</div>
+        <div style={{fontSize:13,color:MID}}>{s.hood}{s.dates?` · ${s.dates}`:""}</div>
       </div>
       <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:5,flexShrink:0}}>
         {closing&&<span style={{fontSize:10,padding:"3px 8px",background:BLUE,color:WHITE,borderRadius:3,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase"}}>Closing</span>}
@@ -175,7 +208,7 @@ function TextCard({s,onClick}){
 function ShowsSubPage({title,shows,onBack,onSelect}){
   return(
     <div style={{position:"fixed",inset:0,background:WHITE,zIndex:1500,display:"flex",flexDirection:"column",maxWidth:430,margin:"0 auto",animation:"slideUp 0.28s cubic-bezier(0.16,1,0.3,1)"}}>
-      <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,height:52,display:"flex",alignItems:"center",padding:"0 4px",flexShrink:0,position:"sticky",top:0,zIndex:10}}>
+      <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,height:52,display:"flex",alignItems:"center",padding:"0 4px",flexShrink:0}}>
         <button onClick={onBack} style={{height:"100%",padding:"0 20px",display:"flex",alignItems:"center",gap:6,background:"none",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",minWidth:44}}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
           <span style={{fontSize:16,fontWeight:600,color:INK}}>{title}</span>
@@ -189,11 +222,62 @@ function ShowsSubPage({title,shows,onBack,onSelect}){
   );
 }
 
+// ── Venue Page ────────────────────────────────────────────────────────────────
+function VenuePage({show,onBack,t}){
+  const hasMap=show.lat&&show.lng&&!isNaN(show.lat)&&!isNaN(show.lng);
+  return(
+    <div style={{position:"fixed",inset:0,background:WHITE,zIndex:2500,display:"flex",flexDirection:"column",maxWidth:430,margin:"0 auto",animation:"slideUp 0.28s cubic-bezier(0.16,1,0.3,1)"}}>
+      <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,height:52,display:"flex",alignItems:"center",padding:"0 4px",flexShrink:0,position:"sticky",top:0,zIndex:10}}>
+        <button onClick={onBack} style={{height:"100%",padding:"0 20px",display:"flex",alignItems:"center",gap:6,background:"none",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",minWidth:44}}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+          <span style={{fontSize:16,fontWeight:600,color:INK}}>{show.gallery}</span>
+        </button>
+      </div>
+
+      {/* Venue info */}
+      <div style={{padding:"24px 20px 16px"}}>
+        <div style={{fontSize:18,fontWeight:700,color:INK,marginBottom:4}}>{show.gallery}</div>
+        <div style={{fontSize:15,color:MID,marginBottom:2}}>{shortAddr(show.address)}</div>
+        {show.hours&&<div style={{fontSize:14,color:MID}}>{show.hours}</div>}
+      </div>
+
+      {/* Static map */}
+      {hasMap&&(
+        <div style={{width:"100%",height:200,overflow:"hidden",flexShrink:0}}>
+          <img src={staticMapUrl(show.lat,show.lng)} alt="Map" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+        </div>
+      )}
+
+      {/* Action rows */}
+      <div style={{borderTop:`1px solid ${BORDER}`}}>
+        <a href={mapsUrl(show.address)} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:14,padding:"18px 20px",borderBottom:`1px solid ${BORDER}`,textDecoration:"none",color:BLUE,fontSize:16,fontWeight:500}}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+          {t.getDirections}
+        </a>
+        {show.website_url&&(
+          <a href={show.website_url} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:14,padding:"18px 20px",borderBottom:`1px solid ${BORDER}`,textDecoration:"none",color:BLUE,fontSize:16,fontWeight:500}}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            {t.openWebsite}
+          </a>
+        )}
+        {show.instagram_url&&(
+          <a href={show.instagram_url} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:14,padding:"18px 20px",borderBottom:`1px solid ${BORDER}`,textDecoration:"none",color:BLUE,fontSize:16,fontWeight:500}}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+            {t.openInstagram}
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Detail Page ───────────────────────────────────────────────────────────────
-function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastId,toastVisible,t}){
+function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastId,toastVisible,t,onVenue}){
   const images=getImages(detail);
-  const mapUrl=detail.lat&&detail.lng?staticMapUrl(detail.lat,detail.lng):null;
+  const mapUrl=(detail.lat&&detail.lng&&!isNaN(detail.lat)&&!isNaN(detail.lng))?staticMapUrl(detail.lat,detail.lng):null;
+  const slides=detail.featured?[...images,...(mapUrl?[mapUrl]:[])]:images;
   const on=saved.has(detail.id);
+
   return(
     <div style={{position:"fixed",inset:0,background:WHITE,zIndex:2000,overflowY:"auto",animation:"slideUp 0.32s cubic-bezier(0.16,1,0.3,1)",maxWidth:430,margin:"0 auto"}}>
       <div style={{position:"sticky",top:0,background:WHITE,borderBottom:`1px solid ${BORDER}`,height:52,display:"flex",alignItems:"center",padding:"0 4px",zIndex:10,flexShrink:0}}>
@@ -203,8 +287,9 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
         </button>
       </div>
 
+      {/* Image */}
       {detail.featured?(
-        <ImageCarousel images={images} mapUrl={mapUrl} height={280}/>
+        <ImageCarousel slides={slides} height={280}/>
       ):(
         <div style={{width:"100%",height:240,background:detail.color,position:"relative",overflow:"hidden"}}>
           {detail.image_url&&<img src={detail.image_url} alt={detail.title} style={{width:"100%",height:"100%",objectFit:"cover",position:"absolute",inset:0}}/>}
@@ -227,9 +312,10 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
           </div>
         )}
 
+        {/* Add to plan */}
         {!detail.between&&(
-          <div style={{position:"relative",marginBottom:24}}>
-            {toastId===detail.id&&toastVisible&&<div style={{position:"absolute",top:-36,left:"50%",transform:"translateX(-50%)",background:INK,color:WHITE,fontSize:11,fontWeight:600,letterSpacing:"0.06em",whiteSpace:"nowrap",padding:"6px 10px",borderRadius:4,pointerEvents:"none",zIndex:10}}>{on?t.inPlan:"Removed from Plan"}</div>}
+          <div style={{position:"relative",marginBottom:20}}>
+            {toastId===detail.id&&toastVisible&&<div style={{position:"absolute",top:-36,left:"50%",transform:"translateX(-50%)",background:INK,color:WHITE,fontSize:11,fontWeight:600,whiteSpace:"nowrap",padding:"6px 10px",borderRadius:4,pointerEvents:"none",zIndex:10}}>{on?t.inPlan:"Removed from Plan"}</div>}
             <button onClick={e=>{e.stopPropagation();toggleSave(detail.id);showToast(detail.id);}} style={{width:"100%",padding:"13px 0",borderRadius:4,border:`1.5px solid ${on?BLUE:BORDER}`,background:on?`${BLUE}12`:"transparent",display:"flex",alignItems:"center",justifyContent:"center",gap:8,cursor:"pointer",transition:"all 0.2s"}}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill={on?BLUE:MID}><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
               <span style={{fontSize:12,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:on?BLUE:MID}}>{on?t.inPlan:t.addToPlan}</span>
@@ -237,8 +323,22 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
           </div>
         )}
 
+        {/* ── Venue row — tappable, opens Venue page ── */}
+        {!detail.between&&(
+          <div onClick={onVenue} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 0",borderTop:`1px solid ${BORDER}`,borderBottom:`1px solid ${BORDER}`,cursor:"pointer",marginBottom:24}}>
+            <div>
+              <div style={{fontSize:11,letterSpacing:"0.1em",textTransform:"uppercase",color:MID,fontWeight:600,marginBottom:3}}>{t.venue}</div>
+              <div style={{fontSize:15,fontWeight:600,color:INK,marginBottom:1}}>{detail.gallery}</div>
+              <div style={{fontSize:13,color:MID}}>{shortAddr(detail.address)}</div>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+        )}
+
+        {/* Description */}
         {detail.desc&&<div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:400,lineHeight:1.8,marginBottom:28,color:INK}}>{detail.desc}</div>}
 
+        {/* Frame Review */}
         {detail.reviewed&&detail.quote&&(
           <div style={{background:"#EEF2FD",borderLeft:`3px solid ${BLUE}`,padding:"18px 16px",marginBottom:28,borderRadius:"0 4px 4px 0"}}>
             <div style={{fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:10}}>{t.frameReview}</div>
@@ -246,45 +346,13 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
             <div style={{fontSize:12,color:MID}}>{detail.by}</div>
           </div>
         )}
-      </div>
 
-      {/* Venue Section */}
-      <div style={{borderTop:`1px solid ${BORDER}`}}>
-        <div style={{padding:"20px 20px 12px"}}>
-          <div style={{fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",color:MID,fontWeight:700,marginBottom:14}}>{t.venue}</div>
-          <div style={{fontSize:15,fontWeight:600,color:INK,marginBottom:2}}>{detail.gallery}</div>
-          <div style={{fontSize:13,color:MID,marginBottom:2}}>{shortAddr(detail.address)}</div>
-          {detail.hours&&<div style={{fontSize:13,color:MID}}>{detail.hours}</div>}
-        </div>
-        {mapUrl&&(
-          <div style={{width:"100%",height:160,overflow:"hidden"}}>
-            <img src={staticMapUrl(detail.lat,detail.lng)} alt="Map" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-          </div>
-        )}
-        <div style={{borderTop:`1px solid ${BORDER}`}}>
-          <a href={mapsUrl(detail.address)} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:12,padding:"16px 20px",borderBottom:`1px solid ${BORDER}`,textDecoration:"none",color:BLUE,fontSize:15,fontWeight:500}}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-            {t.getDirections}
-          </a>
-          {detail.website_url&&(
-            <a href={detail.website_url} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:12,padding:"16px 20px",borderBottom:`1px solid ${BORDER}`,textDecoration:"none",color:BLUE,fontSize:15,fontWeight:500}}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-              {t.openWebsite}
-            </a>
-          )}
-          {detail.instagram_url&&(
-            <a href={detail.instagram_url} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:12,padding:"16px 20px",borderBottom:`1px solid ${BORDER}`,textDecoration:"none",color:BLUE,fontSize:15,fontWeight:500}}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
-              {t.openInstagram}
-            </a>
-          )}
-          <button onClick={()=>{if(navigator.share){navigator.share({title:`${detail.title} — ${detail.gallery}`,url:window.location.href});}else{navigator.clipboard?.writeText(window.location.href);}}} style={{display:"flex",alignItems:"center",gap:12,padding:"16px 20px",background:"none",border:"none",borderBottom:`1px solid ${BORDER}`,color:BLUE,fontSize:15,fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",textAlign:"left",width:"100%"}}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-            {t.share}
-          </button>
-        </div>
+        {/* Share */}
+        <button onClick={()=>{if(navigator.share){navigator.share({title:`${detail.title} — ${detail.gallery}`,url:window.location.href});}else{navigator.clipboard?.writeText(window.location.href);}}} style={{width:"100%",padding:"14px 0",borderRadius:4,border:`1.5px solid ${BORDER}`,background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",gap:8,cursor:"pointer",marginBottom:40,fontFamily:"'DM Sans',sans-serif"}}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          <span style={{fontSize:12,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:MID}}>{t.share}</span>
+        </button>
       </div>
-      <div style={{height:40}}/>
     </div>
   );
 }
@@ -360,7 +428,7 @@ function AdminPage({onExit}){
       <div style={{flex:1,padding:"16px",display:"flex",flexDirection:"column",gap:32}}>
         <div>
           <div style={{fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",color:MID,fontWeight:700,marginBottom:16,paddingBottom:8,borderBottom:`1px solid ${BORDER}`}}>Review Queue</div>
-          {loading&&<div style={{textAlign:"center",padding:"40px 20px",color:MID,fontSize:14}}>Loading…</div>}
+          {loading&&<div style={{textAlign:"center",padding:"40px 20px",color:MID}}>Loading…</div>}
           {!loading&&pendingShows.length===0&&<div style={{textAlign:"center",padding:"40px 20px"}}><div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontStyle:"italic",color:MID}}>All clear</div></div>}
           {!loading&&pendingShows.map((s,idx)=>(
             <div key={s.id} style={{marginBottom:32}}>
@@ -431,6 +499,7 @@ export default function App(){
   const[tab,setTab]=useState("featured");
   const[detail,setDetail]=useState(null);
   const[detailSource,setDetailSource]=useState("featured");
+  const[venuePage,setVenuePage]=useState(null);
   const[subPage,setSubPage]=useState(null);
   const[saved,setSaved]=useState(new Set());
   const[mapMode,setMapMode]=useState("all");
@@ -495,7 +564,7 @@ export default function App(){
         geocoder.geocode({address:s.address},(results,status)=>{
           let lat,lng;
           if(status==="OK"&&results[0]){lat=results[0].geometry.location.lat();lng=results[0].geometry.location.lng();}
-          else{lat=s.lat;lng=s.lng;}
+          else{lat=s.lat||45.5080;lng=s.lng||-73.5750;}
           const key=lat.toFixed(5)+","+lng.toFixed(5);
           const count=seenPositions[key]=(seenPositions[key]||0)+1;
           if(count>1){const angle=(count-1)*(2*Math.PI/8);lat+=0.00008*Math.cos(angle);lng+=0.00008*Math.sin(angle);}
@@ -585,7 +654,7 @@ export default function App(){
             {!loading&&!loadError&&SHOWS.filter(s=>s.featured&&!s.between).map(s=>(
               <FeaturedCard key={s.id} s={s} onClick={()=>openDetail(s,"featured")}/>
             ))}
-            <div style={{height:16}}/>
+            <div style={{height:20}}/>
           </div>
         )}
 
@@ -596,10 +665,10 @@ export default function App(){
             {loadError&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.error}</div>}
             {!loading&&!loadError&&(<>
               {allCurrent.length>0&&(
-                <div onClick={()=>setSubPage({title:t.allShows,shows:allCurrent})} style={{padding:"18px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div onClick={()=>setSubPage({title:t.allShows,shows:allCurrent})} style={{padding:"20px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <div>
-                    <div style={{fontSize:16,fontWeight:600,color:INK,marginBottom:2}}>{t.allShows}</div>
-                    <div style={{fontSize:13,color:MID}}>{allCurrent.length} exhibitions</div>
+                    <div style={{fontSize:18,fontWeight:600,color:INK,marginBottom:3}}>{t.allShows}</div>
+                    <div style={{fontSize:14,color:MID}}>{allCurrent.length} exhibitions</div>
                   </div>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                 </div>
@@ -607,38 +676,38 @@ export default function App(){
               {activeHoods.map(hood=>{
                 const hs=SHOWS.filter(s=>!s.between&&s.hood===hood&&(isOnNow(s)||isOpeningThisWeek(s)));
                 return hs.length>0?(
-                  <div key={hood} onClick={()=>setSubPage({title:hood,shows:hs})} style={{padding:"18px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <div key={hood} onClick={()=>setSubPage({title:hood,shows:hs})} style={{padding:"20px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                     <div>
-                      <div style={{fontSize:16,fontWeight:600,color:INK,marginBottom:2}}>{hood}</div>
-                      <div style={{fontSize:13,color:MID}}>{hs.length} {hs.length===1?"exhibition":"exhibitions"}</div>
+                      <div style={{fontSize:18,fontWeight:600,color:INK,marginBottom:3}}>{hood}</div>
+                      <div style={{fontSize:14,color:MID}}>{hs.length} {hs.length===1?"exhibition":"exhibitions"}</div>
                     </div>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                   </div>
                 ):null;
               })}
               {editorsPicks.length>0&&(
-                <div onClick={()=>setSubPage({title:t.editorsPicks,shows:editorsPicks})} style={{padding:"18px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div onClick={()=>setSubPage({title:t.editorsPicks,shows:editorsPicks})} style={{padding:"20px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <div>
-                    <div style={{fontSize:16,fontWeight:600,color:INK,marginBottom:2}}>{t.editorsPicks}</div>
-                    <div style={{fontSize:13,color:MID}}>{editorsPicks.length} exhibitions</div>
+                    <div style={{fontSize:18,fontWeight:600,color:INK,marginBottom:3}}>{t.editorsPicks}</div>
+                    <div style={{fontSize:14,color:MID}}>{editorsPicks.length} exhibitions</div>
                   </div>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                 </div>
               )}
               {openingThisWeek.length>0&&(
-                <div onClick={()=>setSubPage({title:t.openingThisWeek,shows:openingThisWeek})} style={{padding:"18px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div onClick={()=>setSubPage({title:t.openingThisWeek,shows:openingThisWeek})} style={{padding:"20px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <div>
-                    <div style={{fontSize:16,fontWeight:600,color:INK,marginBottom:2}}>{t.openingThisWeek}</div>
-                    <div style={{fontSize:13,color:MID}}>{openingThisWeek.length} exhibitions</div>
+                    <div style={{fontSize:18,fontWeight:600,color:INK,marginBottom:3}}>{t.openingThisWeek}</div>
+                    <div style={{fontSize:14,color:MID}}>{openingThisWeek.length} exhibitions</div>
                   </div>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                 </div>
               )}
               {closingThisWeek.length>0&&(
-                <div onClick={()=>setSubPage({title:t.closingThisWeek,shows:closingThisWeek})} style={{padding:"18px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div onClick={()=>setSubPage({title:t.closingThisWeek,shows:closingThisWeek})} style={{padding:"20px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <div>
-                    <div style={{fontSize:16,fontWeight:600,color:INK,marginBottom:2}}>{t.closingThisWeek}</div>
-                    <div style={{fontSize:13,color:MID}}>{closingThisWeek.length} exhibitions</div>
+                    <div style={{fontSize:18,fontWeight:600,color:INK,marginBottom:3}}>{t.closingThisWeek}</div>
+                    <div style={{fontSize:14,color:MID}}>{closingThisWeek.length} exhibitions</div>
                   </div>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                 </div>
@@ -654,7 +723,7 @@ export default function App(){
                   ].map(({icon,label,action})=>(
                     <button key={label} onClick={action} style={{padding:"20px 16px",background:WHITE,border:`1px solid ${BORDER}`,borderRadius:10,display:"flex",flexDirection:"column",alignItems:"center",gap:8,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
                       <span style={{fontSize:24}}>{icon}</span>
-                      <span style={{fontSize:12,fontWeight:600,color:INK,textAlign:"center"}}>{label}</span>
+                      <span style={{fontSize:13,fontWeight:600,color:INK,textAlign:"center"}}>{label}</span>
                     </button>
                   ))}
                 </div>
@@ -680,11 +749,11 @@ export default function App(){
       </div>
 
       {/* Bottom Tab Bar */}
-      <div style={{background:WHITE,borderTop:`1px solid ${BORDER}`,display:"flex",flexShrink:0,paddingBottom:"max(env(safe-area-inset-bottom), 16px)",zIndex:10}}>
+      <div style={{background:WHITE,borderTop:`1px solid ${BORDER}`,display:"flex",flexShrink:0,paddingBottom:"max(env(safe-area-inset-bottom), 20px)",zIndex:10}}>
         {tabs.map(({key,label,icon})=>{
           const active=tab===key;
           return(
-            <button key={key} onClick={()=>setTab(key)} style={{flex:1,paddingTop:12,paddingBottom:8,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4,background:"transparent",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",position:"relative"}}>
+            <button key={key} onClick={()=>setTab(key)} style={{flex:1,paddingTop:14,paddingBottom:10,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4,background:"transparent",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",position:"relative"}}>
               {active&&<div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:32,height:2,borderRadius:2,background:BLUE}}/>}
               {icon(active)}
               <span style={{fontSize:10,fontWeight:active?700:500,letterSpacing:"0.06em",textTransform:"uppercase",color:active?BLUE:MID}}>{label}</span>
@@ -714,6 +783,16 @@ export default function App(){
           showToast={showToast}
           toastId={toastId}
           toastVisible={toastVisible}
+          t={t}
+          onVenue={()=>setVenuePage(detail)}
+        />
+      )}
+
+      {/* Venue Page */}
+      {venuePage&&(
+        <VenuePage
+          show={venuePage}
+          onBack={()=>setVenuePage(null)}
           t={t}
         />
       )}
