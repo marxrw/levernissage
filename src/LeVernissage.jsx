@@ -76,18 +76,36 @@ const INK="#0F0E0C",BLUE="#2B5BE8",WHITE="#FFFFFF",BORDER="#E8E5E0",MID="#6B6560
 const FEATURED_COLOR="#F5A623";
 const TODAY=new Date();
 
+// ── Badge colors (FIX #4 — status badge colors) ───────────────────────────────
+const BADGE_GREEN="rgba(26,122,74,0.85)";   // On Now
+const BADGE_BLUE="rgba(26,74,138,0.85)";    // Opening Soon / Opening [day]
+const BADGE_RED="rgba(204,26,26,0.85)";     // Closing Soon / Last Day
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function isClosingThisWeek(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<=7;}
+function isLastDay(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<1;}
 function isOpeningThisWeek(s){if(!s.openDate)return false;const d=(new Date(s.openDate)-TODAY)/86400000;return d>=-1&&d<=7;}
 function isOnNow(s){if(!s.openDate||!s.closeDate)return false;return new Date(s.openDate)<=TODAY&&new Date(s.closeDate)>=TODAY;}
-function statusBadge(s){
+
+// Returns {label, color} for the status badge
+function statusBadgeInfo(s){
+  // Closing states take priority if on now
+  if(isOnNow(s)){
+    if(isLastDay(s))return{label:"Last Day",color:BADGE_RED};
+    if(isClosingThisWeek(s))return{label:"Closing Soon",color:BADGE_RED};
+    return{label:"On Now",color:BADGE_GREEN};
+  }
+  // Opening states
   if(isOpeningThisWeek(s)&&!isOnNow(s)){
     const days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-    return`Opening ${days[new Date(s.openDate).getDay()]}`;
+    const openDay=new Date(s.openDate);
+    const diffDays=Math.round((openDay-TODAY)/86400000);
+    const label=diffDays<=1?"Opening Soon":`Opening ${days[openDay.getDay()]}`;
+    return{label,color:BADGE_BLUE};
   }
-  if(isOnNow(s))return"On Now";
   return null;
 }
+
 function mapsUrl(addr){return`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}`;}
 function staticMapUrl(lat,lng){return`https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=600x300&scale=2&maptype=roadmap&markers=color:red%7C${lat},${lng}&key=${GMAPS_KEY}&style=feature:poi|visibility:off`;}
 function shortAddr(a){return a?a.replace(", Montréal, QC","").replace(", Montreal, QC",""):"";}
@@ -99,8 +117,8 @@ function pinSVG(featured,id){
   return`<svg xmlns="http://www.w3.org/2000/svg" width="34" height="48" viewBox="0 0 34 48"><defs><filter id="pn${fid}"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="rgba(0,0,0,0.32)"/></filter></defs><ellipse cx="17" cy="46.5" rx="5" ry="1.5" fill="rgba(0,0,0,0.14)"/><line x1="17" y1="18" x2="17" y2="44" stroke="#BBBBBB" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="15" r="14" fill="white" filter="url(#pn${fid})"/><circle cx="17" cy="15" r="12" fill="#E8251A"/><circle cx="17" cy="15" r="12" fill="none" stroke="white" stroke-width="2"/></svg>`;
 }
 
-// ── Image Carousel ────────────────────────────────────────────────────────────
-function ImageCarousel({slides,height=260}){
+// ── Image Carousel (FIX #1 — full swipe rewrite with refs) ────────────────────
+function ImageCarousel({slides,height=220}){
   const[idx,setIdx]=useState(0);
   const startX=useRef(null);
   const startY=useRef(null);
@@ -116,19 +134,29 @@ function ImageCarousel({slides,height=260}){
   const go=(n)=>setIdx(i=>Math.max(0,Math.min(slides.length-1,i+n)));
 
   return(
-    <div style={{position:"relative",height,overflow:"hidden",touchAction:"pan-y"}}
-      onTouchStart={e=>{startX.current=e.touches[0].clientX;startY.current=e.touches[0].clientY;dragging.current=false;}}
+    <div
+      style={{position:"relative",height,overflow:"hidden",touchAction:"pan-y"}}
+      onTouchStart={e=>{
+        startX.current=e.touches[0].clientX;
+        startY.current=e.touches[0].clientY;
+        dragging.current=false;
+      }}
       onTouchMove={e=>{
         if(startX.current===null)return;
         const dx=Math.abs(e.touches[0].clientX-startX.current);
         const dy=Math.abs(e.touches[0].clientY-startY.current);
-        if(dx>dy&&dx>10){dragging.current=true;e.stopPropagation();}
+        if(dx>dy&&dx>8){
+          dragging.current=true;
+          e.preventDefault();
+        }
       }}
       onTouchEnd={e=>{
         if(startX.current===null)return;
         const dx=e.changedTouches[0].clientX-startX.current;
         if(dragging.current&&Math.abs(dx)>40)go(dx<0?1:-1);
-        startX.current=null;startY.current=null;dragging.current=false;
+        startX.current=null;
+        startY.current=null;
+        dragging.current=false;
       }}
     >
       <div style={{display:"flex",height:"100%",transition:"transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)",transform:`translateX(-${idx*100}%)`}}>
@@ -139,46 +167,104 @@ function ImageCarousel({slides,height=260}){
         ))}
       </div>
       {/* Dots */}
-      <div style={{position:"absolute",bottom:12,left:"50%",transform:"translateX(-50%)",display:"flex",gap:6,pointerEvents:"none"}}>
+      <div style={{position:"absolute",bottom:10,left:"50%",transform:"translateX(-50%)",display:"flex",gap:5,pointerEvents:"none"}}>
         {slides.map((_,i)=>(
-          <div key={i} style={{width:i===idx?18:6,height:6,borderRadius:3,background:i===idx?"rgba(255,255,255,0.95)":"rgba(255,255,255,0.4)",transition:"all 0.25s"}}/>
+          <div key={i} style={{width:i===idx?16:5,height:5,borderRadius:3,background:i===idx?"rgba(255,255,255,0.95)":"rgba(255,255,255,0.4)",transition:"all 0.25s"}}/>
         ))}
       </div>
     </div>
   );
 }
 
-// ── Featured Card ─────────────────────────────────────────────────────────────
-function FeaturedCard({s,onClick}){
-  const badge=statusBadge(s);
-  const badgeColor=badge==="On Now"?"#22A06B":BLUE;
-  const images=getImages(s);
-  const mapUrl=(s.lat&&s.lng&&!isNaN(s.lat)&&!isNaN(s.lng))?staticMapUrl(s.lat,s.lng):null;
-  const slides=[...images,...(mapUrl?[mapUrl]:[])];
+// ── Map Slide (FIX #2 — embed iframe instead of static map image) ─────────────
+function MapSlide({show,height=220}){
+  const hasCoords=show.lat&&show.lng&&!isNaN(show.lat)&&!isNaN(show.lng);
+  const embedSrc=hasCoords
+    ?`https://www.google.com/maps/embed/v1/place?key=${GMAPS_KEY}&q=${show.lat},${show.lng}&zoom=15`
+    :`https://www.google.com/maps/embed/v1/place?key=${GMAPS_KEY}&q=${encodeURIComponent(show.address)}&zoom=15`;
+
+  // Fallback if no key — show address tile
+  if(!GMAPS_KEY){
+    return(
+      <div style={{height,background:"#f0ede8",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:10,flexShrink:0}}>
+        <div style={{fontSize:28}}>📍</div>
+        <div style={{fontSize:14,fontWeight:600,color:INK,textAlign:"center",padding:"0 24px",lineHeight:1.4}}>{shortAddr(show.address)}</div>
+        <a href={mapsUrl(show.address)} target="_blank" rel="noopener noreferrer"
+          style={{background:INK,color:WHITE,borderRadius:6,padding:"9px 18px",fontSize:12,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",textDecoration:"none",marginTop:4}}>
+          Open in Maps ↗
+        </a>
+      </div>
+    );
+  }
 
   return(
-    <div onClick={onClick} style={{cursor:"pointer",borderBottom:`1px solid ${BORDER}`}}>
-      <div style={{position:"relative"}}>
-        <ImageCarousel slides={slides} height={260}/>
-        {/* Badge top right, semi-transparent */}
-        {badge&&(
+    <div style={{height,position:"relative",flexShrink:0,overflow:"hidden"}}>
+      <iframe
+        title="Exhibition location"
+        width="100%"
+        height="100%"
+        style={{border:0,display:"block",pointerEvents:"none"}}
+        loading="lazy"
+        allowFullScreen
+        referrerPolicy="no-referrer-when-downgrade"
+        src={embedSrc}
+      />
+      {/* Tap overlay — opens maps app */}
+      <a
+        href={mapsUrl(show.address)}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{position:"absolute",inset:0,zIndex:2,display:"flex",alignItems:"flex-end",justifyContent:"flex-end",padding:12,textDecoration:"none"}}
+      >
+        <div style={{background:"rgba(255,255,255,0.92)",backdropFilter:"blur(6px)",borderRadius:6,padding:"7px 14px",fontSize:12,fontWeight:700,color:INK,boxShadow:"0 2px 8px rgba(0,0,0,0.12)"}}>
+          Directions ↗
+        </div>
+      </a>
+    </div>
+  );
+}
+
+// ── Featured Card (FIX #3 — full-bleed image + gradient overlay, 220px height) ─
+function FeaturedCard({s,onClick}){
+  const badgeInfo=statusBadgeInfo(s);
+  const images=getImages(s);
+
+  return(
+    <div onClick={onClick} style={{cursor:"pointer",marginBottom:12,borderRadius:12,overflow:"hidden",position:"relative",boxShadow:"0 2px 12px rgba(0,0,0,0.08)"}}>
+      {/* Full-bleed image */}
+      <div style={{position:"relative",height:220,overflow:"hidden",background:s.color||LIGHT}}>
+        {images.length>0?(
+          <ImageCarousel slides={images} height={220}/>
+        ):(
+          <div style={{width:"100%",height:"100%",background:s.color||LIGHT}}/>
+        )}
+
+        {/* Dark gradient over bottom 45% */}
+        <div style={{
+          position:"absolute",inset:0,
+          background:"linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.38) 42%, transparent 68%)",
+          pointerEvents:"none",zIndex:1
+        }}/>
+
+        {/* Text overlay */}
+        <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"16px 16px 14px",zIndex:2}}>
+          <div style={{fontSize:10,letterSpacing:"0.13em",textTransform:"uppercase",color:"rgba(255,255,255,0.75)",fontWeight:700,marginBottom:4}}>{s.gallery}</div>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:21,fontStyle:"italic",fontWeight:600,color:WHITE,lineHeight:1.2,marginBottom:3}}>{s.title}</div>
+          <div style={{fontSize:13,color:"rgba(255,255,255,0.80)"}}>{s.artist}{s.hood?` · ${s.hood}`:""}</div>
+        </div>
+
+        {/* Status badge top-right */}
+        {badgeInfo&&(
           <div style={{
             position:"absolute",top:12,right:12,
-            background:"rgba(0,0,0,0.42)",
-            backdropFilter:"blur(8px)",WebkitBackdropFilter:"blur(8px)",
+            background:badgeInfo.color,
+            backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",
             color:WHITE,fontSize:10,fontWeight:700,
-            letterSpacing:"0.1em",textTransform:"uppercase",
-            padding:"5px 10px",borderRadius:4,zIndex:2,
-            border:"1px solid rgba(255,255,255,0.18)"
-          }}>{badge}</div>
+            letterSpacing:"0.10em",textTransform:"uppercase",
+            padding:"5px 10px",borderRadius:4,zIndex:3,
+            border:"1px solid rgba(255,255,255,0.20)"
+          }}>{badgeInfo.label}</div>
         )}
-      </div>
-      {/* White footer strip */}
-      <div style={{padding:"14px 16px 16px",background:WHITE}}>
-        <div style={{fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:4}}>{s.gallery}</div>
-        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic",fontWeight:600,color:INK,lineHeight:1.2,marginBottom:3}}>{s.title}</div>
-        <div style={{fontSize:14,color:MID,marginBottom:3}}>{s.artist}</div>
-        <div style={{fontSize:12,color:MID}}>{s.hood}{s.dates?` · ${s.dates}`:""}</div>
       </div>
     </div>
   );
@@ -186,7 +272,7 @@ function FeaturedCard({s,onClick}){
 
 // ── Text Card ─────────────────────────────────────────────────────────────────
 function TextCard({s,onClick}){
-  const closing=isClosingThisWeek(s),opening=isOpeningThisWeek(s);
+  const badgeInfo=statusBadgeInfo(s);
   return(
     <div onClick={onClick} style={{padding:"16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
       <div style={{flex:1,minWidth:0}}>
@@ -196,8 +282,14 @@ function TextCard({s,onClick}){
         <div style={{fontSize:13,color:MID}}>{s.hood}{s.dates?` · ${s.dates}`:""}</div>
       </div>
       <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:5,flexShrink:0}}>
-        {closing&&<span style={{fontSize:10,padding:"3px 8px",background:BLUE,color:WHITE,borderRadius:3,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase"}}>Closing</span>}
-        {opening&&!closing&&<span style={{fontSize:10,padding:"3px 8px",background:"#22A06B",color:WHITE,borderRadius:3,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase"}}>Opening</span>}
+        {badgeInfo&&(
+          <span style={{
+            fontSize:10,padding:"3px 8px",
+            background:badgeInfo.color,
+            color:WHITE,borderRadius:3,fontWeight:700,
+            letterSpacing:"0.08em",textTransform:"uppercase"
+          }}>{badgeInfo.label}</span>
+        )}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={BORDER} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
       </div>
     </div>
@@ -224,7 +316,7 @@ function ShowsSubPage({title,shows,onBack,onSelect}){
 
 // ── Venue Page ────────────────────────────────────────────────────────────────
 function VenuePage({show,onBack,t}){
-  const hasMap=show.lat&&show.lng&&!isNaN(show.lat)&&!isNaN(show.lng);
+  const hasCoords=show.lat&&show.lng&&!isNaN(show.lat)&&!isNaN(show.lng);
   return(
     <div style={{position:"fixed",inset:0,background:WHITE,zIndex:2500,display:"flex",flexDirection:"column",maxWidth:430,margin:"0 auto",animation:"slideUp 0.28s cubic-bezier(0.16,1,0.3,1)"}}>
       <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,height:52,display:"flex",alignItems:"center",padding:"0 4px",flexShrink:0,position:"sticky",top:0,zIndex:10}}>
@@ -234,21 +326,15 @@ function VenuePage({show,onBack,t}){
         </button>
       </div>
 
-      {/* Venue info */}
       <div style={{padding:"24px 20px 16px"}}>
         <div style={{fontSize:18,fontWeight:700,color:INK,marginBottom:4}}>{show.gallery}</div>
         <div style={{fontSize:15,color:MID,marginBottom:2}}>{shortAddr(show.address)}</div>
         {show.hours&&<div style={{fontSize:14,color:MID}}>{show.hours}</div>}
       </div>
 
-      {/* Static map */}
-      {hasMap&&(
-        <div style={{width:"100%",height:200,overflow:"hidden",flexShrink:0}}>
-          <img src={staticMapUrl(show.lat,show.lng)} alt="Map" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-        </div>
-      )}
+      {/* FIX #2 — use MapSlide component for venue page map too */}
+      <MapSlide show={show} height={200}/>
 
-      {/* Action rows */}
       <div style={{borderTop:`1px solid ${BORDER}`}}>
         <a href={mapsUrl(show.address)} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:14,padding:"18px 20px",borderBottom:`1px solid ${BORDER}`,textDecoration:"none",color:BLUE,fontSize:16,fontWeight:500}}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
@@ -274,8 +360,7 @@ function VenuePage({show,onBack,t}){
 // ── Detail Page ───────────────────────────────────────────────────────────────
 function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastId,toastVisible,t,onVenue}){
   const images=getImages(detail);
-  const mapUrl=(detail.lat&&detail.lng&&!isNaN(detail.lat)&&!isNaN(detail.lng))?staticMapUrl(detail.lat,detail.lng):null;
-  const slides=detail.featured?[...images,...(mapUrl?[mapUrl]:[])]:images;
+  const slides=detail.featured?images:images; // map slide removed from detail carousel, lives in venue page
   const on=saved.has(detail.id);
 
   return(
@@ -288,7 +373,7 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
       </div>
 
       {/* Image */}
-      {detail.featured?(
+      {slides.length>1?(
         <ImageCarousel slides={slides} height={280}/>
       ):(
         <div style={{width:"100%",height:240,background:detail.color,position:"relative",overflow:"hidden"}}>
@@ -312,7 +397,6 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
           </div>
         )}
 
-        {/* Add to plan */}
         {!detail.between&&(
           <div style={{position:"relative",marginBottom:20}}>
             {toastId===detail.id&&toastVisible&&<div style={{position:"absolute",top:-36,left:"50%",transform:"translateX(-50%)",background:INK,color:WHITE,fontSize:11,fontWeight:600,whiteSpace:"nowrap",padding:"6px 10px",borderRadius:4,pointerEvents:"none",zIndex:10}}>{on?t.inPlan:"Removed from Plan"}</div>}
@@ -323,7 +407,6 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
           </div>
         )}
 
-        {/* ── Venue row — tappable, opens Venue page ── */}
         {!detail.between&&(
           <div onClick={onVenue} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 0",borderTop:`1px solid ${BORDER}`,borderBottom:`1px solid ${BORDER}`,cursor:"pointer",marginBottom:24}}>
             <div>
@@ -335,10 +418,8 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
           </div>
         )}
 
-        {/* Description */}
         {detail.desc&&<div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:400,lineHeight:1.8,marginBottom:28,color:INK}}>{detail.desc}</div>}
 
-        {/* Frame Review */}
         {detail.reviewed&&detail.quote&&(
           <div style={{background:"#EEF2FD",borderLeft:`3px solid ${BLUE}`,padding:"18px 16px",marginBottom:28,borderRadius:"0 4px 4px 0"}}>
             <div style={{fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:10}}>{t.frameReview}</div>
@@ -347,7 +428,6 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
           </div>
         )}
 
-        {/* Share */}
         <button onClick={()=>{if(navigator.share){navigator.share({title:`${detail.title} — ${detail.gallery}`,url:window.location.href});}else{navigator.clipboard?.writeText(window.location.href);}}} style={{width:"100%",padding:"14px 0",borderRadius:4,border:`1.5px solid ${BORDER}`,background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",gap:8,cursor:"pointer",marginBottom:40,fontFamily:"'DM Sans',sans-serif"}}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
           <span style={{fontSize:12,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:MID}}>{t.share}</span>
@@ -357,7 +437,7 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
   );
 }
 
-// ── Admin Page ────────────────────────────────────────────────────────────────
+// ── Admin Page (FIX #5 — Remove button fixed with stopPropagation + explicit id) ─
 function AdminPage({onExit}){
   const[authed,setAuthed]=useState(false);
   const[pwInput,setPwInput]=useState("");
@@ -393,11 +473,24 @@ function AdminPage({onExit}){
     else{setActionStates(prev=>({...prev,[id]:"error"}));}
   };
 
-  const handleRemove=async(id)=>{
+  // FIX #5 — explicit id parameter, stopPropagation, confirmation, optimistic filter
+  const handleRemove=async(e,id,title)=>{
+    e.stopPropagation();
+    const confirmed=window.confirm(`Remove "${title}"?`);
+    if(!confirmed)return;
     setActionStates(prev=>({...prev,[id]:"removing"}));
-    const res=await fetch(`${SUPABASE_URL}/rest/v1/shows?id=eq.${id}`,{method:"PATCH",headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`,"Content-Type":"application/json",Prefer:"return=minimal"},body:JSON.stringify({status:"rejected"})});
-    if(res.ok){setLiveShows(prev=>prev.filter(s=>s.id!==id));setActionStates(prev=>({...prev,[id]:"done"}));}
-    else{setActionStates(prev=>({...prev,[id]:"error"}));}
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/shows?id=eq.${id}`,{
+      method:"PATCH",
+      headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`,"Content-Type":"application/json",Prefer:"return=minimal"},
+      body:JSON.stringify({status:"rejected"})
+    });
+    if(res.ok){
+      setLiveShows(prev=>prev.filter(s=>s.id!==id));
+      setActionStates(prev=>({...prev,[id]:"done"}));
+    }else{
+      setActionStates(prev=>({...prev,[id]:"error"}));
+      alert("Failed to remove. Check console.");
+    }
   };
 
   if(!authed)return(
@@ -484,7 +577,14 @@ function AdminPage({onExit}){
                 <div style={{fontSize:13,color:INK,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.title||"Between exhibitions"}</div>
                 {s.featured&&<div style={{fontSize:10,color:FEATURED_COLOR,fontWeight:700,marginTop:2}}>⭐ Featured</div>}
               </div>
-              <button onClick={()=>handleRemove(s.id)} disabled={actionStates[s.id]==="removing"} style={{flexShrink:0,padding:"7px 14px",border:`1px solid #E8251A`,borderRadius:3,background:WHITE,color:"#E8251A",fontSize:11,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>{actionStates[s.id]==="removing"?"…":"Remove"}</button>
+              {/* FIX #5 — pass e and explicit id + title to handleRemove */}
+              <button
+                onClick={(e)=>handleRemove(e,s.id,s.title||"this show")}
+                disabled={actionStates[s.id]==="removing"}
+                style={{flexShrink:0,padding:"7px 14px",border:`1px solid #E8251A`,borderRadius:3,background:WHITE,color:"#E8251A",fontSize:11,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}
+              >
+                {actionStates[s.id]==="removing"?"…":"Remove"}
+              </button>
             </div>
           ))}
         </div>
@@ -589,6 +689,7 @@ export default function App(){
     clustererRef.current.addMarkers(toShow.map(m=>m.marker));
   },[mapMode,saved]);
 
+  // ── FIX #6 — Shows tab data (correct order: All → Opening → Closing → Nearby → Hoods)
   const allCurrent=SHOWS.filter(s=>!s.between&&isOnNow(s));
   const openingThisWeek=SHOWS.filter(s=>!s.between&&isOpeningThisWeek(s)&&!isOnNow(s));
   const closingThisWeek=SHOWS.filter(s=>!s.between&&isClosingThisWeek(s));
@@ -641,9 +742,9 @@ export default function App(){
       {/* Content */}
       <div style={{flex:1,overflow:"hidden",position:"relative",background:WHITE,display:"flex",flexDirection:"column"}}>
 
-        {/* FEATURED */}
+        {/* FEATURED — FIX #3: 12px padding + rounded cards, 220px height shows 3 on screen */}
         {tab==="featured"&&(
-          <div style={{height:"100%",overflowY:"auto"}}>
+          <div style={{height:"100%",overflowY:"auto",padding:"12px 12px 0"}}>
             {loading&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.loading}</div>}
             {loadError&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.error}</div>}
             {!loading&&!loadError&&SHOWS.filter(s=>s.featured&&!s.between).length===0&&(
@@ -658,12 +759,14 @@ export default function App(){
           </div>
         )}
 
-        {/* SHOWS */}
+        {/* SHOWS — FIX #6: correct section order */}
         {tab==="shows"&&(
           <div style={{height:"100%",overflowY:"auto"}}>
             {loading&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.loading}</div>}
             {loadError&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.error}</div>}
             {!loading&&!loadError&&(<>
+
+              {/* 1. All Current Shows */}
               {allCurrent.length>0&&(
                 <div onClick={()=>setSubPage({title:t.allShows,shows:allCurrent})} style={{padding:"20px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <div>
@@ -673,6 +776,32 @@ export default function App(){
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                 </div>
               )}
+
+              {/* 2. Opening This Week */}
+              {openingThisWeek.length>0&&(
+                <div onClick={()=>setSubPage({title:t.openingThisWeek,shows:openingThisWeek})} style={{padding:"20px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <div>
+                    <div style={{fontSize:18,fontWeight:600,color:INK,marginBottom:3}}>{t.openingThisWeek}</div>
+                    <div style={{fontSize:14,color:MID}}>{openingThisWeek.length} exhibitions</div>
+                  </div>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+              )}
+
+              {/* 3. Closing This Week */}
+              {closingThisWeek.length>0&&(
+                <div onClick={()=>setSubPage({title:t.closingThisWeek,shows:closingThisWeek})} style={{padding:"20px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <div>
+                    <div style={{fontSize:18,fontWeight:600,color:INK,marginBottom:3}}>{t.closingThisWeek}</div>
+                    <div style={{fontSize:14,color:MID}}>{closingThisWeek.length} exhibitions</div>
+                  </div>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+              )}
+
+              {/* 4. Nearby — placeholder until geolocation is built */}
+
+              {/* 5. Neighbourhoods */}
               {activeHoods.map(hood=>{
                 const hs=SHOWS.filter(s=>!s.between&&s.hood===hood&&(isOnNow(s)||isOpeningThisWeek(s)));
                 return hs.length>0?(
@@ -685,6 +814,8 @@ export default function App(){
                   </div>
                 ):null;
               })}
+
+              {/* Editor's Picks — after neighbourhoods */}
               {editorsPicks.length>0&&(
                 <div onClick={()=>setSubPage({title:t.editorsPicks,shows:editorsPicks})} style={{padding:"20px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <div>
@@ -694,25 +825,8 @@ export default function App(){
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                 </div>
               )}
-              {openingThisWeek.length>0&&(
-                <div onClick={()=>setSubPage({title:t.openingThisWeek,shows:openingThisWeek})} style={{padding:"20px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                  <div>
-                    <div style={{fontSize:18,fontWeight:600,color:INK,marginBottom:3}}>{t.openingThisWeek}</div>
-                    <div style={{fontSize:14,color:MID}}>{openingThisWeek.length} exhibitions</div>
-                  </div>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-                </div>
-              )}
-              {closingThisWeek.length>0&&(
-                <div onClick={()=>setSubPage({title:t.closingThisWeek,shows:closingThisWeek})} style={{padding:"20px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                  <div>
-                    <div style={{fontSize:18,fontWeight:600,color:INK,marginBottom:3}}>{t.closingThisWeek}</div>
-                    <div style={{fontSize:14,color:MID}}>{closingThisWeek.length} exhibitions</div>
-                  </div>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-                </div>
-              )}
-              {/* 2x2 CTA Grid */}
+
+              {/* 2×2 CTA Grid — unchanged */}
               <div style={{padding:"32px 16px 48px",background:LIGHT,marginTop:8}}>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                   {[
