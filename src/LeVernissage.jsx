@@ -7,6 +7,7 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const ADMIN_PASSWORD = "frame2026";
 const ADMIN_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-action`;
+const CONTACT_EMAIL = "hello@useframe.ca";
 
 function getDailySeed(){const d=new Date();return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();}
 function seededRandom(seed){let s=seed;return()=>{s=(s*1664525+1013904223)&0xffffffff;return(s>>>0)/0xffffffff;};}
@@ -110,12 +111,9 @@ function mapsUrl(addr){return`https://www.google.com/maps/dir/?api=1&destination
 function staticMapUrl(lat,lng){return`https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=600x300&scale=2&maptype=roadmap&markers=color:red%7C${lat},${lng}&key=${GMAPS_KEY}&style=feature:poi|visibility:off`;}
 function shortAddr(a){return a?a.replace(", Montréal, QC","").replace(", Montreal, QC","").replace(", Montreal, Quebec","").replace(", Montréal, Québec",""):"";}
 function getImages(s){return[s.image_url,s.image_url_2,s.image_url_3,s.image_url_4,s.image_url_5].filter(Boolean);}
-
 function distanceKm(lat1,lng1,lat2,lng2){
-  const R=6371;
-  const dLat=(lat2-lat1)*Math.PI/180;
-  const dLng=(lng2-lng1)*Math.PI/180;
-  const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
@@ -125,72 +123,99 @@ function pinSVG(featured,id){
   return`<svg xmlns="http://www.w3.org/2000/svg" width="34" height="48" viewBox="0 0 34 48"><defs><filter id="pn${fid}"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="rgba(0,0,0,0.32)"/></filter></defs><ellipse cx="17" cy="46.5" rx="5" ry="1.5" fill="rgba(0,0,0,0.14)"/><line x1="17" y1="18" x2="17" y2="44" stroke="#BBBBBB" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="15" r="14" fill="white" filter="url(#pn${fid})"/><circle cx="17" cy="15" r="12" fill="#E8251A"/><circle cx="17" cy="15" r="12" fill="none" stroke="white" stroke-width="2"/></svg>`;
 }
 
-// ── Plan Pill Button ──────────────────────────────────────────────────────────
-function PlanPill({saved,onToggle,small=false}){
-  const on=saved;
+// ── Email choice bottom sheet ──────────────────────────────────────────────────
+function EmailSheet({email,subject="",body="",onClose}){
+  const gmailUrl=`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const mailtoUrl=`mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const[copied,setCopied]=useState(false);
+  const copy=()=>{navigator.clipboard?.writeText(email).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2000);});};
   return(
-    <button
-      onClick={e=>{e.stopPropagation();onToggle();}}
-      style={{
-        padding:small?"3px 8px":"4px 10px",
-        borderRadius:20,
-        border:`1.5px solid ${on?BLUE:BORDER}`,
-        background:on?BLUE:"transparent",
-        color:on?WHITE:MID,
-        fontSize:10,fontWeight:700,
-        letterSpacing:"0.08em",textTransform:"uppercase",
-        cursor:"pointer",fontFamily:"'DM Sans',sans-serif",
-        whiteSpace:"nowrap",flexShrink:0,
-        transition:"all 0.18s",
-      }}
-    >{on?"✓ Plan":"+ Plan"}</button>
+    <div style={{position:"fixed",inset:0,zIndex:5000,display:"flex",flexDirection:"column",justifyContent:"flex-end"}} onClick={onClose}>
+      <div style={{background:"rgba(0,0,0,0.4)",position:"absolute",inset:0}}/>
+      <div style={{position:"relative",background:WHITE,borderRadius:"16px 16px 0 0",padding:"8px 16px 40px",maxWidth:430,margin:"0 auto",width:"100%"}} onClick={e=>e.stopPropagation()}>
+        <div style={{width:36,height:4,borderRadius:2,background:BORDER,margin:"8px auto 20px"}}/>
+        <div style={{fontSize:13,color:MID,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:12,paddingLeft:4}}>Send email via</div>
+        {[
+          {label:"Gmail",icon:"✉️",action:()=>{window.open(gmailUrl,"_blank");onClose();}},
+          {label:"Mail app",icon:"📬",action:()=>{window.location.href=mailtoUrl;onClose();}},
+          {label:copied?"Copied!":"Copy email address",icon:"📋",action:copy},
+        ].map(({label,icon,action})=>(
+          <button key={label} onClick={action} style={{width:"100%",display:"flex",alignItems:"center",gap:16,padding:"16px 12px",border:"none",background:"none",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:16,color:INK,fontWeight:500,textAlign:"left"}}>
+            <span style={{fontSize:22}}>{icon}</span>{label}
+          </button>
+        ))}
+        <button onClick={onClose} style={{width:"100%",padding:"16px",border:"none",background:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:15,color:MID,marginTop:4}}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+// ── Plan Pill ─────────────────────────────────────────────────────────────────
+function PlanPill({saved,onToggle}){
+  return(
+    <button onClick={e=>{e.stopPropagation();onToggle();}} style={{
+      padding:"4px 10px",borderRadius:20,
+      border:`1.5px solid ${saved?BLUE:BORDER}`,
+      background:saved?BLUE:"transparent",
+      color:saved?WHITE:MID,
+      fontSize:10,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",
+      cursor:"pointer",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap",flexShrink:0,
+      transition:"all 0.18s",
+    }}>{saved?"✓ Plan":"+ Plan"}</button>
   );
 }
 
 // ── Image Carousel ────────────────────────────────────────────────────────────
-function ImageCarousel({slides,height=220}){
+function ImageCarousel({slides,height=220,onTap}){
   const[idx,setIdx]=useState(0);
   const startX=useRef(null);
   const startY=useRef(null);
   const dragging=useRef(false);
+  const containerRef=useRef(null);
 
   if(!slides||slides.length===0)return<div style={{height,background:LIGHT}}/>;
-  if(slides.length===1)return(
-    <div style={{height,overflow:"hidden"}}>
-      <img src={slides[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
-    </div>
-  );
 
   const go=(n)=>setIdx(i=>Math.max(0,Math.min(slides.length-1,i+n)));
 
+  const handleTouchStart=(e)=>{
+    startX.current=e.touches[0].clientX;
+    startY.current=e.touches[0].clientY;
+    dragging.current=false;
+  };
+  const handleTouchMove=(e)=>{
+    if(startX.current===null)return;
+    const dx=Math.abs(e.touches[0].clientX-startX.current);
+    const dy=Math.abs(e.touches[0].clientY-startY.current);
+    if(dx>dy&&dx>8){dragging.current=true;e.preventDefault();e.stopPropagation();}
+  };
+  const handleTouchEnd=(e)=>{
+    if(startX.current===null)return;
+    const dx=e.changedTouches[0].clientX-startX.current;
+    if(dragging.current&&Math.abs(dx)>40){go(dx<0?1:-1);}
+    else if(!dragging.current&&onTap){onTap();}
+    startX.current=null;startY.current=null;dragging.current=false;
+  };
+
   return(
     <div
-      style={{position:"relative",height,overflow:"hidden",touchAction:"pan-y"}}
-      onTouchStart={e=>{startX.current=e.touches[0].clientX;startY.current=e.touches[0].clientY;dragging.current=false;}}
-      onTouchMove={e=>{
-        if(startX.current===null)return;
-        const dx=Math.abs(e.touches[0].clientX-startX.current);
-        const dy=Math.abs(e.touches[0].clientY-startY.current);
-        if(dx>dy&&dx>8){dragging.current=true;e.preventDefault();}
-      }}
-      onTouchEnd={e=>{
-        if(startX.current===null)return;
-        const dx=e.changedTouches[0].clientX-startX.current;
-        if(dragging.current&&Math.abs(dx)>40)go(dx<0?1:-1);
-        startX.current=null;startY.current=null;dragging.current=false;
-      }}
+      ref={containerRef}
+      style={{position:"relative",height,overflow:"hidden",touchAction:"pan-y",userSelect:"none"}}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
-      <div style={{display:"flex",height:"100%",transition:"transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)",transform:`translateX(-${idx*100}%)`}}>
+      <div style={{display:"flex",height:"100%",willChange:"transform",transition:"transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)",transform:`translateX(-${idx*100}%)`}}>
         {slides.map((src,i)=>(
-          <div key={i} style={{minWidth:"100%",height:"100%",flexShrink:0,overflow:"hidden"}}>
-            <img src={src} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
+          <div key={i} style={{minWidth:"100%",height:"100%",flexShrink:0,overflow:"hidden",pointerEvents:"none"}}>
+            <img src={src} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} onError={e=>e.target.style.display="none"}/>
           </div>
         ))}
       </div>
+      {/* Dots top left */}
       {slides.length>1&&(
-        <div style={{position:"absolute",bottom:10,left:"50%",transform:"translateX(-50%)",display:"flex",gap:5,pointerEvents:"none",zIndex:3}}>
+        <div style={{position:"absolute",top:12,left:12,display:"flex",gap:5,pointerEvents:"none",zIndex:3}}>
           {slides.map((_,i)=>(
-            <div key={i} style={{width:i===idx?16:5,height:5,borderRadius:3,background:i===idx?"rgba(255,255,255,0.95)":"rgba(255,255,255,0.4)",transition:"all 0.25s"}}/>
+            <div key={i} style={{width:i===idx?16:5,height:5,borderRadius:3,background:i===idx?"rgba(255,255,255,0.95)":"rgba(255,255,255,0.45)",transition:"all 0.25s"}}/>
           ))}
         </div>
       )}
@@ -207,67 +232,44 @@ function FeaturedCard({s,onClick,saved,onToggleSave}){
   const slides=[...images,...(mapSlide?[mapSlide]:[])];
 
   return(
-    <div onClick={onClick} style={{cursor:"pointer",position:"relative",overflow:"hidden",height:230,background:s.color||LIGHT}}>
-      <div style={{position:"absolute",inset:0}}>
-        <ImageCarousel slides={slides} height={230}/>
+    <div style={{position:"relative",overflow:"hidden",height:240,background:s.color||LIGHT,cursor:"pointer"}}>
+      <div style={{position:"absolute",inset:0}} onClick={onClick}>
+        <ImageCarousel slides={slides} height={240} onTap={onClick}/>
       </div>
 
-      {/* Thin gradient at bottom */}
-      <div style={{
-        position:"absolute",inset:0,
-        background:"linear-gradient(to top, rgba(0,0,0,0.28) 0%, transparent 38%)",
-        pointerEvents:"none",zIndex:1
-      }}/>
-
-      {/* Status badge top right */}
+      {/* Status badge — top right */}
       {badgeInfo&&(
-        <div style={{
-          position:"absolute",top:12,right:12,
-          background:badgeInfo.color,
-          backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",
-          color:WHITE,fontSize:10,fontWeight:700,
-          letterSpacing:"0.10em",textTransform:"uppercase",
-          padding:"5px 10px",borderRadius:4,zIndex:3,
-          border:"1px solid rgba(255,255,255,0.20)"
-        }}>{badgeInfo.label}</div>
+        <div style={{position:"absolute",top:12,right:12,background:badgeInfo.color,backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",color:WHITE,fontSize:10,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",padding:"5px 10px",borderRadius:4,zIndex:4,border:"1px solid rgba(255,255,255,0.20)"}}>{badgeInfo.label}</div>
       )}
 
-      {/* Plan pill top left */}
-      <div style={{position:"absolute",top:12,left:12,zIndex:3}} onClick={e=>e.stopPropagation()}>
+      {/* Plan pill — right side just above frosted card */}
+      <div style={{position:"absolute",bottom:62,right:12,zIndex:4}} onClick={e=>e.stopPropagation()}>
         <PlanPill saved={saved} onToggle={onToggleSave}/>
       </div>
 
-      {/* Frosted glass — full width, pinned to bottom, very subtle white-tending */}
-      <div style={{
-        position:"absolute",bottom:0,left:0,right:0,
-        background:"rgba(255,255,255,0.12)",
-        backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",
-        padding:"10px 16px 13px",
-        zIndex:2,
-        borderTop:"1px solid rgba(255,255,255,0.10)",
-      }}>
-        {/* Line 1: Artist · Show title */}
-        <div style={{display:"flex",alignItems:"baseline",gap:6,overflow:"hidden",marginBottom:4}}>
-          <span style={{
-            fontFamily:"'DM Sans',sans-serif",
-            fontSize:16,fontWeight:700,
-            color:WHITE,
-            whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",
-            flexShrink:0,maxWidth:"44%",
-          }}>{s.artist}</span>
-          <span style={{color:"rgba(255,255,255,0.45)",fontSize:13,flexShrink:0}}>·</span>
-          <span style={{
-            fontFamily:"'Cormorant Garamond',serif",
-            fontSize:17,fontStyle:"italic",fontWeight:500,
-            color:"rgba(255,255,255,0.90)",
-            whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flex:1,
-          }}>{s.title}</span>
+      {/* Frosted glass — full width, pinned to bottom, very transparent white */}
+      <div
+        onClick={onClick}
+        style={{
+          position:"absolute",bottom:0,left:0,right:0,
+          background:"rgba(255,255,255,0.08)",
+          backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",
+          padding:"12px 16px 14px",
+          zIndex:3,
+          borderTop:"1px solid rgba(255,255,255,0.08)",
+        }}
+      >
+        <div style={{display:"flex",alignItems:"baseline",gap:7,overflow:"hidden",marginBottom:5}}>
+          <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:22,fontWeight:700,color:WHITE,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flexShrink:0,maxWidth:"44%",textShadow:"0 1px 4px rgba(0,0,0,0.4)"}}>{s.artist}</span>
+          <span style={{color:"rgba(255,255,255,0.45)",fontSize:16,flexShrink:0}}>·</span>
+          <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontStyle:"italic",fontWeight:500,color:"rgba(255,255,255,0.92)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flex:1,textShadow:"0 1px 4px rgba(0,0,0,0.3)"}}>{s.title}</span>
         </div>
-        {/* Line 2: Gallery · short address */}
         <div style={{display:"flex",alignItems:"center",gap:5,overflow:"hidden"}}>
-          <span style={{fontSize:11,letterSpacing:"0.10em",textTransform:"uppercase",color:"rgba(255,255,255,0.55)",fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flexShrink:0,maxWidth:"44%"}}>{s.gallery}</span>
-          {s.address&&<><span style={{color:"rgba(255,255,255,0.35)",fontSize:11,flexShrink:0}}>·</span>
-          <span style={{fontSize:11,color:"rgba(255,255,255,0.45)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flex:1}}>{shortAddr(s.address)}</span></>}
+          <span style={{fontSize:18,letterSpacing:"0.08em",textTransform:"uppercase",color:"rgba(255,255,255,0.60)",fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flexShrink:0,maxWidth:"44%",textShadow:"0 1px 3px rgba(0,0,0,0.3)"}}>{s.gallery}</span>
+          {s.address&&<>
+            <span style={{color:"rgba(255,255,255,0.35)",fontSize:16,flexShrink:0}}>·</span>
+            <span style={{fontSize:18,color:"rgba(255,255,255,0.50)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flex:1,textShadow:"0 1px 3px rgba(0,0,0,0.3)"}}>{shortAddr(s.address)}</span>
+          </>}
         </div>
       </div>
     </div>
@@ -286,10 +288,8 @@ function TextCard({s,onClick,saved,onToggleSave}){
         <div style={{fontSize:13,color:MID}}>{s.hood}{s.dates?` · ${s.dates}`:""}</div>
       </div>
       <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6,flexShrink:0}}>
-        {badgeInfo&&(
-          <span style={{fontSize:10,padding:"3px 8px",background:badgeInfo.color,color:WHITE,borderRadius:3,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase"}}>{badgeInfo.label}</span>
-        )}
-        <PlanPill saved={saved} onToggle={onToggleSave} small/>
+        {badgeInfo&&<span style={{fontSize:10,padding:"3px 8px",background:badgeInfo.color,color:WHITE,borderRadius:3,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase"}}>{badgeInfo.label}</span>}
+        <PlanPill saved={saved} onToggle={onToggleSave}/>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={BORDER} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
       </div>
     </div>
@@ -329,29 +329,15 @@ function VenuePage({show,onBack,t}){
           <span style={{fontSize:16,fontWeight:600,color:INK}}>{show.gallery}</span>
         </button>
       </div>
-
       <div style={{padding:"24px 20px 16px"}}>
         <div style={{fontSize:18,fontWeight:700,color:INK,marginBottom:4}}>{show.gallery}</div>
         <div style={{fontSize:15,color:MID,marginBottom:2}}>{shortAddr(show.address)}</div>
         {show.hours&&<div style={{fontSize:14,color:MID}}>{show.hours}</div>}
       </div>
-
-      {/* Map embed */}
       <div style={{height:200,position:"relative",flexShrink:0,overflow:"hidden"}}>
-        <iframe
-          title="map"
-          width="100%"
-          height="100%"
-          style={{border:0,display:"block"}}
-          loading="lazy"
-          allowFullScreen
-          referrerPolicy="no-referrer-when-downgrade"
-          src={embedSrc}
-        />
+        <iframe title="map" width="100%" height="100%" style={{border:0,display:"block"}} loading="lazy" allowFullScreen referrerPolicy="no-referrer-when-downgrade" src={embedSrc}/>
       </div>
-
       <div style={{borderTop:`1px solid ${BORDER}`}}>
-        {/* Directions — only one, no duplicate */}
         <a href={mapsUrl(show.address)} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:14,padding:"18px 20px",borderBottom:`1px solid ${BORDER}`,textDecoration:"none",color:BLUE,fontSize:16,fontWeight:500}}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
           {t.getDirections}
@@ -611,6 +597,7 @@ export default function App(){
   const[tapCount,setTapCount]=useState(0);
   const[userLocation,setUserLocation]=useState(null);
   const[locationDenied,setLocationDenied]=useState(false);
+  const[emailSheet,setEmailSheet]=useState(null); // {subject, body}
   const tapTimer=useRef(null);
   const mapRef=useRef(null);
   const gMapRef=useRef(null);
@@ -713,34 +700,6 @@ export default function App(){
   const openDetail=(s,source)=>{setDetail(s);setDetailSource(source);};
   const sourceLabel=detailSource==="featured"?"Featured":detailSource==="shows"?"Shows":"Map";
 
-  const tabs=[
-    {key:"featured",label:t.featured,icon:(active)=>(
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active?BLUE:MID} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-      </svg>
-    )},
-    {key:"shows",label:t.shows,icon:(active)=>(
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active?BLUE:MID} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-        <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-      </svg>
-    )},
-    {key:"map",label:t.map,icon:(active)=>(
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active?BLUE:MID} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-        <circle cx="12" cy="9" r="2.5"/>
-      </svg>
-    )},
-    ...(FEATURES.reviews?[{key:"reviews",label:t.reviews,icon:(active)=>(
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active?BLUE:MID} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-      </svg>
-    )}]:[]),
-  ];
-
-  if(showAdmin)return<AdminPage onExit={()=>setShowAdmin(false)}/>;
-
-  // Section row helper
   const SectionRow=({title,count,onClick})=>(
     <div onClick={onClick} style={{padding:"20px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
       <div>
@@ -751,10 +710,27 @@ export default function App(){
     </div>
   );
 
+  const tabs=[
+    {key:"featured",label:t.featured,icon:(active)=>(
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active?BLUE:MID} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    )},
+    {key:"shows",label:t.shows,icon:(active)=>(
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active?BLUE:MID} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    )},
+    {key:"map",label:t.map,icon:(active)=>(
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active?BLUE:MID} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+    )},
+    ...(FEATURES.reviews?[{key:"reviews",label:t.reviews,icon:(active)=>(
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active?BLUE:MID} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    )}]:[]),
+  ];
+
+  if(showAdmin)return<AdminPage onExit={()=>setShowAdmin(false)}/>;
+
   return(
     <div style={{fontFamily:"'DM Sans',sans-serif",background:WHITE,height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden",maxWidth:430,margin:"0 auto",position:"relative",boxShadow:"0 0 60px rgba(0,0,0,0.08)"}}>
 
-      {/* Header — ink background, white text */}
+      {/* Header — ink, seamless with status bar */}
       <div style={{background:INK,height:52,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",flexShrink:0,zIndex:10}}>
         <div onClick={handleHeaderTap} style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontStyle:"italic",fontWeight:600,color:WHITE,cursor:"default",userSelect:"none"}}>{t.city}</div>
         <div style={{display:"flex",gap:4}}>
@@ -792,8 +768,6 @@ export default function App(){
               {allCurrent.length>0&&<SectionRow title={t.allShows} count={allCurrent.length} onClick={()=>setSubPage({title:t.allShows,shows:allCurrent})}/>}
               {openingThisWeek.length>0&&<SectionRow title={t.openingThisWeek} count={openingThisWeek.length} onClick={()=>setSubPage({title:t.openingThisWeek,shows:openingThisWeek})}/>}
               {closingThisWeek.length>0&&<SectionRow title={t.closingThisWeek} count={closingThisWeek.length} onClick={()=>setSubPage({title:t.closingThisWeek,shows:closingThisWeek})}/>}
-
-              {/* Nearby — passive location prompt or results */}
               {!userLocation&&!locationDenied&&(
                 <div onClick={requestLocation} style={{padding:"20px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -804,20 +778,17 @@ export default function App(){
                 </div>
               )}
               {userLocation&&nearbyShows.length>0&&<SectionRow title={t.nearby} count={nearbyShows.length} onClick={()=>setSubPage({title:t.nearby,shows:nearbyShows})}/>}
-
               {activeHoods.map(hood=>{
                 const hs=SHOWS.filter(s=>!s.between&&s.hood===hood&&(isOnNow(s)||isOpeningThisWeek(s)));
                 return hs.length>0?<SectionRow key={hood} title={hood} count={hs.length} onClick={()=>setSubPage({title:hood,shows:hs})}/>:null;
               })}
               {editorsPicks.length>0&&<SectionRow title={t.editorsPicks} count={editorsPicks.length} onClick={()=>setSubPage({title:t.editorsPicks,shows:editorsPicks})}/>}
-
-              {/* 2x2 CTA Grid */}
               <div style={{padding:"32px 16px 48px",background:LIGHT,marginTop:8}}>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                   {[
                     {icon:"📋",label:t.listYourShow,action:()=>window.open("https://tally.so/r/D4Je7b","_blank")},
-                    {icon:"⭐",label:t.featureYourShow,action:()=>window.open("mailto:hello@useframe.ca","_blank")},
-                    {icon:"✉",label:t.sayHello,action:()=>window.open("mailto:hello@useframe.ca","_blank")},
+                    {icon:"⭐",label:t.featureYourShow,action:()=>setEmailSheet({subject:"Feature my exhibition on Frame",body:"Hi Frame team,\n\nI'd like to feature my exhibition.\n\n"})},
+                    {icon:"✉",label:t.sayHello,action:()=>setEmailSheet({subject:"Hello from Frame",body:""})},
                     {icon:"📷",label:t.followUs,action:()=>window.open("https://instagram.com/useframe.ca","_blank")},
                   ].map(({icon,label,action})=>(
                     <button key={label} onClick={action} style={{padding:"20px 16px",background:WHITE,border:`1px solid ${BORDER}`,borderRadius:10,display:"flex",flexDirection:"column",alignItems:"center",gap:8,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
@@ -864,6 +835,7 @@ export default function App(){
       {subPage&&<ShowsSubPage title={subPage.title} shows={subPage.shows} onBack={()=>setSubPage(null)} onSelect={s=>{setSubPage(null);openDetail(s,"shows");}} saved={saved} toggleSave={toggleSave}/>}
       {detail&&<DetailPage detail={detail} sourceLabel={sourceLabel} onBack={()=>setDetail(null)} saved={saved} toggleSave={toggleSave} showToast={showToast} toastId={toastId} toastVisible={toastVisible} t={t} onVenue={()=>setVenuePage(detail)}/>}
       {venuePage&&<VenuePage show={venuePage} onBack={()=>setVenuePage(null)} t={t}/>}
+      {emailSheet&&<EmailSheet email={CONTACT_EMAIL} subject={emailSheet.subject} body={emailSheet.body} onClose={()=>setEmailSheet(null)}/>}
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
