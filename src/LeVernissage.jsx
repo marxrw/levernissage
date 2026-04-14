@@ -86,11 +86,6 @@ const BADGE_BLUE="rgba(26,74,138,0.85)";
 const BADGE_RED="rgba(204,26,26,0.85)";
 const NEARBY_RADIUS_KM=2.5;
 
-// Card height: image area + panel. Total ~200px so 3.3 visible on screen
-const CARD_IMAGE_H=148;
-const CARD_PANEL_H=52;
-const CARD_TOTAL_H=CARD_IMAGE_H+CARD_PANEL_H;
-
 function isClosingThisWeek(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<=7;}
 function isLastDay(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<1;}
 function isOpeningThisWeek(s){if(!s.openDate)return false;const d=(new Date(s.openDate)-TODAY)/86400000;return d>=-1&&d<=7;}
@@ -156,13 +151,13 @@ function EmailSheet({email,subject="",body="",onClose}){
 }
 
 // ── Plan Pill ─────────────────────────────────────────────────────────────────
-function PlanPill({saved,onToggle}){
+function PlanPill({saved,onToggle,dark=false}){
   return(
     <button onClick={e=>{e.stopPropagation();onToggle();}} style={{
-      padding:"4px 10px",borderRadius:20,
-      border:`1.5px solid ${saved?BLUE:BORDER}`,
+      padding:"5px 12px",borderRadius:20,
+      border:`1.5px solid ${saved?BLUE:dark?"rgba(255,255,255,0.6)":BORDER}`,
       background:saved?BLUE:"transparent",
-      color:saved?WHITE:MID,
+      color:saved?WHITE:dark?WHITE:MID,
       fontSize:10,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",
       cursor:"pointer",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap",flexShrink:0,
       transition:"all 0.18s",
@@ -204,7 +199,6 @@ function ImageCarousel({slides,height=220}){
             {typeof slide==="string"?(
               <img src={slide} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block",pointerEvents:"none"}} onError={e=>e.target.style.display="none"}/>
             ):(
-              // Address tile fallback for map slide
               <div style={{width:"100%",height:"100%",background:"#f0ede8",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}>
                 <div style={{fontSize:28}}>📍</div>
                 <div style={{fontSize:13,fontWeight:600,color:INK,textAlign:"center",padding:"0 20px",lineHeight:1.4}}>{slide.address}</div>
@@ -226,60 +220,100 @@ function ImageCarousel({slides,height=220}){
 }
 
 // ── Featured Card ─────────────────────────────────────────────────────────────
+// Full bleed image. Semi-transparent white panel overlays bottom of image.
+// Playfair Display font. 60% white opacity. Image fully visible through panel.
 function FeaturedCard({s,onClick,saved,onToggleSave}){
   const badgeInfo=statusBadgeInfo(s);
   const images=getImages(s);
   const hasCoords=s.lat&&s.lng&&!isNaN(s.lat)&&!isNaN(s.lng);
-
-  // Map slide: static image if coords, address tile object otherwise
   const mapSlide=hasCoords?staticMapUrl(s.lat,s.lng):{address:s.address||s.gallery};
   const slides=[...images,mapSlide];
 
   return(
-    <div style={{cursor:"pointer",position:"relative",marginBottom:1}} onClick={onClick}>
-      {/* Image area */}
-      <div style={{height:CARD_IMAGE_H,position:"relative",overflow:"hidden",background:s.color||LIGHT}}>
-        <ImageCarousel slides={slides} height={CARD_IMAGE_H}/>
-        {/* Status badge top right — only thing on image */}
-        {badgeInfo&&(
-          <div style={{
-            position:"absolute",top:10,right:10,zIndex:4,
-            background:badgeInfo.color,
-            color:WHITE,fontSize:10,fontWeight:700,
-            letterSpacing:"0.10em",textTransform:"uppercase",
-            padding:"4px 9px",borderRadius:4,
-            border:"1px solid rgba(255,255,255,0.20)"
-          }}>{badgeInfo.label}</div>
-        )}
+    <div
+      onClick={onClick}
+      style={{
+        cursor:"pointer",
+        position:"relative",
+        height:230,
+        overflow:"hidden",
+        background:s.color||LIGHT,
+        marginBottom:1,
+      }}
+    >
+      {/* Full bleed image — takes entire card height */}
+      <div style={{position:"absolute",inset:0}}>
+        <ImageCarousel slides={slides} height={230}/>
       </div>
 
-      {/* White panel below image — solid white with slight transparency */}
-      <div style={{
-        height:CARD_PANEL_H,
-        background:"rgba(255,255,255,0.88)",
-        borderBottom:`1px solid ${BORDER}`,
-        display:"flex",alignItems:"center",
-        justifyContent:"space-between",
-        padding:"0 14px",
-        gap:10,
-      }}>
+      {/* Status badge — top right */}
+      {badgeInfo&&(
+        <div style={{
+          position:"absolute",top:12,right:12,zIndex:4,
+          background:badgeInfo.color,
+          color:WHITE,fontSize:10,fontWeight:700,
+          letterSpacing:"0.10em",textTransform:"uppercase",
+          padding:"5px 10px",borderRadius:4,
+          border:"1px solid rgba(255,255,255,0.25)",
+        }}>{badgeInfo.label}</div>
+      )}
+
+      {/* Semi-transparent white panel — overlays bottom of image, 60% opacity */}
+      <div
+        onClick={onClick}
+        style={{
+          position:"absolute",
+          bottom:0,left:0,right:0,
+          background:"rgba(255,255,255,0.60)",
+          padding:"10px 14px 12px",
+          zIndex:3,
+          display:"flex",
+          alignItems:"center",
+          justifyContent:"space-between",
+          gap:12,
+        }}
+      >
         <div style={{flex:1,minWidth:0}}>
-          {/* Artist · Show title */}
-          <div style={{display:"flex",alignItems:"baseline",gap:5,overflow:"hidden",marginBottom:2}}>
-            <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:700,color:INK,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flexShrink:0,maxWidth:"44%"}}>{s.artist}</span>
-            <span style={{color:MID,fontSize:12,flexShrink:0}}>·</span>
-            <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontStyle:"italic",fontWeight:500,color:INK,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flex:1}}>{s.title}</span>
-          </div>
-          {/* Gallery · short address */}
-          <div style={{display:"flex",alignItems:"center",gap:4,overflow:"hidden"}}>
-            <span style={{fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",color:MID,fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flexShrink:0,maxWidth:"44%"}}>{s.gallery}</span>
-            {s.address&&<>
-              <span style={{color:BORDER,fontSize:10,flexShrink:0}}>·</span>
-              <span style={{fontSize:11,color:MID,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flex:1}}>{shortAddr(s.address)}</span>
-            </>}
+          {/* Artist name — Playfair Display 28px bold */}
+          <div style={{
+            fontFamily:"'Playfair Display',serif",
+            fontSize:28,fontWeight:700,
+            color:INK,
+            lineHeight:1.1,
+            marginBottom:2,
+            overflow:"hidden",
+            textOverflow:"ellipsis",
+            whiteSpace:"nowrap",
+          }}>{s.artist}</div>
+
+          {/* Show title — Playfair Display 24px italic */}
+          <div style={{
+            fontFamily:"'Playfair Display',serif",
+            fontSize:24,fontStyle:"italic",fontWeight:400,
+            color:INK,
+            lineHeight:1.1,
+            marginBottom:3,
+            overflow:"hidden",
+            textOverflow:"ellipsis",
+            whiteSpace:"nowrap",
+          }}>{s.title}</div>
+
+          {/* Gallery · address — Playfair Display 24px */}
+          <div style={{
+            fontFamily:"'Playfair Display',serif",
+            fontSize:18,fontWeight:400,
+            color:MID,
+            lineHeight:1.1,
+            overflow:"hidden",
+            textOverflow:"ellipsis",
+            whiteSpace:"nowrap",
+          }}>
+            {s.gallery}{s.address?` · ${shortAddr(s.address)}`:""}
           </div>
         </div>
-        <div onClick={e=>e.stopPropagation()}>
+
+        {/* Plan pill — right side inside panel */}
+        <div style={{flexShrink:0}} onClick={e=>e.stopPropagation()}>
           <PlanPill saved={saved} onToggle={onToggleSave}/>
         </div>
       </div>
@@ -393,7 +427,6 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
         {!detail.between&&<div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,fontStyle:"italic",fontWeight:500,lineHeight:1.15,marginBottom:6}}>{detail.title}</div>}
         {!detail.between&&detail.artist&&<div style={{fontSize:17,fontWeight:400,marginBottom:20,color:INK}}>{detail.artist}</div>}
 
-        {/* Info grid — auto height, no fixed row height */}
         {!detail.between&&(
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",border:`1px solid ${BORDER}`,borderRadius:4,marginBottom:16,overflow:"hidden"}}>
             {[[t.dates,detail.dates],[t.hours,detail.hours||"—"],[t.area,detail.hood]].map(([label,val],i)=>(
@@ -735,7 +768,7 @@ export default function App(){
   return(
     <div style={{fontFamily:"'DM Sans',sans-serif",background:WHITE,height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden",maxWidth:430,margin:"0 auto",position:"relative",boxShadow:"0 0 60px rgba(0,0,0,0.08)"}}>
 
-      {/* Header — white background, ink text */}
+      {/* Header — white */}
       <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,height:52,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",flexShrink:0,zIndex:10}}>
         <div onClick={handleHeaderTap} style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontStyle:"italic",fontWeight:600,color:INK,cursor:"default",userSelect:"none"}}>{t.city}</div>
         <div style={{display:"flex",gap:4}}>
@@ -843,9 +876,8 @@ export default function App(){
       {emailSheet&&<EmailSheet email={CONTACT_EMAIL} subject={emailSheet.subject} body={emailSheet.body} onClose={()=>setEmailSheet(null)}/>}
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
         @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-        @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
         @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
         *{-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;}
         ::-webkit-scrollbar{display:none;}
