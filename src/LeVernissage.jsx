@@ -5,7 +5,7 @@ const FEATURES = { reviews: false };
 const GMAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const ADMIN_PASSWORD = "FrameReview26";
+const ADMIN_PASSWORD = "frame2026";
 const ADMIN_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-action`;
 
 // ── Daily seed randomizer ─────────────────────────────────────────────────────
@@ -83,7 +83,6 @@ const INK="#0F0E0C",BLUE="#2B5BE8",WHITE="#FFFFFF",BORDER="#E8E5E0",MID="#6B6560
 const FEATURED_COLOR="#F5A623";
 const TODAY=new Date();
 
-// ── Badge colors ──────────────────────────────────────────────────────────────
 const BADGE_GREEN="rgba(26,122,74,0.85)";
 const BADGE_BLUE="rgba(26,74,138,0.85)";
 const BADGE_RED="rgba(204,26,26,0.85)";
@@ -120,21 +119,46 @@ function pinSVG(featured,id){
   return`<svg xmlns="http://www.w3.org/2000/svg" width="34" height="48" viewBox="0 0 34 48"><defs><filter id="pn${fid}"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="rgba(0,0,0,0.32)"/></filter></defs><ellipse cx="17" cy="46.5" rx="5" ry="1.5" fill="rgba(0,0,0,0.14)"/><line x1="17" y1="18" x2="17" y2="44" stroke="#BBBBBB" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="15" r="14" fill="white" filter="url(#pn${fid})"/><circle cx="17" cy="15" r="12" fill="#E8251A"/><circle cx="17" cy="15" r="12" fill="none" stroke="white" stroke-width="2"/></svg>`;
 }
 
-// ── Image Carousel ────────────────────────────────────────────────────────────
-function ImageCarousel({slides,height=220}){
+// ── Map embed slide (for use inside carousel and venue page) ──────────────────
+function MapEmbed({show,height}){
+  const hasCoords=show.lat&&show.lng&&!isNaN(show.lat)&&!isNaN(show.lng);
+  const embedSrc=hasCoords
+    ?`https://www.google.com/maps/embed/v1/place?key=${GMAPS_KEY}&q=${show.lat},${show.lng}&zoom=15`
+    :`https://www.google.com/maps/embed/v1/place?key=${GMAPS_KEY}&q=${encodeURIComponent(show.address)}&zoom=15`;
+  return(
+    <div style={{width:"100%",height,position:"relative",flexShrink:0}}>
+      <iframe
+        title="map"
+        width="100%"
+        height="100%"
+        style={{border:0,display:"block"}}
+        loading="lazy"
+        allowFullScreen
+        referrerPolicy="no-referrer-when-downgrade"
+        src={embedSrc}
+      />
+      <a href={mapsUrl(show.address)} target="_blank" rel="noopener noreferrer"
+        style={{position:"absolute",bottom:12,right:12,zIndex:2,background:"rgba(255,255,255,0.92)",backdropFilter:"blur(6px)",borderRadius:6,padding:"7px 14px",fontSize:12,fontWeight:700,color:INK,boxShadow:"0 2px 8px rgba(0,0,0,0.12)",textDecoration:"none"}}>
+        Directions ↗
+      </a>
+    </div>
+  );
+}
+
+// ── Image + Map Carousel ──────────────────────────────────────────────────────
+// slides = array of image URLs + optionally a {type:"map",show} object at the end
+function ImageCarousel({slides,height=220,show=null}){
   const[idx,setIdx]=useState(0);
   const startX=useRef(null);
   const startY=useRef(null);
   const dragging=useRef(false);
 
-  if(!slides||slides.length===0)return<div style={{height,background:LIGHT}}/>;
-  if(slides.length===1)return(
-    <div style={{height,overflow:"hidden"}}>
-      <img src={slides[0]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
-    </div>
-  );
+  // Build full slide list: images + map slide if show provided
+  const allSlides=[...slides,...(show?[{type:"map"}]:[])];
 
-  const go=(n)=>setIdx(i=>Math.max(0,Math.min(slides.length-1,i+n)));
+  if(allSlides.length===0)return<div style={{height,background:LIGHT}}/>;
+
+  const go=(n)=>setIdx(i=>Math.max(0,Math.min(allSlides.length-1,i+n)));
 
   return(
     <div
@@ -154,66 +178,35 @@ function ImageCarousel({slides,height=220}){
       }}
     >
       <div style={{display:"flex",height:"100%",transition:"transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)",transform:`translateX(-${idx*100}%)`}}>
-        {slides.map((src,i)=>(
+        {allSlides.map((slide,i)=>(
           <div key={i} style={{minWidth:"100%",height:"100%",flexShrink:0,overflow:"hidden"}}>
-            <img src={src} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
+            {slide.type==="map"
+              ?<MapEmbed show={show} height={height}/>
+              :<img src={slide} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
+            }
           </div>
         ))}
       </div>
-      <div style={{position:"absolute",bottom:10,left:"50%",transform:"translateX(-50%)",display:"flex",gap:5,pointerEvents:"none"}}>
-        {slides.map((_,i)=>(
-          <div key={i} style={{width:i===idx?16:5,height:5,borderRadius:3,background:i===idx?"rgba(255,255,255,0.95)":"rgba(255,255,255,0.4)",transition:"all 0.25s"}}/>
-        ))}
-      </div>
+      {/* Dots — only show if more than 1 slide */}
+      {allSlides.length>1&&(
+        <div style={{position:"absolute",bottom:10,left:"50%",transform:"translateX(-50%)",display:"flex",gap:5,pointerEvents:"none",zIndex:3}}>
+          {allSlides.map((_,i)=>(
+            <div key={i} style={{width:i===idx?16:5,height:5,borderRadius:3,background:i===idx?"rgba(255,255,255,0.95)":"rgba(255,255,255,0.4)",transition:"all 0.25s"}}/>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-// ── Map Slide ─────────────────────────────────────────────────────────────────
-function MapSlide({show,height=200}){
-  const hasCoords=show.lat&&show.lng&&!isNaN(show.lat)&&!isNaN(show.lng);
-  const embedSrc=hasCoords
-    ?`https://www.google.com/maps/embed/v1/place?key=${GMAPS_KEY}&q=${show.lat},${show.lng}&zoom=15`
-    :`https://www.google.com/maps/embed/v1/place?key=${GMAPS_KEY}&q=${encodeURIComponent(show.address)}&zoom=15`;
-
-  if(!GMAPS_KEY){
-    return(
-      <div style={{height,background:"#f0ede8",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:10,flexShrink:0}}>
-        <div style={{fontSize:28}}>📍</div>
-        <div style={{fontSize:14,fontWeight:600,color:INK,textAlign:"center",padding:"0 24px",lineHeight:1.4}}>{shortAddr(show.address)}</div>
-        <a href={mapsUrl(show.address)} target="_blank" rel="noopener noreferrer" style={{background:INK,color:WHITE,borderRadius:6,padding:"9px 18px",fontSize:12,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",textDecoration:"none",marginTop:4}}>Open in Maps ↗</a>
-      </div>
-    );
-  }
-
-  return(
-    <div style={{height,position:"relative",flexShrink:0,overflow:"hidden"}}>
-      <iframe
-        title="Exhibition location"
-        width="100%"
-        height="100%"
-        style={{border:0,display:"block"}}
-        loading="lazy"
-        allowFullScreen
-        referrerPolicy="no-referrer-when-downgrade"
-        src={embedSrc}
-      />
-      <a href={mapsUrl(show.address)} target="_blank" rel="noopener noreferrer"
-        style={{position:"absolute",bottom:12,right:12,zIndex:2,background:"rgba(255,255,255,0.92)",backdropFilter:"blur(6px)",borderRadius:6,padding:"7px 14px",fontSize:12,fontWeight:700,color:INK,boxShadow:"0 2px 8px rgba(0,0,0,0.12)",textDecoration:"none"}}>
-        Directions ↗
-      </a>
-    </div>
-  );
-}
-
-// ── Featured Card — full bleed, frosted glass text, edge to edge ──────────────
+// ── Featured Card ─────────────────────────────────────────────────────────────
 function FeaturedCard({s,onClick}){
   const badgeInfo=statusBadgeInfo(s);
   const images=getImages(s);
 
   return(
-    <div onClick={onClick} style={{cursor:"pointer",marginBottom:10,position:"relative",overflow:"hidden",height:230,background:s.color||LIGHT}}>
-      {/* Full bleed image — edge to edge, no border radius */}
+    <div onClick={onClick} style={{cursor:"pointer",position:"relative",overflow:"hidden",height:230,background:s.color||LIGHT}}>
+      {/* Full bleed image — edge to edge, no gap, no border radius */}
       {images.length>0?(
         <div style={{position:"absolute",inset:0}}>
           <ImageCarousel slides={images} height={230}/>
@@ -222,10 +215,10 @@ function FeaturedCard({s,onClick}){
         <div style={{position:"absolute",inset:0,background:s.color||LIGHT}}/>
       )}
 
-      {/* Thin gradient only over bottom 30% */}
+      {/* Very thin gradient only at very bottom */}
       <div style={{
         position:"absolute",inset:0,
-        background:"linear-gradient(to top, rgba(0,0,0,0.52) 0%, rgba(0,0,0,0.10) 30%, transparent 50%)",
+        background:"linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 35%)",
         pointerEvents:"none",zIndex:1
       }}/>
 
@@ -242,15 +235,14 @@ function FeaturedCard({s,onClick}){
         }}>{badgeInfo.label}</div>
       )}
 
-      {/* Frosted glass text — floating above bottom with breathing room */}
+      {/* Frosted glass — full width, pinned to bottom, very subtle */}
       <div style={{
-        position:"absolute",bottom:14,left:14,right:14,
-        background:"rgba(0,0,0,0.40)",
+        position:"absolute",bottom:0,left:0,right:0,
+        background:"rgba(0,0,0,0.18)",
         backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",
-        borderRadius:8,
-        padding:"10px 14px",
+        padding:"10px 16px 12px",
         zIndex:2,
-        border:"1px solid rgba(255,255,255,0.08)",
+        borderTop:"1px solid rgba(255,255,255,0.06)",
       }}>
         {/* Line 1: Artist · Show title */}
         <div style={{display:"flex",alignItems:"baseline",gap:6,overflow:"hidden"}}>
@@ -268,7 +260,7 @@ function FeaturedCard({s,onClick}){
           <span style={{
             fontFamily:"'Cormorant Garamond',serif",
             fontSize:15,fontStyle:"italic",fontWeight:500,
-            color:"rgba(255,255,255,0.85)",
+            color:"rgba(255,255,255,0.88)",
             whiteSpace:"nowrap",
             overflow:"hidden",
             textOverflow:"ellipsis",
@@ -279,7 +271,7 @@ function FeaturedCard({s,onClick}){
         <div style={{
           fontSize:10,letterSpacing:"0.13em",textTransform:"uppercase",
           color:"rgba(255,255,255,0.50)",fontWeight:600,
-          marginTop:5,
+          marginTop:4,
         }}>{s.gallery}</div>
       </div>
     </div>
@@ -335,15 +327,12 @@ function VenuePage({show,onBack,t}){
           <span style={{fontSize:16,fontWeight:600,color:INK}}>{show.gallery}</span>
         </button>
       </div>
-
       <div style={{padding:"24px 20px 16px"}}>
         <div style={{fontSize:18,fontWeight:700,color:INK,marginBottom:4}}>{show.gallery}</div>
         <div style={{fontSize:15,color:MID,marginBottom:2}}>{shortAddr(show.address)}</div>
         {show.hours&&<div style={{fontSize:14,color:MID}}>{show.hours}</div>}
       </div>
-
-      <MapSlide show={show} height={200}/>
-
+      <MapEmbed show={show} height={200}/>
       <div style={{borderTop:`1px solid ${BORDER}`}}>
         <a href={mapsUrl(show.address)} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:14,padding:"18px 20px",borderBottom:`1px solid ${BORDER}`,textDecoration:"none",color:BLUE,fontSize:16,fontWeight:500}}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
@@ -386,13 +375,8 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
         </button>
       </div>
 
-      {images.length>1?(
-        <ImageCarousel slides={images} height={280}/>
-      ):(
-        <div style={{width:"100%",height:240,background:detail.color,position:"relative",overflow:"hidden"}}>
-          {detail.image_url&&<img src={detail.image_url} alt={detail.title} style={{width:"100%",height:"100%",objectFit:"cover",position:"absolute",inset:0}}/>}
-        </div>
-      )}
+      {/* Carousel: images + map slide at the end */}
+      <ImageCarousel slides={images} height={280} show={detail}/>
 
       <div style={{padding:"24px 20px 0"}}>
         <div style={{fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:8}}>{detail.gallery}</div>
@@ -505,7 +489,7 @@ function AdminPage({onExit}){
       <div style={{marginBottom:8,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:MID,fontWeight:600}}>Frame</div>
       <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontStyle:"italic",color:WHITE,marginBottom:40}}>Admin</div>
       <div style={{width:"100%",maxWidth:300}}>
-        <input type="password" value={pwInput} onChange={e=>setPwInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleLogin()} placeholder="Password" autoFocus style={{width:"100%",padding:"14px 16px",borderRadius:4,fontSize:15,border:`1.5px solid ${pwError?"#E8251A":"#333"}`,background:"#1A1A18",color:WHITE,fontFamily:"'DM Sans',sans-serif",outline:"none",boxSizing:"border-box",animation:pwError?"shake 0.3s ease":"none"}}/>
+        <input type="password" value={pwInput} onChange={e=>setPwInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleLogin()} placeholder="Password" autoFocus style={{width:"100%",padding:"14px 16px",borderRadius:4,fontSize:15,border:`1.5px solid ${pwError?"#E8251A":"#333"}`,background:"#1A1A18",color:WHITE,fontFamily:"'DM Sans',sans-serif",outline:"none",boxSizing:"border-box"}}/>
         {pwError&&<div style={{color:"#E8251A",fontSize:12,marginTop:8,textAlign:"center"}}>Incorrect password</div>}
         <button onClick={handleLogin} style={{width:"100%",marginTop:12,padding:"14px 0",borderRadius:4,background:BLUE,color:WHITE,border:"none",fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",fontWeight:700,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>Enter</button>
         <button onClick={onExit} style={{width:"100%",marginTop:8,padding:"12px 0",borderRadius:4,background:"transparent",color:MID,border:"none",fontSize:12,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:600,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>← Back to App</button>
