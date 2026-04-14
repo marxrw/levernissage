@@ -86,6 +86,11 @@ const BADGE_BLUE="rgba(26,74,138,0.85)";
 const BADGE_RED="rgba(204,26,26,0.85)";
 const NEARBY_RADIUS_KM=2.5;
 
+// Card height: image area + panel. Total ~200px so 3.3 visible on screen
+const CARD_IMAGE_H=148;
+const CARD_PANEL_H=52;
+const CARD_TOTAL_H=CARD_IMAGE_H+CARD_PANEL_H;
+
 function isClosingThisWeek(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<=7;}
 function isLastDay(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<1;}
 function isOpeningThisWeek(s){if(!s.openDate)return false;const d=(new Date(s.openDate)-TODAY)/86400000;return d>=-1&&d<=7;}
@@ -123,7 +128,7 @@ function pinSVG(featured,id){
   return`<svg xmlns="http://www.w3.org/2000/svg" width="34" height="48" viewBox="0 0 34 48"><defs><filter id="pn${fid}"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="rgba(0,0,0,0.32)"/></filter></defs><ellipse cx="17" cy="46.5" rx="5" ry="1.5" fill="rgba(0,0,0,0.14)"/><line x1="17" y1="18" x2="17" y2="44" stroke="#BBBBBB" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="15" r="14" fill="white" filter="url(#pn${fid})"/><circle cx="17" cy="15" r="12" fill="#E8251A"/><circle cx="17" cy="15" r="12" fill="none" stroke="white" stroke-width="2"/></svg>`;
 }
 
-// ── Email choice bottom sheet ──────────────────────────────────────────────────
+// ── Email Sheet ───────────────────────────────────────────────────────────────
 function EmailSheet({email,subject="",body="",onClose}){
   const gmailUrl=`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   const mailtoUrl=`mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -166,56 +171,53 @@ function PlanPill({saved,onToggle}){
 }
 
 // ── Image Carousel ────────────────────────────────────────────────────────────
-function ImageCarousel({slides,height=220,onTap}){
+function ImageCarousel({slides,height=220}){
   const[idx,setIdx]=useState(0);
   const startX=useRef(null);
   const startY=useRef(null);
   const dragging=useRef(false);
-  const containerRef=useRef(null);
 
   if(!slides||slides.length===0)return<div style={{height,background:LIGHT}}/>;
 
   const go=(n)=>setIdx(i=>Math.max(0,Math.min(slides.length-1,i+n)));
 
-  const handleTouchStart=(e)=>{
-    startX.current=e.touches[0].clientX;
-    startY.current=e.touches[0].clientY;
-    dragging.current=false;
-  };
-  const handleTouchMove=(e)=>{
-    if(startX.current===null)return;
-    const dx=Math.abs(e.touches[0].clientX-startX.current);
-    const dy=Math.abs(e.touches[0].clientY-startY.current);
-    if(dx>dy&&dx>8){dragging.current=true;e.preventDefault();e.stopPropagation();}
-  };
-  const handleTouchEnd=(e)=>{
-    if(startX.current===null)return;
-    const dx=e.changedTouches[0].clientX-startX.current;
-    if(dragging.current&&Math.abs(dx)>40){go(dx<0?1:-1);}
-    else if(!dragging.current&&onTap){onTap();}
-    startX.current=null;startY.current=null;dragging.current=false;
-  };
-
   return(
     <div
-      ref={containerRef}
       style={{position:"relative",height,overflow:"hidden",touchAction:"pan-y",userSelect:"none"}}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
+      onTouchStart={e=>{startX.current=e.touches[0].clientX;startY.current=e.touches[0].clientY;dragging.current=false;}}
+      onTouchMove={e=>{
+        if(startX.current===null)return;
+        const dx=Math.abs(e.touches[0].clientX-startX.current);
+        const dy=Math.abs(e.touches[0].clientY-startY.current);
+        if(dx>dy&&dx>8){dragging.current=true;e.preventDefault();e.stopPropagation();}
+      }}
+      onTouchEnd={e=>{
+        if(startX.current===null)return;
+        const dx=e.changedTouches[0].clientX-startX.current;
+        if(dragging.current&&Math.abs(dx)>40)go(dx<0?1:-1);
+        startX.current=null;startY.current=null;dragging.current=false;
+      }}
     >
       <div style={{display:"flex",height:"100%",willChange:"transform",transition:"transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)",transform:`translateX(-${idx*100}%)`}}>
-        {slides.map((src,i)=>(
-          <div key={i} style={{minWidth:"100%",height:"100%",flexShrink:0,overflow:"hidden",pointerEvents:"none"}}>
-            <img src={src} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} onError={e=>e.target.style.display="none"}/>
+        {slides.map((slide,i)=>(
+          <div key={i} style={{minWidth:"100%",height:"100%",flexShrink:0,overflow:"hidden"}}>
+            {typeof slide==="string"?(
+              <img src={slide} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block",pointerEvents:"none"}} onError={e=>e.target.style.display="none"}/>
+            ):(
+              // Address tile fallback for map slide
+              <div style={{width:"100%",height:"100%",background:"#f0ede8",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}>
+                <div style={{fontSize:28}}>📍</div>
+                <div style={{fontSize:13,fontWeight:600,color:INK,textAlign:"center",padding:"0 20px",lineHeight:1.4}}>{slide.address}</div>
+                <a href={mapsUrl(slide.address)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{background:INK,color:WHITE,borderRadius:6,padding:"8px 16px",fontSize:11,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",textDecoration:"none",marginTop:4}}>Directions ↗</a>
+              </div>
+            )}
           </div>
         ))}
       </div>
-      {/* Dots top left */}
       {slides.length>1&&(
-        <div style={{position:"absolute",top:12,left:12,display:"flex",gap:5,pointerEvents:"none",zIndex:3}}>
+        <div style={{position:"absolute",top:10,left:10,display:"flex",gap:5,pointerEvents:"none",zIndex:3}}>
           {slides.map((_,i)=>(
-            <div key={i} style={{width:i===idx?16:5,height:5,borderRadius:3,background:i===idx?"rgba(255,255,255,0.95)":"rgba(255,255,255,0.45)",transition:"all 0.25s"}}/>
+            <div key={i} style={{width:i===idx?16:5,height:5,borderRadius:3,background:i===idx?"rgba(255,255,255,0.95)":"rgba(255,255,255,0.5)",transition:"all 0.25s"}}/>
           ))}
         </div>
       )}
@@ -228,48 +230,57 @@ function FeaturedCard({s,onClick,saved,onToggleSave}){
   const badgeInfo=statusBadgeInfo(s);
   const images=getImages(s);
   const hasCoords=s.lat&&s.lng&&!isNaN(s.lat)&&!isNaN(s.lng);
-  const mapSlide=hasCoords?staticMapUrl(s.lat,s.lng):null;
-  const slides=[...images,...(mapSlide?[mapSlide]:[])];
+
+  // Map slide: static image if coords, address tile object otherwise
+  const mapSlide=hasCoords?staticMapUrl(s.lat,s.lng):{address:s.address||s.gallery};
+  const slides=[...images,mapSlide];
 
   return(
-    <div style={{position:"relative",overflow:"hidden",height:240,background:s.color||LIGHT,cursor:"pointer"}}>
-      <div style={{position:"absolute",inset:0}} onClick={onClick}>
-        <ImageCarousel slides={slides} height={240} onTap={onClick}/>
+    <div style={{cursor:"pointer",position:"relative",marginBottom:1}} onClick={onClick}>
+      {/* Image area */}
+      <div style={{height:CARD_IMAGE_H,position:"relative",overflow:"hidden",background:s.color||LIGHT}}>
+        <ImageCarousel slides={slides} height={CARD_IMAGE_H}/>
+        {/* Status badge top right — only thing on image */}
+        {badgeInfo&&(
+          <div style={{
+            position:"absolute",top:10,right:10,zIndex:4,
+            background:badgeInfo.color,
+            color:WHITE,fontSize:10,fontWeight:700,
+            letterSpacing:"0.10em",textTransform:"uppercase",
+            padding:"4px 9px",borderRadius:4,
+            border:"1px solid rgba(255,255,255,0.20)"
+          }}>{badgeInfo.label}</div>
+        )}
       </div>
 
-      {/* Status badge — top right */}
-      {badgeInfo&&(
-        <div style={{position:"absolute",top:12,right:12,background:badgeInfo.color,backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",color:WHITE,fontSize:10,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",padding:"5px 10px",borderRadius:4,zIndex:4,border:"1px solid rgba(255,255,255,0.20)"}}>{badgeInfo.label}</div>
-      )}
-
-      {/* Plan pill — right side just above frosted card */}
-      <div style={{position:"absolute",bottom:62,right:12,zIndex:4}} onClick={e=>e.stopPropagation()}>
-        <PlanPill saved={saved} onToggle={onToggleSave}/>
-      </div>
-
-      {/* Frosted glass — full width, pinned to bottom, very transparent white */}
-      <div
-        onClick={onClick}
-        style={{
-          position:"absolute",bottom:0,left:0,right:0,
-          background:"rgba(255,255,255,0.08)",
-          backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",
-          padding:"12px 16px 14px",
-          zIndex:3,
-          borderTop:"1px solid rgba(255,255,255,0.08)",
-        }}
-      >
-        <div style={{display:"flex",alignItems:"baseline",gap:7,overflow:"hidden",marginBottom:5}}>
-          <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:22,fontWeight:700,color:WHITE,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flexShrink:0,maxWidth:"44%",textShadow:"0 1px 4px rgba(0,0,0,0.4)"}}>{s.artist}</span>
-          <span style={{color:"rgba(255,255,255,0.45)",fontSize:16,flexShrink:0}}>·</span>
-          <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontStyle:"italic",fontWeight:500,color:"rgba(255,255,255,0.92)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flex:1,textShadow:"0 1px 4px rgba(0,0,0,0.3)"}}>{s.title}</span>
+      {/* White panel below image — solid white with slight transparency */}
+      <div style={{
+        height:CARD_PANEL_H,
+        background:"rgba(255,255,255,0.88)",
+        borderBottom:`1px solid ${BORDER}`,
+        display:"flex",alignItems:"center",
+        justifyContent:"space-between",
+        padding:"0 14px",
+        gap:10,
+      }}>
+        <div style={{flex:1,minWidth:0}}>
+          {/* Artist · Show title */}
+          <div style={{display:"flex",alignItems:"baseline",gap:5,overflow:"hidden",marginBottom:2}}>
+            <span style={{fontFamily:"'DM Sans',sans-serif",fontSize:14,fontWeight:700,color:INK,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flexShrink:0,maxWidth:"44%"}}>{s.artist}</span>
+            <span style={{color:MID,fontSize:12,flexShrink:0}}>·</span>
+            <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,fontStyle:"italic",fontWeight:500,color:INK,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flex:1}}>{s.title}</span>
+          </div>
+          {/* Gallery · short address */}
+          <div style={{display:"flex",alignItems:"center",gap:4,overflow:"hidden"}}>
+            <span style={{fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",color:MID,fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flexShrink:0,maxWidth:"44%"}}>{s.gallery}</span>
+            {s.address&&<>
+              <span style={{color:BORDER,fontSize:10,flexShrink:0}}>·</span>
+              <span style={{fontSize:11,color:MID,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flex:1}}>{shortAddr(s.address)}</span>
+            </>}
+          </div>
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:5,overflow:"hidden"}}>
-          <span style={{fontSize:18,letterSpacing:"0.08em",textTransform:"uppercase",color:"rgba(255,255,255,0.60)",fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flexShrink:0,maxWidth:"44%",textShadow:"0 1px 3px rgba(0,0,0,0.3)"}}>{s.gallery}</span>
-          {s.address&&<>
-            <span style={{color:"rgba(255,255,255,0.35)",fontSize:16,flexShrink:0}}>·</span>
-            <span style={{fontSize:18,color:"rgba(255,255,255,0.50)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flex:1,textShadow:"0 1px 3px rgba(0,0,0,0.3)"}}>{shortAddr(s.address)}</span>
-          </>}
+        <div onClick={e=>e.stopPropagation()}>
+          <PlanPill saved={saved} onToggle={onToggleSave}/>
         </div>
       </div>
     </div>
@@ -320,7 +331,6 @@ function VenuePage({show,onBack,t}){
   const embedSrc=hasCoords
     ?`https://www.google.com/maps/embed/v1/place?key=${GMAPS_KEY}&q=${show.lat},${show.lng}&zoom=15`
     :`https://www.google.com/maps/embed/v1/place?key=${GMAPS_KEY}&q=${encodeURIComponent(show.address)}&zoom=15`;
-
   return(
     <div style={{position:"fixed",inset:0,background:WHITE,zIndex:2500,display:"flex",flexDirection:"column",maxWidth:430,margin:"0 auto",animation:"slideUp 0.28s cubic-bezier(0.16,1,0.3,1)",overflowY:"auto"}}>
       <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,height:52,display:"flex",alignItems:"center",padding:"0 4px",flexShrink:0,position:"sticky",top:0,zIndex:10}}>
@@ -342,24 +352,18 @@ function VenuePage({show,onBack,t}){
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
           {t.getDirections}
         </a>
-        {show.website_url&&(
-          <a href={show.website_url} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:14,padding:"18px 20px",borderBottom:`1px solid ${BORDER}`,textDecoration:"none",color:BLUE,fontSize:16,fontWeight:500}}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-            {t.openWebsite}
-          </a>
-        )}
-        {show.instagram_url&&(
-          <a href={show.instagram_url} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:14,padding:"18px 20px",borderBottom:`1px solid ${BORDER}`,textDecoration:"none",color:BLUE,fontSize:16,fontWeight:500}}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
-            {t.openInstagram}
-          </a>
-        )}
-        {show.contact_email&&(
-          <a href={`mailto:${show.contact_email}`} style={{display:"flex",alignItems:"center",gap:14,padding:"18px 20px",borderBottom:`1px solid ${BORDER}`,textDecoration:"none",color:BLUE,fontSize:16,fontWeight:500}}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            {t.contactGallery}
-          </a>
-        )}
+        {show.website_url&&<a href={show.website_url} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:14,padding:"18px 20px",borderBottom:`1px solid ${BORDER}`,textDecoration:"none",color:BLUE,fontSize:16,fontWeight:500}}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          {t.openWebsite}
+        </a>}
+        {show.instagram_url&&<a href={show.instagram_url} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:14,padding:"18px 20px",borderBottom:`1px solid ${BORDER}`,textDecoration:"none",color:BLUE,fontSize:16,fontWeight:500}}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+          {t.openInstagram}
+        </a>}
+        {show.contact_email&&<a href={`mailto:${show.contact_email}`} style={{display:"flex",alignItems:"center",gap:14,padding:"18px 20px",borderBottom:`1px solid ${BORDER}`,textDecoration:"none",color:BLUE,fontSize:16,fontWeight:500}}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          {t.contactGallery}
+        </a>}
       </div>
     </div>
   );
@@ -369,8 +373,8 @@ function VenuePage({show,onBack,t}){
 function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastId,toastVisible,t,onVenue}){
   const images=getImages(detail);
   const hasCoords=detail.lat&&detail.lng&&!isNaN(detail.lat)&&!isNaN(detail.lng);
-  const mapSlide=hasCoords?staticMapUrl(detail.lat,detail.lng):null;
-  const slides=[...images,...(mapSlide?[mapSlide]:[])];
+  const mapSlide=hasCoords?staticMapUrl(detail.lat,detail.lng):{address:detail.address||detail.gallery};
+  const slides=[...images,mapSlide];
   const on=saved.has(detail.id);
 
   return(
@@ -389,12 +393,13 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
         {!detail.between&&<div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,fontStyle:"italic",fontWeight:500,lineHeight:1.15,marginBottom:6}}>{detail.title}</div>}
         {!detail.between&&detail.artist&&<div style={{fontSize:17,fontWeight:400,marginBottom:20,color:INK}}>{detail.artist}</div>}
 
+        {/* Info grid — auto height, no fixed row height */}
         {!detail.between&&(
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",border:`1px solid ${BORDER}`,borderRadius:4,marginBottom:16,overflow:"hidden"}}>
             {[[t.dates,detail.dates],[t.hours,detail.hours||"—"],[t.area,detail.hood]].map(([label,val],i)=>(
               <div key={label} style={{padding:"13px 10px",textAlign:"center",borderRight:i<2?`1px solid ${BORDER}`:"none"}}>
                 <div style={{fontSize:10,letterSpacing:"0.10em",textTransform:"uppercase",color:MID,fontWeight:600,marginBottom:5}}>{label}</div>
-                <div style={{fontSize:13,fontWeight:600,lineHeight:1.3,color:INK}}>{val}</div>
+                <div style={{fontSize:12,fontWeight:600,lineHeight:1.4,color:INK,wordBreak:"break-word"}}>{val}</div>
               </div>
             ))}
           </div>
@@ -597,7 +602,7 @@ export default function App(){
   const[tapCount,setTapCount]=useState(0);
   const[userLocation,setUserLocation]=useState(null);
   const[locationDenied,setLocationDenied]=useState(false);
-  const[emailSheet,setEmailSheet]=useState(null); // {subject, body}
+  const[emailSheet,setEmailSheet]=useState(null);
   const tapTimer=useRef(null);
   const mapRef=useRef(null);
   const gMapRef=useRef(null);
@@ -730,12 +735,12 @@ export default function App(){
   return(
     <div style={{fontFamily:"'DM Sans',sans-serif",background:WHITE,height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden",maxWidth:430,margin:"0 auto",position:"relative",boxShadow:"0 0 60px rgba(0,0,0,0.08)"}}>
 
-      {/* Header — ink, seamless with status bar */}
-      <div style={{background:INK,height:52,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",flexShrink:0,zIndex:10}}>
-        <div onClick={handleHeaderTap} style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontStyle:"italic",fontWeight:600,color:WHITE,cursor:"default",userSelect:"none"}}>{t.city}</div>
+      {/* Header — white background, ink text */}
+      <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,height:52,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",flexShrink:0,zIndex:10}}>
+        <div onClick={handleHeaderTap} style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontStyle:"italic",fontWeight:600,color:INK,cursor:"default",userSelect:"none"}}>{t.city}</div>
         <div style={{display:"flex",gap:4}}>
           {["en","fr"].map(l=>(
-            <button key={l} onClick={()=>setLang(l)} style={{padding:"5px 10px",borderRadius:3,border:`1px solid ${lang===l?WHITE:"rgba(255,255,255,0.3)"}`,background:lang===l?"rgba(255,255,255,0.15)":"transparent",color:lang===l?WHITE:"rgba(255,255,255,0.5)",fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>{l}</button>
+            <button key={l} onClick={()=>setLang(l)} style={{padding:"5px 10px",borderRadius:3,border:`1px solid ${lang===l?INK:BORDER}`,background:lang===l?INK:WHITE,color:lang===l?WHITE:MID,fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>{l}</button>
           ))}
         </div>
       </div>
