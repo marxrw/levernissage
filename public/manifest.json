@@ -1,14 +1,16 @@
 {
   "name": "Frame",
   "short_name": "Frame",
-  "description": "Montréal's contemporary art exhibition guide",
+  "description": "Montréal's contemporary art exhibition guide.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0F0E0C",
-  "theme_color": "#0F0E0C",
   "orientation": "portrait",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFFFFF",
   "icons": [
     { "src": "/icons/frame-icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icons/frame-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/icons/frame-icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/icons/frame-icon-167.png", "sizes": "167x167", "type": "image/png" },
+    { "src": "/icons/frame-icon-152.png", "sizes": "152x152", "type": "image/png" }
   ]
 }
