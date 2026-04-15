@@ -86,6 +86,9 @@ const BADGE_BLUE="rgba(26,74,138,0.85)";
 const BADGE_RED="rgba(204,26,26,0.85)";
 const NEARBY_RADIUS_KM=2.5;
 
+// FIX 2: Featured card height reduced to ~80% of original (230 → 184)
+const FEATURED_CARD_HEIGHT = 184;
+
 function isClosingThisWeek(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<=7;}
 function isLastDay(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<1;}
 function isOpeningThisWeek(s){if(!s.openDate)return false;const d=(new Date(s.openDate)-TODAY)/86400000;return d>=-1&&d<=7;}
@@ -166,36 +169,64 @@ function PlanPill({saved,onToggle,dark=false}){
 }
 
 // ── Image Carousel ────────────────────────────────────────────────────────────
+// FIX 3: Fully rewritten carousel with reliable swipe detection
 function ImageCarousel({slides,height=220}){
   const[idx,setIdx]=useState(0);
-  const startX=useRef(null);
-  const startY=useRef(null);
-  const dragging=useRef(false);
+  const touchStartX=useRef(null);
+  const touchStartY=useRef(null);
+  const isHorizontal=useRef(false);
 
   if(!slides||slides.length===0)return<div style={{height,background:LIGHT}}/>;
 
   const go=(n)=>setIdx(i=>Math.max(0,Math.min(slides.length-1,i+n)));
 
+  const onTouchStart=(e)=>{
+    touchStartX.current=e.touches[0].clientX;
+    touchStartY.current=e.touches[0].clientY;
+    isHorizontal.current=false;
+  };
+
+  const onTouchMove=(e)=>{
+    if(touchStartX.current===null)return;
+    const dx=e.touches[0].clientX-touchStartX.current;
+    const dy=e.touches[0].clientY-touchStartY.current;
+    if(!isHorizontal.current&&Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>6){
+      isHorizontal.current=true;
+    }
+    if(isHorizontal.current){
+      e.preventDefault();
+    }
+  };
+
+  const onTouchEnd=(e)=>{
+    if(touchStartX.current===null)return;
+    const dx=e.changedTouches[0].clientX-touchStartX.current;
+    if(isHorizontal.current&&Math.abs(dx)>40){
+      go(dx<0?1:-1);
+    }
+    touchStartX.current=null;
+    touchStartY.current=null;
+    isHorizontal.current=false;
+  };
+
   return(
     <div
-      style={{position:"relative",height,overflow:"hidden",touchAction:"pan-y",userSelect:"none"}}
-      onTouchStart={e=>{startX.current=e.touches[0].clientX;startY.current=e.touches[0].clientY;dragging.current=false;}}
-      onTouchMove={e=>{
-        if(startX.current===null)return;
-        const dx=Math.abs(e.touches[0].clientX-startX.current);
-        const dy=Math.abs(e.touches[0].clientY-startY.current);
-        if(dx>dy&&dx>8){dragging.current=true;e.preventDefault();e.stopPropagation();}
-      }}
-      onTouchEnd={e=>{
-        if(startX.current===null)return;
-        const dx=e.changedTouches[0].clientX-startX.current;
-        if(dragging.current&&Math.abs(dx)>40)go(dx<0?1:-1);
-        startX.current=null;startY.current=null;dragging.current=false;
-      }}
+      style={{position:"relative",height,overflow:"hidden",userSelect:"none"}}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
     >
-      <div style={{display:"flex",height:"100%",willChange:"transform",transition:"transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)",transform:`translateX(-${idx*100}%)`}}>
+      {/* Slide strip */}
+      <div style={{
+        display:"flex",
+        height:"100%",
+        width:`${slides.length*100}%`,
+        transform:`translateX(-${(idx/slides.length)*100}%)`,
+        transition:"transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)",
+        willChange:"transform",
+      }}>
         {slides.map((slide,i)=>(
-          <div key={i} style={{minWidth:"100%",height:"100%",flexShrink:0,overflow:"hidden"}}>
+          <div key={i} style={{width:`${100/slides.length}%`,height:"100%",flexShrink:0,overflow:"hidden"}}>
             {typeof slide==="string"?(
               <img src={slide} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block",pointerEvents:"none"}} onError={e=>e.target.style.display="none"}/>
             ):(
@@ -208,6 +239,8 @@ function ImageCarousel({slides,height=220}){
           </div>
         ))}
       </div>
+
+      {/* Dot indicators */}
       {slides.length>1&&(
         <div style={{position:"absolute",top:10,left:10,display:"flex",gap:5,pointerEvents:"none",zIndex:3}}>
           {slides.map((_,i)=>(
@@ -220,11 +253,12 @@ function ImageCarousel({slides,height=220}){
 }
 
 // ── Featured Card ─────────────────────────────────────────────────────────────
-// Full bleed image. Semi-transparent white panel overlays bottom of image.
-// Playfair Display font. 60% white opacity. Image fully visible through panel.
+// FIX 2: Smaller card (184px), Cormorant Garamond font matching Shows tab,
+//         balanced font sizes, same layout order as TextCard
 function FeaturedCard({s,onClick,saved,onToggleSave}){
   const badgeInfo=statusBadgeInfo(s);
   const images=getImages(s);
+  // FIX 3: Always build slides — image(s) + map slide (static map if coords, address tile if not)
   const hasCoords=s.lat&&s.lng&&!isNaN(s.lat)&&!isNaN(s.lng);
   const mapSlide=hasCoords?staticMapUrl(s.lat,s.lng):{address:s.address||s.gallery};
   const slides=[...images,mapSlide];
@@ -235,75 +269,82 @@ function FeaturedCard({s,onClick,saved,onToggleSave}){
       style={{
         cursor:"pointer",
         position:"relative",
-        height:230,
+        height:FEATURED_CARD_HEIGHT,
         overflow:"hidden",
         background:s.color||LIGHT,
         marginBottom:1,
       }}
     >
-      {/* Full bleed image — takes entire card height */}
-      <div style={{position:"absolute",inset:0}}>
-        <ImageCarousel slides={slides} height={230}/>
+      {/* Full bleed carousel */}
+      <div style={{position:"absolute",inset:0,pointerEvents:"auto"}} onClick={e=>e.stopPropagation()}>
+        <ImageCarousel slides={slides} height={FEATURED_CARD_HEIGHT}/>
       </div>
+
+      {/* Clickable overlay (transparent, sits above carousel except the panel) */}
+      <div
+        onClick={onClick}
+        style={{position:"absolute",inset:0,zIndex:2,pointerEvents:"auto"}}
+      />
 
       {/* Status badge — top right */}
       {badgeInfo&&(
         <div style={{
-          position:"absolute",top:12,right:12,zIndex:4,
+          position:"absolute",top:10,right:10,zIndex:5,
           background:badgeInfo.color,
-          color:WHITE,fontSize:10,fontWeight:700,
+          color:WHITE,fontSize:9,fontWeight:700,
           letterSpacing:"0.10em",textTransform:"uppercase",
-          padding:"5px 10px",borderRadius:4,
+          padding:"4px 8px",borderRadius:3,
           border:"1px solid rgba(255,255,255,0.25)",
+          pointerEvents:"none",
         }}>{badgeInfo.label}</div>
       )}
 
-      {/* Semi-transparent white panel — overlays bottom of image, 60% opacity */}
+      {/* Semi-transparent panel — bottom of card */}
       <div
-        onClick={onClick}
         style={{
           position:"absolute",
           bottom:0,left:0,right:0,
           background:"rgba(255,255,255,0.60)",
-          padding:"10px 14px 12px",
-          zIndex:3,
+          padding:"8px 12px 10px",
+          zIndex:4,
           display:"flex",
           alignItems:"center",
           justifyContent:"space-between",
-          gap:12,
+          gap:10,
+          pointerEvents:"none",
         }}
       >
         <div style={{flex:1,minWidth:0}}>
-          {/* Artist name — Playfair Display 28px bold */}
+          {/* Artist — same style as TextCard: 15px regular */}
           <div style={{
-            fontFamily:"'Playfair Display',serif",
-            fontSize:28,fontWeight:700,
+            fontSize:15,
+            fontWeight:500,
             color:INK,
-            lineHeight:1.1,
-            marginBottom:2,
+            lineHeight:1.2,
             overflow:"hidden",
             textOverflow:"ellipsis",
             whiteSpace:"nowrap",
+            marginBottom:1,
           }}>{s.artist}</div>
 
-          {/* Show title — Playfair Display 24px italic */}
+          {/* Show title — Cormorant Garamond italic, same as TextCard: 20px */}
           <div style={{
-            fontFamily:"'Playfair Display',serif",
-            fontSize:24,fontStyle:"italic",fontWeight:400,
+            fontFamily:"'Cormorant Garamond',serif",
+            fontSize:20,fontStyle:"italic",fontWeight:600,
             color:INK,
-            lineHeight:1.1,
-            marginBottom:3,
+            lineHeight:1.15,
             overflow:"hidden",
             textOverflow:"ellipsis",
             whiteSpace:"nowrap",
+            marginBottom:2,
           }}>{s.title}</div>
 
-          {/* Gallery · address — Playfair Display 24px */}
+          {/* Gallery · short address — 13px muted, same as TextCard */}
           <div style={{
-            fontFamily:"'Playfair Display',serif",
-            fontSize:18,fontWeight:400,
+            fontSize:13,
+            fontWeight:400,
             color:MID,
-            lineHeight:1.1,
+            lineHeight:1.2,
             overflow:"hidden",
             textOverflow:"ellipsis",
             whiteSpace:"nowrap",
@@ -312,8 +353,8 @@ function FeaturedCard({s,onClick,saved,onToggleSave}){
           </div>
         </div>
 
-        {/* Plan pill — right side inside panel */}
-        <div style={{flexShrink:0}} onClick={e=>e.stopPropagation()}>
+        {/* Plan pill — right side, pointer events re-enabled */}
+        <div style={{flexShrink:0,pointerEvents:"auto"}} onClick={e=>e.stopPropagation()}>
           <PlanPill saved={saved} onToggle={onToggleSave}/>
         </div>
       </div>
@@ -738,12 +779,10 @@ export default function App(){
   const openDetail=(s,source)=>{setDetail(s);setDetailSource(source);};
   const sourceLabel=detailSource==="featured"?"Featured":detailSource==="shows"?"Shows":"Map";
 
-  const SectionRow=({title,count,onClick})=>(
+  // FIX 4: SectionRow without the count subtitle
+  const SectionRow=({title,onClick})=>(
     <div onClick={onClick} style={{padding:"20px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-      <div>
-        <div style={{fontSize:18,fontWeight:600,color:INK,marginBottom:3}}>{title}</div>
-        <div style={{fontSize:14,color:MID}}>{count} {count===1?"exhibition":"exhibitions"}</div>
-      </div>
+      <div style={{fontSize:18,fontWeight:600,color:INK}}>{title}</div>
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
     </div>
   );
@@ -803,9 +842,10 @@ export default function App(){
             {loading&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.loading}</div>}
             {loadError&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.error}</div>}
             {!loading&&!loadError&&(<>
-              {allCurrent.length>0&&<SectionRow title={t.allShows} count={allCurrent.length} onClick={()=>setSubPage({title:t.allShows,shows:allCurrent})}/>}
-              {openingThisWeek.length>0&&<SectionRow title={t.openingThisWeek} count={openingThisWeek.length} onClick={()=>setSubPage({title:t.openingThisWeek,shows:openingThisWeek})}/>}
-              {closingThisWeek.length>0&&<SectionRow title={t.closingThisWeek} count={closingThisWeek.length} onClick={()=>setSubPage({title:t.closingThisWeek,shows:closingThisWeek})}/>}
+              {/* FIX 4: No count passed to SectionRow */}
+              {allCurrent.length>0&&<SectionRow title={t.allShows} onClick={()=>setSubPage({title:t.allShows,shows:allCurrent})}/>}
+              {openingThisWeek.length>0&&<SectionRow title={t.openingThisWeek} onClick={()=>setSubPage({title:t.openingThisWeek,shows:openingThisWeek})}/>}
+              {closingThisWeek.length>0&&<SectionRow title={t.closingThisWeek} onClick={()=>setSubPage({title:t.closingThisWeek,shows:closingThisWeek})}/>}
               {!userLocation&&!locationDenied&&(
                 <div onClick={requestLocation} style={{padding:"20px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -815,12 +855,12 @@ export default function App(){
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BORDER} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                 </div>
               )}
-              {userLocation&&nearbyShows.length>0&&<SectionRow title={t.nearby} count={nearbyShows.length} onClick={()=>setSubPage({title:t.nearby,shows:nearbyShows})}/>}
+              {userLocation&&nearbyShows.length>0&&<SectionRow title={t.nearby} onClick={()=>setSubPage({title:t.nearby,shows:nearbyShows})}/>}
               {activeHoods.map(hood=>{
                 const hs=SHOWS.filter(s=>!s.between&&s.hood===hood&&(isOnNow(s)||isOpeningThisWeek(s)));
-                return hs.length>0?<SectionRow key={hood} title={hood} count={hs.length} onClick={()=>setSubPage({title:hood,shows:hs})}/>:null;
+                return hs.length>0?<SectionRow key={hood} title={hood} onClick={()=>setSubPage({title:hood,shows:hs})}/>:null;
               })}
-              {editorsPicks.length>0&&<SectionRow title={t.editorsPicks} count={editorsPicks.length} onClick={()=>setSubPage({title:t.editorsPicks,shows:editorsPicks})}/>}
+              {editorsPicks.length>0&&<SectionRow title={t.editorsPicks} onClick={()=>setSubPage({title:t.editorsPicks,shows:editorsPicks})}/>}
               <div style={{padding:"32px 16px 48px",background:LIGHT,marginTop:8}}>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                   {[
