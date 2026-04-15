@@ -460,11 +460,11 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
         {!detail.between&&detail.artist&&<div style={{fontSize:17,fontWeight:400,marginBottom:20,color:INK}}>{detail.artist}</div>}
 
         {!detail.between&&(
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",border:`1px solid ${BORDER}`,borderRadius:4,marginBottom:16,overflow:"hidden"}}>
+          <div style={{border:`1px solid ${BORDER}`,borderRadius:4,marginBottom:16,overflow:"hidden"}}>
             {[[t.dates,detail.dates],[t.hours,detail.hours||"—"],[t.area,detail.hood]].map(([label,val],i)=>(
-              <div key={label} style={{padding:"13px 10px",textAlign:"center",borderRight:i<2?`1px solid ${BORDER}`:"none"}}>
-                <div style={{fontSize:10,letterSpacing:"0.10em",textTransform:"uppercase",color:MID,fontWeight:600,marginBottom:5}}>{label}</div>
-                <div style={{fontSize:12,fontWeight:600,lineHeight:1.4,color:INK,wordBreak:"break-word"}}>{val}</div>
+              <div key={label} style={{padding:"12px 16px",borderBottom:i<2?`1px solid ${BORDER}`:"none",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+                <div style={{fontSize:10,letterSpacing:"0.10em",textTransform:"uppercase",color:MID,fontWeight:600,flexShrink:0}}>{label}</div>
+                <div style={{fontSize:13,fontWeight:600,color:INK,textAlign:"right"}}>{val}</div>
               </div>
             ))}
           </div>
