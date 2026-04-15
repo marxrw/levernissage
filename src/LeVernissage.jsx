@@ -169,12 +169,14 @@ function PlanPill({saved,onToggle,dark=false}){
 }
 
 // ── Image Carousel ────────────────────────────────────────────────────────────
-// FIX 3: Fully rewritten carousel with reliable swipe detection
-function ImageCarousel({slides,height=220}){
+// onTap fires when the user taps without swiping — lets parent handle card click
+function ImageCarousel({slides,height=220,onTap}){
   const[idx,setIdx]=useState(0);
   const touchStartX=useRef(null);
   const touchStartY=useRef(null);
+  const touchStartTime=useRef(null);
   const isHorizontal=useRef(false);
+  const didSwipe=useRef(false);
 
   if(!slides||slides.length===0)return<div style={{height,background:LIGHT}}/>;
 
@@ -183,35 +185,44 @@ function ImageCarousel({slides,height=220}){
   const onTouchStart=(e)=>{
     touchStartX.current=e.touches[0].clientX;
     touchStartY.current=e.touches[0].clientY;
+    touchStartTime.current=Date.now();
     isHorizontal.current=false;
+    didSwipe.current=false;
   };
 
   const onTouchMove=(e)=>{
     if(touchStartX.current===null)return;
     const dx=e.touches[0].clientX-touchStartX.current;
     const dy=e.touches[0].clientY-touchStartY.current;
-    if(!isHorizontal.current&&Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>6){
+    if(!isHorizontal.current&&Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>8){
       isHorizontal.current=true;
     }
     if(isHorizontal.current){
+      didSwipe.current=true;
       e.preventDefault();
+      e.stopPropagation();
     }
   };
 
   const onTouchEnd=(e)=>{
     if(touchStartX.current===null)return;
     const dx=e.changedTouches[0].clientX-touchStartX.current;
+    const dt=Date.now()-touchStartTime.current;
     if(isHorizontal.current&&Math.abs(dx)>40){
       go(dx<0?1:-1);
+    } else if(!didSwipe.current&&dt<250&&onTap){
+      // clean tap — no swipe — fire card click
+      onTap();
     }
     touchStartX.current=null;
     touchStartY.current=null;
     isHorizontal.current=false;
+    didSwipe.current=false;
   };
 
   return(
     <div
-      style={{position:"relative",height,overflow:"hidden",userSelect:"none"}}
+      style={{position:"relative",height,overflow:"hidden",userSelect:"none",touchAction:"pan-y"}}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -253,19 +264,18 @@ function ImageCarousel({slides,height=220}){
 }
 
 // ── Featured Card ─────────────────────────────────────────────────────────────
-// FIX 2: Smaller card (184px), Cormorant Garamond font matching Shows tab,
-//         balanced font sizes, same layout order as TextCard
+// No transparent overlay. Carousel owns all touch events.
+// Tap (no swipe) → onTap fires → card opens detail page.
+// Two info rows only: artist name + gallery · address. Title dropped.
 function FeaturedCard({s,onClick,saved,onToggleSave}){
   const badgeInfo=statusBadgeInfo(s);
   const images=getImages(s);
-  // FIX 3: Always build slides — image(s) + map slide (static map if coords, address tile if not)
   const hasCoords=s.lat&&s.lng&&!isNaN(s.lat)&&!isNaN(s.lng);
   const mapSlide=hasCoords?staticMapUrl(s.lat,s.lng):{address:s.address||s.gallery};
   const slides=[...images,mapSlide];
 
   return(
     <div
-      onClick={onClick}
       style={{
         cursor:"pointer",
         position:"relative",
@@ -275,18 +285,12 @@ function FeaturedCard({s,onClick,saved,onToggleSave}){
         marginBottom:1,
       }}
     >
-      {/* Full bleed carousel */}
-      <div style={{position:"absolute",inset:0,pointerEvents:"auto"}} onClick={e=>e.stopPropagation()}>
-        <ImageCarousel slides={slides} height={FEATURED_CARD_HEIGHT}/>
+      {/* Carousel fills entire card — handles both swipe and tap */}
+      <div style={{position:"absolute",inset:0,zIndex:1}}>
+        <ImageCarousel slides={slides} height={FEATURED_CARD_HEIGHT} onTap={onClick}/>
       </div>
 
-      {/* Clickable overlay (transparent, sits above carousel except the panel) */}
-      <div
-        onClick={onClick}
-        style={{position:"absolute",inset:0,zIndex:2,pointerEvents:"auto"}}
-      />
-
-      {/* Status badge — top right */}
+      {/* Status badge — top right, above carousel */}
       {badgeInfo&&(
         <div style={{
           position:"absolute",top:10,right:10,zIndex:5,
@@ -299,13 +303,13 @@ function FeaturedCard({s,onClick,saved,onToggleSave}){
         }}>{badgeInfo.label}</div>
       )}
 
-      {/* Semi-transparent panel — bottom of card */}
+      {/* Semi-transparent info panel — bottom, above carousel, pointer-events off except plan pill */}
       <div
         style={{
           position:"absolute",
           bottom:0,left:0,right:0,
           background:"rgba(255,255,255,0.60)",
-          padding:"8px 12px 10px",
+          padding:"9px 12px 11px",
           zIndex:4,
           display:"flex",
           alignItems:"center",
@@ -315,31 +319,19 @@ function FeaturedCard({s,onClick,saved,onToggleSave}){
         }}
       >
         <div style={{flex:1,minWidth:0}}>
-          {/* Artist — same style as TextCard: 15px regular */}
+          {/* Row 1: Artist name */}
           <div style={{
-            fontSize:15,
-            fontWeight:500,
+            fontSize:16,
+            fontWeight:600,
             color:INK,
             lineHeight:1.2,
             overflow:"hidden",
             textOverflow:"ellipsis",
             whiteSpace:"nowrap",
-            marginBottom:1,
+            marginBottom:3,
           }}>{s.artist}</div>
 
-          {/* Show title — Cormorant Garamond italic, same as TextCard: 20px */}
-          <div style={{
-            fontFamily:"'Cormorant Garamond',serif",
-            fontSize:20,fontStyle:"italic",fontWeight:600,
-            color:INK,
-            lineHeight:1.15,
-            overflow:"hidden",
-            textOverflow:"ellipsis",
-            whiteSpace:"nowrap",
-            marginBottom:2,
-          }}>{s.title}</div>
-
-          {/* Gallery · short address — 13px muted, same as TextCard */}
+          {/* Row 2: Gallery · short address */}
           <div style={{
             fontSize:13,
             fontWeight:400,
@@ -353,8 +345,8 @@ function FeaturedCard({s,onClick,saved,onToggleSave}){
           </div>
         </div>
 
-        {/* Plan pill — right side, pointer events re-enabled */}
-        <div style={{flexShrink:0,pointerEvents:"auto"}} onClick={e=>e.stopPropagation()}>
+        {/* Plan pill — pointer events re-enabled just for this */}
+        <div style={{flexShrink:0,pointerEvents:"auto"}} onClick={e=>{e.stopPropagation();onToggleSave();}}>
           <PlanPill saved={saved} onToggle={onToggleSave}/>
         </div>
       </div>
