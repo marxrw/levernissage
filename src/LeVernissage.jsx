@@ -319,23 +319,23 @@ function FeaturedCard({s,onClick,saved,onToggleSave}){
         }}
       >
         <div style={{flex:1,minWidth:0}}>
-          {/* Row 1: Artist name */}
+          {/* Row 1: Artist name — 16 * 1.2 = ~19px */}
           <div style={{
-            fontSize:16,
-            fontWeight:600,
+            fontSize:19,
+            fontWeight:700,
             color:INK,
             lineHeight:1.2,
             overflow:"hidden",
             textOverflow:"ellipsis",
             whiteSpace:"nowrap",
-            marginBottom:3,
+            marginBottom:4,
           }}>{s.artist}</div>
 
-          {/* Row 2: Gallery · short address */}
+          {/* Row 2: Gallery · short address — 13 * 1.8 = ~23px, ink color */}
           <div style={{
-            fontSize:13,
-            fontWeight:400,
-            color:MID,
+            fontSize:23,
+            fontWeight:500,
+            color:INK,
             lineHeight:1.2,
             overflow:"hidden",
             textOverflow:"ellipsis",
