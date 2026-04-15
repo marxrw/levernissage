@@ -282,7 +282,6 @@ function FeaturedCard({s,onClick,saved,onToggleSave}){
         height:FEATURED_CARD_HEIGHT,
         overflow:"hidden",
         background:s.color||LIGHT,
-        marginBottom:1,
       }}
     >
       {/* Carousel fills entire card — handles both swipe and tap */}
@@ -319,21 +318,21 @@ function FeaturedCard({s,onClick,saved,onToggleSave}){
         }}
       >
         <div style={{flex:1,minWidth:0}}>
-          {/* Row 1: Artist name — 16 * 1.2 = ~19px */}
+          {/* Row 1: Artist name — 18px bold */}
           <div style={{
-            fontSize:19,
+            fontSize:18,
             fontWeight:700,
             color:INK,
             lineHeight:1.2,
             overflow:"hidden",
             textOverflow:"ellipsis",
             whiteSpace:"nowrap",
-            marginBottom:4,
+            marginBottom:3,
           }}>{s.artist}</div>
 
-          {/* Row 2: Gallery · short address — 16px, ink color */}
+          {/* Row 2: Gallery · short address — 15px */}
           <div style={{
-            fontSize:16,
+            fontSize:15,
             fontWeight:500,
             color:INK,
             lineHeight:1.2,
