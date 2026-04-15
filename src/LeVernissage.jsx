@@ -331,9 +331,9 @@ function FeaturedCard({s,onClick,saved,onToggleSave}){
             marginBottom:4,
           }}>{s.artist}</div>
 
-          {/* Row 2: Gallery · short address — 13 * 1.8 = ~23px, ink color */}
+          {/* Row 2: Gallery · short address — 16px, ink color */}
           <div style={{
-            fontSize:23,
+            fontSize:16,
             fontWeight:500,
             color:INK,
             lineHeight:1.2,
