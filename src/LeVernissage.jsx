@@ -159,7 +159,7 @@ function PlanPill({saved,onToggle,dark=false}){
     <button onClick={e=>{e.stopPropagation();onToggle();}} style={{
       padding:"5px 12px",borderRadius:20,
       border:"none",
-      background:saved?BLUE:dark?"rgba(0,0,0,0.45)":"transparent",
+      background:saved?BLUE:dark?"rgba(0,0,0,0.27)":"transparent",
       backdropFilter:dark&&!saved?"blur(6px)":"none",
       WebkitBackdropFilter:dark&&!saved?"blur(6px)":"none",
       color:WHITE,
@@ -260,7 +260,7 @@ function ImageCarousel({slides,height=220,onTap}){
           position:"absolute",top:12,left:12,
           display:"flex",gap:5,alignItems:"center",
           pointerEvents:"none",zIndex:3,
-          background:"rgba(0,0,0,0.35)",
+          background:"rgba(0,0,0,0.21)",
           borderRadius:8,padding:"5px 8px",
         }}>
           {slides.map((_,i)=>(
