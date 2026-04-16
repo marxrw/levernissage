@@ -289,8 +289,8 @@ function FeaturedCard({s,onClick,saved,onToggleSave}){
   const slides=[...images,mapSlide];
 
   // Height of the info panel (approx). Plan pill sits just above it.
-  const INFO_PANEL_HEIGHT = 66; // approx height of the 2-row panel
-  const PILL_BOTTOM = INFO_PANEL_HEIGHT + 8; // 8px gap above panel
+  const INFO_PANEL_HEIGHT = 55;
+  const PILL_BOTTOM = INFO_PANEL_HEIGHT + 3;
 
   return(
     <div
