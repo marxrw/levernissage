@@ -86,7 +86,6 @@ const BADGE_BLUE="rgba(26,74,138,0.85)";
 const BADGE_RED="rgba(204,26,26,0.85)";
 const NEARBY_RADIUS_KM=2.5;
 
-// FIX 2: Featured card height reduced to ~80% of original (230 → 184)
 const FEATURED_CARD_HEIGHT = 184;
 
 function isClosingThisWeek(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<=7;}
@@ -251,11 +250,18 @@ function ImageCarousel({slides,height=220,onTap}){
         ))}
       </div>
 
-      {/* Dot indicators */}
+      {/* CHANGE 4: Dot indicators — larger, more opaque, clearly visible */}
       {slides.length>1&&(
-        <div style={{position:"absolute",top:10,left:10,display:"flex",gap:5,pointerEvents:"none",zIndex:3}}>
+        <div style={{position:"absolute",top:12,left:12,display:"flex",gap:5,pointerEvents:"none",zIndex:3}}>
           {slides.map((_,i)=>(
-            <div key={i} style={{width:i===idx?16:5,height:5,borderRadius:3,background:i===idx?"rgba(255,255,255,0.95)":"rgba(255,255,255,0.5)",transition:"all 0.25s"}}/>
+            <div key={i} style={{
+              width:i===idx?20:7,
+              height:7,
+              borderRadius:4,
+              background:i===idx?"rgba(255,255,255,1)":"rgba(255,255,255,0.55)",
+              boxShadow:i===idx?"0 1px 4px rgba(0,0,0,0.25)":"none",
+              transition:"all 0.25s",
+            }}/>
           ))}
         </div>
       )}
@@ -264,15 +270,18 @@ function ImageCarousel({slides,height=220,onTap}){
 }
 
 // ── Featured Card ─────────────────────────────────────────────────────────────
-// No transparent overlay. Carousel owns all touch events.
-// Tap (no swipe) → onTap fires → card opens detail page.
-// Two info rows only: artist name + gallery · address. Title dropped.
+// Plan pill floats just above the info panel (not inside it).
+// Info panel: artist name row + gallery · address row (wraps, no truncation).
 function FeaturedCard({s,onClick,saved,onToggleSave}){
   const badgeInfo=statusBadgeInfo(s);
   const images=getImages(s);
   const hasCoords=s.lat&&s.lng&&!isNaN(s.lat)&&!isNaN(s.lng);
   const mapSlide=hasCoords?staticMapUrl(s.lat,s.lng):{address:s.address||s.gallery};
   const slides=[...images,mapSlide];
+
+  // Height of the info panel (approx). Plan pill sits just above it.
+  const INFO_PANEL_HEIGHT = 66; // approx height of the 2-row panel
+  const PILL_BOTTOM = INFO_PANEL_HEIGHT + 8; // 8px gap above panel
 
   return(
     <div
@@ -302,7 +311,21 @@ function FeaturedCard({s,onClick,saved,onToggleSave}){
         }}>{badgeInfo.label}</div>
       )}
 
-      {/* Semi-transparent info panel — bottom, above carousel, pointer-events off except plan pill */}
+      {/* CHANGE 1: Plan pill floated just above the info panel, right-aligned */}
+      <div
+        style={{
+          position:"absolute",
+          bottom:PILL_BOTTOM,
+          right:12,
+          zIndex:6,
+          pointerEvents:"auto",
+        }}
+        onClick={e=>{e.stopPropagation();onToggleSave();}}
+      >
+        <PlanPill saved={saved} onToggle={onToggleSave} dark={true}/>
+      </div>
+
+      {/* CHANGE 2: Semi-transparent info panel — no truncation on address row */}
       <div
         style={{
           position:"absolute",
@@ -310,43 +333,33 @@ function FeaturedCard({s,onClick,saved,onToggleSave}){
           background:"rgba(255,255,255,0.60)",
           padding:"9px 12px 11px",
           zIndex:4,
-          display:"flex",
-          alignItems:"center",
-          justifyContent:"space-between",
-          gap:10,
           pointerEvents:"none",
         }}
       >
-        <div style={{flex:1,minWidth:0}}>
-          {/* Row 1: Artist name — 18px bold */}
-          <div style={{
-            fontSize:18,
-            fontWeight:700,
-            color:INK,
-            lineHeight:1.2,
-            overflow:"hidden",
-            textOverflow:"ellipsis",
-            whiteSpace:"nowrap",
-            marginBottom:3,
-          }}>{s.artist}</div>
+        {/* Row 1: Artist name — 18px bold, single line */}
+        <div style={{
+          fontSize:18,
+          fontWeight:700,
+          color:INK,
+          lineHeight:1.2,
+          overflow:"hidden",
+          textOverflow:"ellipsis",
+          whiteSpace:"nowrap",
+          marginBottom:3,
+        }}>{s.artist}</div>
 
-          {/* Row 2: Gallery · short address — 15px */}
-          <div style={{
-            fontSize:15,
-            fontWeight:500,
-            color:INK,
-            lineHeight:1.2,
-            overflow:"hidden",
-            textOverflow:"ellipsis",
-            whiteSpace:"nowrap",
-          }}>
-            {s.gallery}{s.address?` · ${shortAddr(s.address)}`:""}
-          </div>
-        </div>
-
-        {/* Plan pill — pointer events re-enabled just for this */}
-        <div style={{flexShrink:0,pointerEvents:"auto"}} onClick={e=>{e.stopPropagation();onToggleSave();}}>
-          <PlanPill saved={saved} onToggle={onToggleSave}/>
+        {/* Row 2: Gallery · short address — wraps naturally, max 2 lines */}
+        <div style={{
+          fontSize:15,
+          fontWeight:500,
+          color:INK,
+          lineHeight:1.25,
+          display:"-webkit-box",
+          WebkitLineClamp:2,
+          WebkitBoxOrient:"vertical",
+          overflow:"hidden",
+        }}>
+          {s.gallery}{s.address?` · ${shortAddr(s.address)}`:""}
         </div>
       </div>
     </div>
@@ -770,7 +783,6 @@ export default function App(){
   const openDetail=(s,source)=>{setDetail(s);setDetailSource(source);};
   const sourceLabel=detailSource==="featured"?"Featured":detailSource==="shows"?"Shows":"Map";
 
-  // FIX 4: SectionRow without the count subtitle
   const SectionRow=({title,onClick})=>(
     <div onClick={onClick} style={{padding:"20px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
       <div style={{fontSize:18,fontWeight:600,color:INK}}>{title}</div>
@@ -798,9 +810,9 @@ export default function App(){
   return(
     <div style={{fontFamily:"'DM Sans',sans-serif",background:WHITE,height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden",maxWidth:430,margin:"0 auto",position:"relative",boxShadow:"0 0 60px rgba(0,0,0,0.08)"}}>
 
-      {/* Header — white */}
+      {/* CHANGE 3: Header — "Montreal" bumped to fontSize 22 (was 20) */}
       <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,height:52,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",flexShrink:0,zIndex:10}}>
-        <div onClick={handleHeaderTap} style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontStyle:"italic",fontWeight:600,color:INK,cursor:"default",userSelect:"none"}}>{t.city}</div>
+        <div onClick={handleHeaderTap} style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic",fontWeight:600,color:INK,cursor:"default",userSelect:"none"}}>{t.city}</div>
         <div style={{display:"flex",gap:4}}>
           {["en","fr"].map(l=>(
             <button key={l} onClick={()=>setLang(l)} style={{padding:"5px 10px",borderRadius:3,border:`1px solid ${lang===l?INK:BORDER}`,background:lang===l?INK:WHITE,color:lang===l?WHITE:MID,fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>{l}</button>
@@ -833,7 +845,6 @@ export default function App(){
             {loading&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.loading}</div>}
             {loadError&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.error}</div>}
             {!loading&&!loadError&&(<>
-              {/* FIX 4: No count passed to SectionRow */}
               {allCurrent.length>0&&<SectionRow title={t.allShows} onClick={()=>setSubPage({title:t.allShows,shows:allCurrent})}/>}
               {openingThisWeek.length>0&&<SectionRow title={t.openingThisWeek} onClick={()=>setSubPage({title:t.openingThisWeek,shows:openingThisWeek})}/>}
               {closingThisWeek.length>0&&<SectionRow title={t.closingThisWeek} onClick={()=>setSubPage({title:t.closingThisWeek,shows:closingThisWeek})}/>}
