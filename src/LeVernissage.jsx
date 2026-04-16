@@ -111,7 +111,7 @@ function statusBadgeInfo(s){
 
 function mapsUrl(addr){return`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}`;}
 function staticMapUrl(lat,lng){return`https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=600x300&scale=2&maptype=roadmap&markers=color:red%7C${lat},${lng}&key=${GMAPS_KEY}&style=feature:poi|visibility:off`;}
-function shortAddr(a){return a?a.replace(", Montréal, QC","").replace(", Montreal, QC","").replace(", Montreal, Quebec","").replace(", Montréal, Québec",""):"";}
+function shortAddr(a){if(!a)return"";const firstComma=a.indexOf(",");return firstComma>-1?a.slice(0,firstComma).trim():a.trim();}
 function getImages(s){return[s.image_url,s.image_url_2,s.image_url_3,s.image_url_4,s.image_url_5].filter(Boolean);}
 function distanceKm(lat1,lng1,lat2,lng2){
   const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;
@@ -250,16 +250,21 @@ function ImageCarousel({slides,height=220,onTap}){
         ))}
       </div>
 
-      {/* CHANGE 4: Dot indicators — larger, more opaque, clearly visible */}
+      {/* Dot indicators — dark pill backdrop ensures visibility over any image */}
       {slides.length>1&&(
-        <div style={{position:"absolute",top:12,left:12,display:"flex",gap:5,pointerEvents:"none",zIndex:3}}>
+        <div style={{
+          position:"absolute",top:12,left:12,
+          display:"flex",gap:5,alignItems:"center",
+          pointerEvents:"none",zIndex:3,
+          background:"rgba(0,0,0,0.35)",
+          borderRadius:8,padding:"5px 8px",
+        }}>
           {slides.map((_,i)=>(
             <div key={i} style={{
-              width:i===idx?20:7,
-              height:7,
-              borderRadius:4,
-              background:i===idx?"rgba(255,255,255,1)":"rgba(255,255,255,0.55)",
-              boxShadow:i===idx?"0 1px 4px rgba(0,0,0,0.25)":"none",
+              width:i===idx?18:6,
+              height:6,
+              borderRadius:3,
+              background:i===idx?"rgba(255,255,255,1)":"rgba(255,255,255,0.5)",
               transition:"all 0.25s",
             }}/>
           ))}
