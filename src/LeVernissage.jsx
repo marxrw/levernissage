@@ -340,7 +340,7 @@ function FeaturedCard({s,onClick,saved,onToggleSave}){
           position:"absolute",
           bottom:0,left:0,right:0,
           background:"rgba(255,255,255,0.60)",
-          padding:"9px 12px 11px",
+          padding:"7px 12px 8px",
           zIndex:4,
           pointerEvents:"none",
         }}
