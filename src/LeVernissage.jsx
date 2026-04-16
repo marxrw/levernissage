@@ -153,16 +153,20 @@ function EmailSheet({email,subject="",body="",onClose}){
 }
 
 // ── Plan Pill ─────────────────────────────────────────────────────────────────
+// dark=true: used on featured cards over photos — frosted dark pill, always readable
 function PlanPill({saved,onToggle,dark=false}){
   return(
     <button onClick={e=>{e.stopPropagation();onToggle();}} style={{
       padding:"5px 12px",borderRadius:20,
-      border:`1.5px solid ${saved?BLUE:dark?"rgba(255,255,255,0.6)":BORDER}`,
-      background:saved?BLUE:"transparent",
-      color:saved?WHITE:dark?WHITE:MID,
+      border:"none",
+      background:saved?BLUE:dark?"rgba(0,0,0,0.45)":"transparent",
+      backdropFilter:dark&&!saved?"blur(6px)":"none",
+      WebkitBackdropFilter:dark&&!saved?"blur(6px)":"none",
+      color:WHITE,
       fontSize:10,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",
       cursor:"pointer",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap",flexShrink:0,
       transition:"all 0.18s",
+      boxShadow:dark&&!saved?"0 1px 6px rgba(0,0,0,0.18)":"none",
     }}>{saved?"✓ Plan":"+ Plan"}</button>
   );
 }
