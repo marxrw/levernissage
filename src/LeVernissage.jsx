@@ -86,7 +86,7 @@ const BADGE_BLUE="rgba(26,74,138,0.85)";
 const BADGE_RED="rgba(204,26,26,0.85)";
 const NEARBY_RADIUS_KM=2.5;
 
-const FEATURED_CARD_HEIGHT = 221;
+const FEATURED_CARD_HEIGHT = 202;
 
 function isClosingThisWeek(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<=7;}
 function isLastDay(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<1;}
