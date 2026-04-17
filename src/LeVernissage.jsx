@@ -64,6 +64,7 @@ const T={
     myPlan:"My Plan",getDirections:"Directions",openWebsite:"Open website",
     openInstagram:"Instagram",share:"Share",dates:"Dates",hours:"Hours",area:"Area",
     byAppointment:"By Appointment",
+    requestAppt:"Request a visit",
     noShowsInPlan:"No shows in your plan yet",addFromShows:"Add shows from the Shows tab",
     frameReview:"Frame Review",onNow:"On Now",loading:"Loading…",error:"Could not load shows.",
     addToPlan:"+ Plan",inPlan:"✓ Plan",venue:"Venue",
@@ -78,6 +79,7 @@ const T={
     myPlan:"Mon plan",getDirections:"Itinéraire",openWebsite:"Site web",
     openInstagram:"Instagram",share:"Partager",dates:"Dates",hours:"Heures",area:"Quartier",
     byAppointment:"Sur rendez-vous",
+    requestAppt:"Demander une visite",
     noShowsInPlan:"Aucune exposition dans votre plan",addFromShows:"Ajoutez des expositions depuis Expositions",
     frameReview:"Critique Frame",onNow:"En cours",loading:"Chargement…",error:"Impossible de charger.",
     addToPlan:"+ Plan",inPlan:"✓ Plan",venue:"Lieu",
@@ -270,7 +272,7 @@ function ImageCarousel({slides,height=220,onTap}){
           position:"absolute",top:12,left:12,
           display:"flex",gap:5,alignItems:"center",
           pointerEvents:"none",zIndex:3,
-          background:"rgba(0,0,0,0.21)",
+          background:"rgba(0,0,0,0.15)",
           borderRadius:8,padding:"5px 8px",
         }}>
           {slides.map((_,i)=>(
@@ -442,18 +444,17 @@ function VenuePage({show,onBack,t}){
 }
 
 // ── Detail Page ───────────────────────────────────────────────────────────────
-function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastId,toastVisible,t,onVenue}){
+function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastId,toastVisible,t,onVenue,onApptEmail}){
   const images=getImages(detail);
   const hasCoords=detail.lat&&detail.lng&&!isNaN(detail.lat)&&!isNaN(detail.lng);
   const mapSlide=hasCoords?staticMapUrl(detail.lat,detail.lng):{address:detail.address||detail.gallery};
   const slides=[...images,mapSlide];
   const on=saved.has(detail.id);
 
-  // Info grid rows: Dates, Hours, By Appointment (if true), Area
-  const infoRows=[
+  // Static info rows (Dates, Hours, Area) — By Appointment is a separate tappable row
+  const staticRows=[
     [t.dates, detail.dates],
     [t.hours, detail.hours||"—"],
-    ...(detail.byAppointment ? [[t.byAppointment, "Yes"]] : []),
     [t.area, detail.hood],
   ];
 
@@ -475,20 +476,28 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
 
         {!detail.between&&(
           <div style={{border:`1px solid ${BORDER}`,borderRadius:4,marginBottom:16,overflow:"hidden"}}>
-            {infoRows.map(([label,val],i)=>(
+            {staticRows.map(([label,val],i)=>(
               <div key={label} style={{
                 padding:"12px 16px",
-                borderBottom:i<infoRows.length-1?`1px solid ${BORDER}`:"none",
+                borderBottom:`1px solid ${BORDER}`,
                 display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,
               }}>
                 <div style={{fontSize:10,letterSpacing:"0.10em",textTransform:"uppercase",color:MID,fontWeight:600,flexShrink:0}}>{label}</div>
-                <div style={{
-                  fontSize:13,fontWeight:600,color:INK,textAlign:"right",
-                  // "By Appointment" value gets a subtle blue tint
-                  ...(label===t.byAppointment ? {color:BLUE} : {}),
-                }}>{val}</div>
+                <div style={{fontSize:13,fontWeight:600,color:INK,textAlign:"right"}}>{val}</div>
               </div>
             ))}
+            {detail.byAppointment&&(
+              <div
+                onClick={()=>onApptEmail&&onApptEmail()}
+                style={{padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,cursor:"pointer"}}
+              >
+                <div style={{fontSize:10,letterSpacing:"0.10em",textTransform:"uppercase",color:MID,fontWeight:600,flexShrink:0}}>{t.byAppointment}</div>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{fontSize:13,fontWeight:600,color:BLUE}}>{t.requestAppt}</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -937,7 +946,11 @@ export default function App(){
       </div>
 
       {subPage&&<ShowsSubPage title={subPage.title} shows={subPage.shows} onBack={()=>setSubPage(null)} onSelect={s=>{setSubPage(null);openDetail(s,"shows");}} saved={saved} toggleSave={toggleSave}/>}
-      {detail&&<DetailPage detail={detail} sourceLabel={sourceLabel} onBack={()=>setDetail(null)} saved={saved} toggleSave={(id)=>{capture("plan_toggled",{gallery:detail.gallery,action:saved.has(id)?"removed":"added"});toggleSave(id);}} showToast={showToast} toastId={toastId} toastVisible={toastVisible} t={t} onVenue={()=>setVenuePage(detail)}/>}
+      {detail&&<DetailPage detail={detail} sourceLabel={sourceLabel} onBack={()=>setDetail(null)} saved={saved} toggleSave={(id)=>{capture("plan_toggled",{gallery:detail.gallery,action:saved.has(id)?"removed":"added"});toggleSave(id);}} showToast={showToast} toastId={toastId} toastVisible={toastVisible} t={t} onVenue={()=>setVenuePage(detail)} onApptEmail={detail.contact_email?()=>setEmailSheet({email:detail.contact_email,subject:`Appointment request — ${detail.title}`,body:`Hi,
+
+I'd like to request a visit for "${detail.title}" by ${detail.artist}.
+
+Thank you!`}):undefined}/>}
       {venuePage&&<VenuePage show={venuePage} onBack={()=>setVenuePage(null)} t={t}/>}
       {emailSheet&&<EmailSheet email={CONTACT_EMAIL} subject={emailSheet.subject} body={emailSheet.body} onClose={()=>setEmailSheet(null)}/>}
 
