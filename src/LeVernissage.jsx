@@ -25,7 +25,7 @@ async function fetchShows(){
   const data=await res.json();
   const today = new Date();
   today.setHours(0,0,0,0);
-  const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+  const SEVEN_DAYS = 3 * 24 * 60 * 60 * 1000; // 3 days for free shows; featured bypass this
 
   return data
     .map(s=>({
