@@ -9,6 +9,12 @@ const ADMIN_PASSWORD = "frame2026";
 const ADMIN_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-action`;
 const CONTACT_EMAIL = "hello@useframe.ca";
 
+// ── PostHog analytics helper ──────────────────────────────────────────────────
+// posthog is loaded via snippet in index.html; this is a safe no-op wrapper
+function capture(event, props = {}) {
+  try { window.posthog?.capture(event, props); } catch (_) {}
+}
+
 function getDailySeed(){const d=new Date();return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();}
 function seededRandom(seed){let s=seed;return()=>{s=(s*1664525+1013904223)&0xffffffff;return(s>>>0)/0xffffffff;};}
 function dailyShuffle(arr){const a=[...arr];const rand=seededRandom(getDailySeed());for(let i=a.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
@@ -25,6 +31,7 @@ async function fetchShows(){
     editors_pick:s.editors_pick||false,between:s.between||false,
     quote:s.quote||"",by:s.quote_by||"",desc:s.description||"",
     address:s.address||"",hours:s.hours||"",
+    byAppointment:s.by_appointment||false,
     image_url:s.image_url||null,image_url_2:s.image_url_2||null,
     image_url_3:s.image_url_3||null,image_url_4:s.image_url_4||null,
     image_url_5:s.image_url_5||null,
@@ -56,6 +63,7 @@ const T={
     openingThisWeek:"Opening This Week",closingThisWeek:"Closing This Week",nearby:"Nearby",
     myPlan:"My Plan",getDirections:"Directions",openWebsite:"Open website",
     openInstagram:"Instagram",share:"Share",dates:"Dates",hours:"Hours",area:"Area",
+    byAppointment:"By Appointment",
     noShowsInPlan:"No shows in your plan yet",addFromShows:"Add shows from the Shows tab",
     frameReview:"Frame Review",onNow:"On Now",loading:"Loading…",error:"Could not load shows.",
     addToPlan:"+ Plan",inPlan:"✓ Plan",venue:"Venue",
@@ -69,6 +77,7 @@ const T={
     openingThisWeek:"Ouvertures cette semaine",closingThisWeek:"Fermetures cette semaine",nearby:"À proximité",
     myPlan:"Mon plan",getDirections:"Itinéraire",openWebsite:"Site web",
     openInstagram:"Instagram",share:"Partager",dates:"Dates",hours:"Heures",area:"Quartier",
+    byAppointment:"Sur rendez-vous",
     noShowsInPlan:"Aucune exposition dans votre plan",addFromShows:"Ajoutez des expositions depuis Expositions",
     frameReview:"Critique Frame",onNow:"En cours",loading:"Chargement…",error:"Impossible de charger.",
     addToPlan:"+ Plan",inPlan:"✓ Plan",venue:"Lieu",
@@ -84,6 +93,7 @@ const TODAY=new Date();
 const BADGE_GREEN="rgba(26,122,74,0.85)";
 const BADGE_BLUE="rgba(26,74,138,0.85)";
 const BADGE_RED="rgba(204,26,26,0.85)";
+const BADGE_AMBER="rgba(160,110,20,0.82)";
 const NEARBY_RADIUS_KM=2.5;
 
 const FEATURED_CARD_HEIGHT = 202;
@@ -92,6 +102,9 @@ function isClosingThisWeek(s){if(!s.closeDate)return false;const d=(new Date(s.c
 function isLastDay(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<1;}
 function isOpeningThisWeek(s){if(!s.openDate)return false;const d=(new Date(s.openDate)-TODAY)/86400000;return d>=-1&&d<=7;}
 function isOnNow(s){if(!s.openDate||!s.closeDate)return false;return new Date(s.openDate)<=TODAY&&new Date(s.closeDate)>=TODAY;}
+
+// Opening more than 7 days out (upcoming but not "soon")
+function isUpcoming(s){if(!s.openDate)return false;const d=(new Date(s.openDate)-TODAY)/86400000;return d>7;}
 
 function statusBadgeInfo(s){
   if(isOnNow(s)){
@@ -106,6 +119,8 @@ function statusBadgeInfo(s){
     const label=diffDays<=1?"Opening Soon":`Opening ${days[openDay.getDay()]}`;
     return{label,color:BADGE_BLUE};
   }
+  // Upcoming badge — for featured cards only (caller decides whether to show)
+  if(isUpcoming(s))return{label:"Upcoming",color:BADGE_AMBER};
   return null;
 }
 
@@ -153,7 +168,6 @@ function EmailSheet({email,subject="",body="",onClose}){
 }
 
 // ── Plan Pill ─────────────────────────────────────────────────────────────────
-// dark=true: used on featured cards over photos — frosted dark pill, always readable
 function PlanPill({saved,onToggle,dark=false}){
   return(
     <button onClick={e=>{e.stopPropagation();onToggle();}} style={{
@@ -172,7 +186,6 @@ function PlanPill({saved,onToggle,dark=false}){
 }
 
 // ── Image Carousel ────────────────────────────────────────────────────────────
-// onTap fires when the user taps without swiping — lets parent handle card click
 function ImageCarousel({slides,height=220,onTap}){
   const[idx,setIdx]=useState(0);
   const touchStartX=useRef(null);
@@ -214,7 +227,6 @@ function ImageCarousel({slides,height=220,onTap}){
     if(isHorizontal.current&&Math.abs(dx)>40){
       go(dx<0?1:-1);
     } else if(!didSwipe.current&&dt<250&&onTap){
-      // clean tap — no swipe — fire card click
       onTap();
     }
     touchStartX.current=null;
@@ -230,7 +242,6 @@ function ImageCarousel({slides,height=220,onTap}){
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      {/* Slide strip */}
       <div style={{
         display:"flex",
         height:"100%",
@@ -254,7 +265,6 @@ function ImageCarousel({slides,height=220,onTap}){
         ))}
       </div>
 
-      {/* Dot indicators — dark pill backdrop ensures visibility over any image */}
       {slides.length>1&&(
         <div style={{
           position:"absolute",top:12,left:12,
@@ -279,16 +289,14 @@ function ImageCarousel({slides,height=220,onTap}){
 }
 
 // ── Featured Card ─────────────────────────────────────────────────────────────
-// Plan pill floats just above the info panel (not inside it).
-// Info panel: artist name row + gallery · address row (wraps, no truncation).
 function FeaturedCard({s,onClick,saved,onToggleSave}){
+  // Always show a badge on featured cards — fallback to Upcoming for far-future shows
   const badgeInfo=statusBadgeInfo(s);
   const images=getImages(s);
   const hasCoords=s.lat&&s.lng&&!isNaN(s.lat)&&!isNaN(s.lng);
   const mapSlide=hasCoords?staticMapUrl(s.lat,s.lng):{address:s.address||s.gallery};
   const slides=[...images,mapSlide];
 
-  // Height of the info panel (approx). Plan pill sits just above it.
   const INFO_PANEL_HEIGHT = 55;
   const PILL_BOTTOM = INFO_PANEL_HEIGHT + 3;
 
@@ -302,12 +310,11 @@ function FeaturedCard({s,onClick,saved,onToggleSave}){
         background:s.color||LIGHT,
       }}
     >
-      {/* Carousel fills entire card — handles both swipe and tap */}
       <div style={{position:"absolute",inset:0,zIndex:1}}>
         <ImageCarousel slides={slides} height={FEATURED_CARD_HEIGHT} onTap={onClick}/>
       </div>
 
-      {/* Status badge — top right, above carousel */}
+      {/* Status badge — always shown on featured cards; amber for upcoming */}
       {badgeInfo&&(
         <div style={{
           position:"absolute",top:10,right:10,zIndex:5,
@@ -320,21 +327,13 @@ function FeaturedCard({s,onClick,saved,onToggleSave}){
         }}>{badgeInfo.label}</div>
       )}
 
-      {/* CHANGE 1: Plan pill floated just above the info panel, right-aligned */}
       <div
-        style={{
-          position:"absolute",
-          bottom:PILL_BOTTOM,
-          right:12,
-          zIndex:6,
-          pointerEvents:"auto",
-        }}
+        style={{position:"absolute",bottom:PILL_BOTTOM,right:12,zIndex:6,pointerEvents:"auto"}}
         onClick={e=>{e.stopPropagation();onToggleSave();}}
       >
         <PlanPill saved={saved} onToggle={onToggleSave} dark={true}/>
       </div>
 
-      {/* CHANGE 2: Semi-transparent info panel — no truncation on address row */}
       <div
         style={{
           position:"absolute",
@@ -345,28 +344,13 @@ function FeaturedCard({s,onClick,saved,onToggleSave}){
           pointerEvents:"none",
         }}
       >
-        {/* Row 1: Artist name — 18px bold, single line */}
         <div style={{
-          fontSize:18,
-          fontWeight:700,
-          color:INK,
-          lineHeight:1.2,
-          overflow:"hidden",
-          textOverflow:"ellipsis",
-          whiteSpace:"nowrap",
-          marginBottom:3,
+          fontSize:18,fontWeight:700,color:INK,lineHeight:1.2,
+          overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:3,
         }}>{s.artist}</div>
-
-        {/* Row 2: Gallery · short address — wraps naturally, max 2 lines */}
         <div style={{
-          fontSize:15,
-          fontWeight:500,
-          color:INK,
-          lineHeight:1.25,
-          display:"-webkit-box",
-          WebkitLineClamp:2,
-          WebkitBoxOrient:"vertical",
-          overflow:"hidden",
+          fontSize:15,fontWeight:500,color:INK,lineHeight:1.25,
+          display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden",
         }}>
           {s.gallery}{s.address?` · ${shortAddr(s.address)}`:""}
         </div>
@@ -436,7 +420,7 @@ function VenuePage({show,onBack,t}){
         <iframe title="map" width="100%" height="100%" style={{border:0,display:"block"}} loading="lazy" allowFullScreen referrerPolicy="no-referrer-when-downgrade" src={embedSrc}/>
       </div>
       <div style={{borderTop:`1px solid ${BORDER}`}}>
-        <a href={mapsUrl(show.address)} target="_blank" rel="noopener noreferrer" style={{display:"flex",alignItems:"center",gap:14,padding:"18px 20px",borderBottom:`1px solid ${BORDER}`,textDecoration:"none",color:BLUE,fontSize:16,fontWeight:500}}>
+        <a href={mapsUrl(show.address)} target="_blank" rel="noopener noreferrer" onClick={()=>capture("directions_tapped",{gallery:show.gallery,source:"venue"})} style={{display:"flex",alignItems:"center",gap:14,padding:"18px 20px",borderBottom:`1px solid ${BORDER}`,textDecoration:"none",color:BLUE,fontSize:16,fontWeight:500}}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
           {t.getDirections}
         </a>
@@ -465,6 +449,14 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
   const slides=[...images,mapSlide];
   const on=saved.has(detail.id);
 
+  // Info grid rows: Dates, Hours, By Appointment (if true), Area
+  const infoRows=[
+    [t.dates, detail.dates],
+    [t.hours, detail.hours||"—"],
+    ...(detail.byAppointment ? [[t.byAppointment, "Yes"]] : []),
+    [t.area, detail.hood],
+  ];
+
   return(
     <div style={{position:"fixed",inset:0,background:WHITE,zIndex:2000,overflowY:"auto",animation:"slideUp 0.32s cubic-bezier(0.16,1,0.3,1)",maxWidth:430,margin:"0 auto"}}>
       <div style={{position:"sticky",top:0,background:WHITE,borderBottom:`1px solid ${BORDER}`,height:52,display:"flex",alignItems:"center",padding:"0 4px",zIndex:10,flexShrink:0}}>
@@ -483,10 +475,18 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
 
         {!detail.between&&(
           <div style={{border:`1px solid ${BORDER}`,borderRadius:4,marginBottom:16,overflow:"hidden"}}>
-            {[[t.dates,detail.dates],[t.hours,detail.hours||"—"],[t.area,detail.hood]].map(([label,val],i)=>(
-              <div key={label} style={{padding:"12px 16px",borderBottom:i<2?`1px solid ${BORDER}`:"none",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+            {infoRows.map(([label,val],i)=>(
+              <div key={label} style={{
+                padding:"12px 16px",
+                borderBottom:i<infoRows.length-1?`1px solid ${BORDER}`:"none",
+                display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,
+              }}>
                 <div style={{fontSize:10,letterSpacing:"0.10em",textTransform:"uppercase",color:MID,fontWeight:600,flexShrink:0}}>{label}</div>
-                <div style={{fontSize:13,fontWeight:600,color:INK,textAlign:"right"}}>{val}</div>
+                <div style={{
+                  fontSize:13,fontWeight:600,color:INK,textAlign:"right",
+                  // "By Appointment" value gets a subtle blue tint
+                  ...(label===t.byAppointment ? {color:BLUE} : {}),
+                }}>{val}</div>
               </div>
             ))}
           </div>
@@ -523,7 +523,11 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
           </div>
         )}
 
-        <button onClick={()=>{if(navigator.share){navigator.share({title:`${detail.title} — ${detail.gallery}`,url:window.location.href});}else{navigator.clipboard?.writeText(window.location.href);}}} style={{width:"100%",padding:"14px 0",borderRadius:4,border:`1.5px solid ${BORDER}`,background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",gap:8,cursor:"pointer",marginBottom:40,fontFamily:"'DM Sans',sans-serif"}}>
+        <button onClick={()=>{
+          capture("share_tapped",{gallery:detail.gallery,title:detail.title});
+          if(navigator.share){navigator.share({title:`${detail.title} — ${detail.gallery}`,url:window.location.href});}
+          else{navigator.clipboard?.writeText(window.location.href);}
+        }} style={{width:"100%",padding:"14px 0",borderRadius:4,border:`1.5px solid ${BORDER}`,background:"transparent",display:"flex",alignItems:"center",justifyContent:"center",gap:8,cursor:"pointer",marginBottom:40,fontFamily:"'DM Sans',sans-serif"}}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
           <span style={{fontSize:12,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:MID}}>{t.share}</span>
         </button>
@@ -702,6 +706,9 @@ export default function App(){
 
   useEffect(()=>{
     fetchShows().then(data=>{setSHOWS(dailyShuffle(data));setLoading(false);}).catch(()=>{setLoadError(true);setLoading(false);});
+
+    // PWA install prompt capture
+    window.addEventListener("appinstalled",()=>capture("pwa_installed"));
   },[]);
 
   const toggleSave=(id)=>setSaved(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n;});
@@ -727,6 +734,12 @@ export default function App(){
       if(next>=5){setShowAdmin(true);return 0;}
       tapTimer.current=setTimeout(()=>setTapCount(0),2000);return next;
     });
+  };
+
+  // Tab switch with analytics
+  const handleTabSwitch=(key)=>{
+    capture("tab_switched",{tab:key,from:tab});
+    setTab(key);
   };
 
   useEffect(()=>{
@@ -789,7 +802,10 @@ export default function App(){
       .sort((a,b)=>distanceKm(userLocation.lat,userLocation.lng,a.lat,a.lng)-distanceKm(userLocation.lat,userLocation.lng,b.lat,b.lng))
     :[];
 
-  const openDetail=(s,source)=>{setDetail(s);setDetailSource(source);};
+  const openDetail=(s,source)=>{
+    capture("show_tapped",{gallery:s.gallery,title:s.title,source,featured:s.featured});
+    setDetail(s);setDetailSource(source);
+  };
   const sourceLabel=detailSource==="featured"?"Featured":detailSource==="shows"?"Shows":"Map";
 
   const SectionRow=({title,onClick})=>(
@@ -819,7 +835,6 @@ export default function App(){
   return(
     <div style={{fontFamily:"'DM Sans',sans-serif",background:WHITE,height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden",maxWidth:430,margin:"0 auto",position:"relative",boxShadow:"0 0 60px rgba(0,0,0,0.08)"}}>
 
-      {/* CHANGE 3: Header — "Montreal" bumped to fontSize 22 (was 20) */}
       <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,height:52,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",flexShrink:0,zIndex:10}}>
         <div onClick={handleHeaderTap} style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic",fontWeight:600,color:INK,cursor:"default",userSelect:"none"}}>{t.city}</div>
         <div style={{display:"flex",gap:4}}>
@@ -842,7 +857,7 @@ export default function App(){
               </div>
             )}
             {!loading&&!loadError&&SHOWS.filter(s=>s.featured&&!s.between).map(s=>(
-              <FeaturedCard key={s.id} s={s} onClick={()=>openDetail(s,"featured")} saved={saved.has(s.id)} onToggleSave={()=>{toggleSave(s.id);showToast(s.id);}}/>
+              <FeaturedCard key={s.id} s={s} onClick={()=>openDetail(s,"featured")} saved={saved.has(s.id)} onToggleSave={()=>{toggleSave(s.id);showToast(s.id);capture("plan_toggled",{gallery:s.gallery,action:saved.has(s.id)?"removed":"added"});}}/>
             ))}
             <div style={{height:20}}/>
           </div>
@@ -876,7 +891,7 @@ export default function App(){
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                   {[
                     {icon:"📋",label:t.listYourShow,action:()=>window.open("https://tally.so/r/D4Je7b","_blank")},
-                    {icon:"⭐",label:t.featureYourShow,action:()=>setEmailSheet({subject:"Feature my exhibition on Frame",body:"Hi Frame team,\n\nI'd like to feature my exhibition.\n\n"})},
+                    {icon:"⭐",label:t.featureYourShow,action:()=>{capture("feature_tapped");setEmailSheet({subject:"Feature my exhibition on Frame",body:"Hi Frame team,\n\nI'd like to feature my exhibition.\n\n"});}},
                     {icon:"✉",label:t.sayHello,action:()=>setEmailSheet({subject:"Hello from Frame",body:""})},
                     {icon:"📷",label:t.followUs,action:()=>window.open("https://instagram.com/useframe.ca","_blank")},
                   ].map(({icon,label,action})=>(
@@ -912,7 +927,7 @@ export default function App(){
         {tabs.map(({key,label,icon})=>{
           const active=tab===key;
           return(
-            <button key={key} onClick={()=>setTab(key)} style={{flex:1,paddingTop:14,paddingBottom:10,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4,background:"transparent",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",position:"relative"}}>
+            <button key={key} onClick={()=>handleTabSwitch(key)} style={{flex:1,paddingTop:14,paddingBottom:10,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4,background:"transparent",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",position:"relative"}}>
               {active&&<div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:32,height:2,borderRadius:2,background:BLUE}}/>}
               {icon(active)}
               <span style={{fontSize:10,fontWeight:active?700:500,letterSpacing:"0.06em",textTransform:"uppercase",color:active?BLUE:MID}}>{label}</span>
@@ -922,7 +937,7 @@ export default function App(){
       </div>
 
       {subPage&&<ShowsSubPage title={subPage.title} shows={subPage.shows} onBack={()=>setSubPage(null)} onSelect={s=>{setSubPage(null);openDetail(s,"shows");}} saved={saved} toggleSave={toggleSave}/>}
-      {detail&&<DetailPage detail={detail} sourceLabel={sourceLabel} onBack={()=>setDetail(null)} saved={saved} toggleSave={toggleSave} showToast={showToast} toastId={toastId} toastVisible={toastVisible} t={t} onVenue={()=>setVenuePage(detail)}/>}
+      {detail&&<DetailPage detail={detail} sourceLabel={sourceLabel} onBack={()=>setDetail(null)} saved={saved} toggleSave={(id)=>{capture("plan_toggled",{gallery:detail.gallery,action:saved.has(id)?"removed":"added"});toggleSave(id);}} showToast={showToast} toastId={toastId} toastVisible={toastVisible} t={t} onVenue={()=>setVenuePage(detail)}/>}
       {venuePage&&<VenuePage show={venuePage} onBack={()=>setVenuePage(null)} t={t}/>}
       {emailSheet&&<EmailSheet email={CONTACT_EMAIL} subject={emailSheet.subject} body={emailSheet.body} onClose={()=>setEmailSheet(null)}/>}
 
