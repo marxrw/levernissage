@@ -400,7 +400,7 @@ function ShowsSubPage({title,shows,onBack,onSelect,saved,toggleSave}){
 }
 
 // ── Venue Page ────────────────────────────────────────────────────────────────
-function VenuePage({show,onBack,t}){
+function VenuePage({show,onBack,t,onEmailSheet}){
   const hasCoords=show.lat&&show.lng&&!isNaN(show.lat)&&!isNaN(show.lng);
   const embedSrc=hasCoords
     ?`https://www.google.com/maps/embed/v1/place?key=${GMAPS_KEY}&q=${show.lat},${show.lng}&zoom=15`
@@ -434,10 +434,10 @@ function VenuePage({show,onBack,t}){
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
           {t.openInstagram}
         </a>}
-        {show.contact_email&&<a href={`mailto:${show.contact_email}`} style={{display:"flex",alignItems:"center",gap:14,padding:"18px 20px",borderBottom:`1px solid ${BORDER}`,textDecoration:"none",color:BLUE,fontSize:16,fontWeight:500}}>
+        {show.contact_email&&<div onClick={()=>onEmailSheet&&onEmailSheet()} style={{display:"flex",alignItems:"center",gap:14,padding:"18px 20px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",color:BLUE,fontSize:16,fontWeight:500}}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           {t.contactGallery}
-        </a>}
+        </div>}
       </div>
     </div>
   );
@@ -951,7 +951,7 @@ export default function App(){
 I'd like to request a visit for "${detail.title}" by ${detail.artist}.
 
 Thank you!`}):undefined}/>}
-      {venuePage&&<VenuePage show={venuePage} onBack={()=>setVenuePage(null)} t={t}/>}
+      {venuePage&&<VenuePage show={venuePage} onBack={()=>setVenuePage(null)} t={t} onEmailSheet={venuePage.contact_email?()=>setEmailSheet({email:venuePage.contact_email,subject:'Visit enquiry — '+venuePage.gallery,body:'Hi,\n\nI\'d like to get in touch regarding '+venuePage.gallery+'.\n\nThank you!'}):undefined}/>}
       {emailSheet&&<EmailSheet email={CONTACT_EMAIL} subject={emailSheet.subject} body={emailSheet.body} onClose={()=>setEmailSheet(null)}/>}
 
       <style>{`
