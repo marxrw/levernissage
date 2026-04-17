@@ -23,22 +23,37 @@ async function fetchShows(){
   const res=await fetch(`${SUPABASE_URL}/rest/v1/shows?status=eq.approved&order=gallery.asc`,{headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`}});
   if(!res.ok)throw new Error("Failed to fetch shows");
   const data=await res.json();
-  return data.map(s=>({
-    id:s.id,gallery:s.gallery,title:s.title||"",artist:s.artist||"",
-    dates:s.dates||"",openDate:s.open_date||"",closeDate:s.close_date||"",
-    hood:s.neighbourhood||"",color:s.color||"#C8A882",
-    reviewed:s.reviewed||false,featured:s.featured||false,
-    editors_pick:s.editors_pick||false,between:s.between||false,
-    quote:s.quote||"",by:s.quote_by||"",desc:s.description||"",
-    address:s.address||"",hours:s.hours||"",
-    byAppointment:s.by_appointment||false,
-    image_url:s.image_url||null,image_url_2:s.image_url_2||null,
-    image_url_3:s.image_url_3||null,image_url_4:s.image_url_4||null,
-    image_url_5:s.image_url_5||null,
-    website_url:s.website_url||null,instagram_url:s.instagram_url||null,
-    contact_email:s.contact_email||null,
-    lat:parseFloat(s.lat)||null,lng:parseFloat(s.lng)||null,
-  }));
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+
+  return data
+    .map(s=>({
+      id:s.id,gallery:s.gallery,title:s.title||"",artist:s.artist||"",
+      dates:s.dates||"",openDate:s.open_date||"",closeDate:s.close_date||"",
+      hood:s.neighbourhood||"",color:s.color||"#C8A882",
+      reviewed:s.reviewed||false,featured:s.featured||false,
+      editors_pick:s.editors_pick||false,between:s.between||false,
+      quote:s.quote||"",by:s.quote_by||"",desc:s.description||"",
+      address:s.address||"",hours:s.hours||"",
+      byAppointment:s.by_appointment||false,
+      image_url:s.image_url||null,image_url_2:s.image_url_2||null,
+      image_url_3:s.image_url_3||null,image_url_4:s.image_url_4||null,
+      image_url_5:s.image_url_5||null,
+      website_url:s.website_url||null,instagram_url:s.instagram_url||null,
+      contact_email:s.contact_email||null,
+      lat:parseFloat(s.lat)||null,lng:parseFloat(s.lng)||null,
+    }))
+    .filter(s=>{
+      // Featured shows always visible
+      if(s.featured) return true;
+      // Already open or no open date — always visible
+      if(!s.openDate) return true;
+      const openDate = new Date(s.openDate);
+      openDate.setHours(0,0,0,0);
+      // Show is already open or opens within 7 days
+      return (openDate - today) <= SEVEN_DAYS;
+    });
 }
 
 async function fetchPendingShows(){
