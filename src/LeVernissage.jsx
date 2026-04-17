@@ -171,16 +171,16 @@ function EmailSheet({email,subject="",body="",onClose}){
 function PlanPill({saved,onToggle,dark=false}){
   return(
     <button onClick={e=>{e.stopPropagation();onToggle();}} style={{
-      padding:"5px 12px",borderRadius:20,
+      padding:"4px 10px",borderRadius:20,
       border:"none",
-      background:saved?BLUE:dark?"rgba(0,0,0,0.27)":"transparent",
+      background:saved?BLUE:dark?"rgba(0,0,0,0.15)":"transparent",
       backdropFilter:dark&&!saved?"blur(6px)":"none",
       WebkitBackdropFilter:dark&&!saved?"blur(6px)":"none",
       color:WHITE,
-      fontSize:10,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",
+      fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",
       cursor:"pointer",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap",flexShrink:0,
       transition:"all 0.18s",
-      boxShadow:dark&&!saved?"0 1px 6px rgba(0,0,0,0.18)":"none",
+      boxShadow:dark&&!saved?"0 1px 4px rgba(0,0,0,0.12)":"none",
     }}>{saved?"✓ Plan":"+ Plan"}</button>
   );
 }
