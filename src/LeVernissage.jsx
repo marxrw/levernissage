@@ -92,10 +92,10 @@ const T={
 const INK="#0F0E0C",BLUE="#2B5BE8",WHITE="#FFFFFF",BORDER="#E8E5E0",MID="#6B6560",LIGHT="#F4F4F4";
 const FEATURED_COLOR="#F5A623";
 const TODAY=new Date();
-const BADGE_GREEN="rgba(26,122,74,0.85)";
-const BADGE_BLUE="rgba(26,74,138,0.85)";
-const BADGE_RED="rgba(204,26,26,0.85)";
-const BADGE_AMBER="rgba(160,110,20,0.82)";
+const BADGE_GREEN="rgba(26,122,74,0.72)";
+const BADGE_BLUE="rgba(26,74,138,0.72)";
+const BADGE_RED="rgba(204,26,26,0.72)";
+const BADGE_AMBER="rgba(160,110,20,0.72)";
 const NEARBY_RADIUS_KM=2.5;
 
 const FEATURED_CARD_HEIGHT = 202;
@@ -272,8 +272,6 @@ function ImageCarousel({slides,height=220,onTap}){
           position:"absolute",top:12,left:12,
           display:"flex",gap:5,alignItems:"center",
           pointerEvents:"none",zIndex:3,
-          background:"rgba(0,0,0,0.15)",
-          borderRadius:8,padding:"5px 8px",
         }}>
           {slides.map((_,i)=>(
             <div key={i} style={{
@@ -321,6 +319,8 @@ function FeaturedCard({s,onClick,saved,onToggleSave}){
         <div style={{
           position:"absolute",top:10,right:10,zIndex:5,
           background:badgeInfo.color,
+          backdropFilter:"blur(6px)",
+          WebkitBackdropFilter:"blur(6px)",
           color:WHITE,fontSize:9,fontWeight:700,
           letterSpacing:"0.10em",textTransform:"uppercase",
           padding:"4px 8px",borderRadius:3,
