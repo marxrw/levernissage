@@ -107,10 +107,10 @@ const T={
 const INK="#0F0E0C",BLUE="#2B5BE8",WHITE="#FFFFFF",BORDER="#E8E5E0",MID="#6B6560",LIGHT="#F4F4F4";
 const FEATURED_COLOR="#F5A623";
 const TODAY=new Date();
-const BADGE_GREEN="rgba(26,122,74,0.72)";
-const BADGE_BLUE="rgba(26,74,138,0.72)";
-const BADGE_RED="rgba(204,26,26,0.72)";
-const BADGE_AMBER="rgba(160,110,20,0.72)";
+const BADGE_GREEN="rgba(26,122,74,0.50)";
+const BADGE_BLUE="rgba(26,74,138,0.50)";
+const BADGE_RED="rgba(204,26,26,0.50)";
+const BADGE_AMBER="rgba(160,110,20,0.50)";
 const NEARBY_RADIUS_KM=2.5;
 
 const FEATURED_CARD_HEIGHT = 202;
