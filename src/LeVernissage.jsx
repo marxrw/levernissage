@@ -660,6 +660,12 @@ function AdminPage({onExit}){
                       </div>
                     ))}
                   </div>
+                  {s.payment_reference&&(
+                    <div style={{background:"#FFF8EC",border:"1.5px solid #F5A623",borderRadius:4,padding:"10px 12px",marginBottom:12}}>
+                      <div style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:"#B07800",fontWeight:700,marginBottom:3}}>Payment Reference</div>
+                      <div style={{fontSize:13,color:INK,fontWeight:600}}>{s.payment_reference}</div>
+                    </div>
+                  )}
                   {s.description&&<div style={{fontSize:13,color:MID,lineHeight:1.6,marginBottom:14,fontStyle:"italic"}}>{s.description.length>160?s.description.slice(0,160)+"…":s.description}</div>}
                 </div>
                 <div style={{margin:"0 16px 16px",borderRadius:6,border:`2.5px solid ${featuredMap[s.id]?FEATURED_COLOR:BORDER}`,background:featuredMap[s.id]?"#FFF8EC":LIGHT,padding:"14px 16px",transition:"all 0.2s",cursor:"pointer"}} onClick={()=>setFeaturedMap(prev=>({...prev,[s.id]:!prev[s.id]}))}>
