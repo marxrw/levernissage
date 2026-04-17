@@ -226,9 +226,10 @@ function ImageCarousel({slides,height=220,onTap}){
     if(touchStartX.current===null)return;
     const dx=e.changedTouches[0].clientX-touchStartX.current;
     const dt=Date.now()-touchStartTime.current;
+    const dy=e.changedTouches[0].clientY-touchStartY.current;
     if(isHorizontal.current&&Math.abs(dx)>40){
       go(dx<0?1:-1);
-    } else if(!didSwipe.current&&dt<250&&onTap){
+    } else if(!didSwipe.current&&dt<250&&Math.abs(dy)<10&&Math.abs(dx)<10&&onTap){
       onTap();
     }
     touchStartX.current=null;
