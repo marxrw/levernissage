@@ -113,6 +113,7 @@ const BADGE_RED="rgba(204,26,26,0.50)";
 const BADGE_AMBER="rgba(160,110,20,0.50)";
 const NEARBY_RADIUS_KM=2.5;
 const FEATURED_CARD_HEIGHT=202;
+const FEATURED_INFO_PANEL_HEIGHT=55;
 
 function isClosingThisWeek(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<=7;}
 function isLastDay(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<1;}
@@ -179,7 +180,7 @@ function EmailSheet({email,subject="",body="",onClose}){
   );
 }
 
-// ── Plan Pill (single component, works on both light and dark backgrounds) ────
+// ── Plan Pill ─────────────────────────────────────────────────────────────────
 function PlanPill({saved,onToggle}){
   return(
     <button onClick={e=>{e.stopPropagation();onToggle();}} style={{
@@ -197,7 +198,9 @@ function PlanPill({saved,onToggle}){
 }
 
 // ── Image Carousel ────────────────────────────────────────────────────────────
-function ImageCarousel({slides,height=220,onTap}){
+// directionsOffset: bottom distance for the Directions button on the static map slide.
+// Pass FEATURED_INFO_PANEL_HEIGHT + padding from FeaturedCard so the button clears the white overlay.
+function ImageCarousel({slides,height=220,onTap,directionsOffset=12}){
   const[idx,setIdx]=useState(0);
   const touchStartX=useRef(null);
   const touchStartY=useRef(null);
@@ -268,7 +271,7 @@ function ImageCarousel({slides,height=220,onTap}){
             ):slide.mapUrl?(
               <div style={{position:"relative",width:"100%",height:"100%"}}>
                 <img src={slide.mapUrl} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block",pointerEvents:"none"}}/>
-                <a href={mapsUrl(slide.address)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{position:"absolute",bottom:12,left:"50%",transform:"translateX(-50%)",background:"rgba(15,14,12,0.75)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",color:WHITE,borderRadius:6,padding:"8px 16px",fontSize:11,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",textDecoration:"none",whiteSpace:"nowrap"}}>{window.__lvT&&window.__lvT.getDirections||"Directions"} ↗</a>
+                <a href={mapsUrl(slide.address)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{position:"absolute",bottom:directionsOffset,left:"50%",transform:"translateX(-50%)",background:"rgba(15,14,12,0.75)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",color:WHITE,borderRadius:6,padding:"8px 16px",fontSize:11,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",textDecoration:"none",whiteSpace:"nowrap",zIndex:10}}>{window.__lvT&&window.__lvT.getDirections||"Directions"} ↗</a>
               </div>
             ):(
               <div style={{width:"100%",height:"100%",background:"#f0ede8",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}>
@@ -298,12 +301,13 @@ function FeaturedCard({s,onClick,saved,onToggleSave,t}){
   const hasCoords=s.lat&&s.lng&&!isNaN(s.lat)&&!isNaN(s.lng);
   const mapSlide=hasCoords?{mapUrl:staticMapUrl(s.lat,s.lng),address:s.address||s.gallery}:{address:s.address||s.gallery};
   const slides=[...images,mapSlide];
-  const INFO_PANEL_HEIGHT=55;
-  const PILL_BOTTOM=INFO_PANEL_HEIGHT+3;
+  const PILL_BOTTOM=FEATURED_INFO_PANEL_HEIGHT+3;
+  // Directions button raised above the white info overlay with a comfortable gap
+  const DIRECTIONS_OFFSET=FEATURED_INFO_PANEL_HEIGHT+12;
   return(
     <div style={{cursor:"pointer",position:"relative",height:FEATURED_CARD_HEIGHT,overflow:"hidden",background:s.color||LIGHT}}>
       <div style={{position:"absolute",inset:0,zIndex:1}}>
-        <ImageCarousel slides={slides} height={FEATURED_CARD_HEIGHT} onTap={onClick}/>
+        <ImageCarousel slides={slides} height={FEATURED_CARD_HEIGHT} onTap={onClick} directionsOffset={DIRECTIONS_OFFSET}/>
       </div>
       {badgeInfo&&(
         <div style={{position:"absolute",top:10,right:10,zIndex:5,background:badgeInfo.color,backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",color:WHITE,fontSize:9,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",padding:"4px 8px",borderRadius:3,border:"1px solid rgba(255,255,255,0.25)",pointerEvents:"none"}}>{badgeInfo.label}</div>
@@ -675,10 +679,17 @@ export default function App(){
     );
   };
 
-  // ── Single effect for all window globals — includes t in deps so lang changes propagate ──
+  // Single effect for all window globals.
+  // t in deps ensures lang switches update __lvT immediately and refresh any open InfoWindow.
   useEffect(()=>{
     window.__lvOpen=(id)=>{const s=SHOWS.find(x=>x.id===id);if(s){setDetail(s);setDetailSource(tab);}};
     window.__lvT=t;
+    // Reactively update any currently-open map pin popup to the new language
+    markersRef.current.forEach(m=>{
+      if(m.iw.getMap()&&m.getInfoContent){
+        m.iw.setContent(m.getInfoContent());
+      }
+    });
     return()=>{delete window.__lvOpen;};
   },[SHOWS,tab,t]);
 
@@ -710,7 +721,8 @@ export default function App(){
       };
       const infoWindow=new google.maps.InfoWindow({content:getInfoContent(),disableAutoPan:false});
       marker.addListener("click",()=>{markersRef.current.forEach(m=>m.iw.close());infoWindow.setContent(getInfoContent());infoWindow.open({anchor:marker,map});});
-      markersRef.current.push({id:s.id,marker,iw:infoWindow});
+      // Store getInfoContent so the lang-change effect above can call it on open windows
+      markersRef.current.push({id:s.id,marker,iw:infoWindow,getInfoContent});
       return marker;
     };
     const initMap=async()=>{
