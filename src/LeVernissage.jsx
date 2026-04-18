@@ -9,7 +9,6 @@ const ADMIN_PASSWORD = "frame2026";
 const ADMIN_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-action`;
 const CONTACT_EMAIL = "hello@useframe.ca";
 
-// ── PostHog analytics helper ──────────────────────────────────────────────────
 function capture(event, props = {}) {
   try { window.posthog?.capture(event, props); } catch (_) {}
 }
@@ -22,10 +21,9 @@ async function fetchShows(){
   const res=await fetch(`${SUPABASE_URL}/rest/v1/shows?status=eq.approved&order=gallery.asc`,{headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`}});
   if(!res.ok)throw new Error("Failed to fetch shows");
   const data=await res.json();
-  const today = new Date();
+  const today=new Date();
   today.setHours(0,0,0,0);
-  const SEVEN_DAYS = 3 * 24 * 60 * 60 * 1000;
-
+  const THREE_DAYS=3*24*60*60*1000;
   return data
     .map(s=>({
       id:s.id,gallery:s.gallery,title:s.title||"",artist:s.artist||"",
@@ -44,11 +42,11 @@ async function fetchShows(){
       lat:parseFloat(s.lat)||null,lng:parseFloat(s.lng)||null,
     }))
     .filter(s=>{
-      if(s.featured) return true;
-      if(!s.openDate) return true;
-      const openDate = new Date(s.openDate);
+      if(s.featured)return true;
+      if(!s.openDate)return true;
+      const openDate=new Date(s.openDate);
       openDate.setHours(0,0,0,0);
-      return (openDate - today) <= SEVEN_DAYS;
+      return(openDate-today)<=THREE_DAYS;
     });
 }
 
@@ -74,17 +72,16 @@ const T={
     openingThisWeek:"Opening This Week",closingThisWeek:"Closing This Week",nearby:"Nearby",
     myPlan:"My Plan",getDirections:"Directions",openWebsite:"Open website",
     openInstagram:"Instagram",share:"Share",dates:"Dates",hours:"Hours",area:"Area",
-    byAppointment:"By Appointment",
-    requestAppt:"Request a visit",
+    byAppointment:"By Appointment",requestAppt:"Request a visit",
     noShowsInPlan:"No shows in your plan yet",addFromShows:"Add shows from the Shows tab",
     frameReview:"Frame Review",onNow:"On Now",loading:"Loading…",error:"Could not load shows.",
     addToPlan:"+ Plan",inPlan:"✓ Plan",venue:"Venue",
     listYourShow:"List your show",featureYourShow:"Feature your show",
     sayHello:"Say hello",followUs:"Instagram",contactGallery:"Contact the gallery",
     enableLocation:"Enable location for nearby shows",
-    // Badge labels
-    badgeLastDay:"Last Day",badgeClosingSoon:"Closing Soon",badgeOnNow:"On Now",
+    badgeOnNow:"On Now",badgeLastDay:"Last Day",badgeClosingSoon:"Closing Soon",
     badgeOpeningSoon:"Opening Soon",badgeOpening:"Opening",badgeUpcoming:"Upcoming",
+    days:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
   },
   fr:{
     city:"Montréal",featured:"En vedette",shows:"Expositions",map:"Carte",reviews:"Critiques",
@@ -92,17 +89,16 @@ const T={
     openingThisWeek:"Ouvertures cette semaine",closingThisWeek:"Fermetures cette semaine",nearby:"À proximité",
     myPlan:"Mon plan",getDirections:"Itinéraire",openWebsite:"Site web",
     openInstagram:"Instagram",share:"Partager",dates:"Dates",hours:"Heures",area:"Quartier",
-    byAppointment:"Sur rendez-vous",
-    requestAppt:"Demander une visite",
+    byAppointment:"Sur rendez-vous",requestAppt:"Demander une visite",
     noShowsInPlan:"Aucune exposition dans votre plan",addFromShows:"Ajoutez des expositions depuis Expositions",
     frameReview:"Critique Frame",onNow:"En cours",loading:"Chargement…",error:"Impossible de charger.",
     addToPlan:"+ Plan",inPlan:"✓ Plan",venue:"Lieu",
     listYourShow:"Soumettre une expo",featureYourShow:"Mettre en vedette",
     sayHello:"Nous écrire",followUs:"Instagram",contactGallery:"Contacter la galerie",
     enableLocation:"Activer la localisation",
-    // Badge labels
-    badgeLastDay:"Dernier jour",badgeClosingSoon:"Fermeture imminente",badgeOnNow:"En cours",
+    badgeOnNow:"En cours",badgeLastDay:"Dernier jour",badgeClosingSoon:"Fermeture imminente",
     badgeOpeningSoon:"Ouverture prochaine",badgeOpening:"Ouverture",badgeUpcoming:"À venir",
+    days:["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"],
   }
 };
 
@@ -114,8 +110,7 @@ const BADGE_BLUE="rgba(26,74,138,0.50)";
 const BADGE_RED="rgba(204,26,26,0.50)";
 const BADGE_AMBER="rgba(160,110,20,0.50)";
 const NEARBY_RADIUS_KM=2.5;
-
-const FEATURED_CARD_HEIGHT = 202;
+const FEATURED_CARD_HEIGHT=202;
 
 function isClosingThisWeek(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<=7;}
 function isLastDay(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<1;}
@@ -123,24 +118,16 @@ function isOpeningThisWeek(s){if(!s.openDate)return false;const d=(new Date(s.op
 function isOnNow(s){if(!s.openDate||!s.closeDate)return false;return new Date(s.openDate)<=TODAY&&new Date(s.closeDate)>=TODAY;}
 function isUpcoming(s){if(!s.openDate)return false;const d=(new Date(s.openDate)-TODAY)/86400000;return d>7;}
 
-// t is required — always pass the current translations object
-function statusBadgeInfo(s, t){
+function statusBadgeInfo(s,t){
   if(isOnNow(s)){
     if(isLastDay(s))return{label:t.badgeLastDay,color:BADGE_RED};
     if(isClosingThisWeek(s))return{label:t.badgeClosingSoon,color:BADGE_RED};
     return{label:t.badgeOnNow,color:BADGE_GREEN};
   }
   if(isOpeningThisWeek(s)&&!isOnNow(s)){
-    const days={
-      en:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
-      fr:["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"],
-    };
-    // detect lang from t by checking a known-unique key
-    const lang = t.badgeUpcoming === "À venir" ? "fr" : "en";
-    const dayNames = days[lang];
     const openDay=new Date(s.openDate);
     const diffDays=Math.round((openDay-TODAY)/86400000);
-    const label=diffDays<=1?t.badgeOpeningSoon:`${t.badgeOpening} ${dayNames[openDay.getDay()]}`;
+    const label=diffDays<=1?t.badgeOpeningSoon:`${t.badgeOpening} ${t.days[openDay.getDay()]}`;
     return{label,color:BADGE_BLUE};
   }
   if(isUpcoming(s))return{label:t.badgeUpcoming,color:BADGE_AMBER};
@@ -190,27 +177,11 @@ function EmailSheet({email,subject="",body="",onClose}){
   );
 }
 
-// ── Plan Pill ─────────────────────────────────────────────────────────────────
-function PlanPill({saved,onToggle,dark=false}){
+// ── Plan Pill (single component, works on both light and dark backgrounds) ────
+function PlanPill({saved,onToggle}){
   return(
     <button onClick={e=>{e.stopPropagation();onToggle();}} style={{
-      padding:"4px 10px",borderRadius:20,
-      border: saved ? "none" : `1px solid ${BORDER}`,
-      background:saved?BLUE:"transparent",
-      color:saved?WHITE:MID,
-      fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",
-      cursor:"pointer",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap",flexShrink:0,
-      transition:"all 0.18s",
-    }}>{saved?"✓ Plan":"+ Plan"}</button>
-  );
-}
-
-// ── Plan Pill (dark / overlay variant for image cards) ────────────────────────
-function PlanPillDark({saved,onToggle}){
-  return(
-    <button onClick={e=>{e.stopPropagation();onToggle();}} style={{
-      padding:"4px 10px",borderRadius:20,
-      border:"none",
+      padding:"4px 10px",borderRadius:20,border:"none",
       background:saved?BLUE:"rgba(0,0,0,0.15)",
       backdropFilter:!saved?"blur(6px)":"none",
       WebkitBackdropFilter:!saved?"blur(6px)":"none",
@@ -282,8 +253,7 @@ function ImageCarousel({slides,height=220,onTap}){
       onTouchEnd={onTouchEnd}
     >
       <div style={{
-        display:"flex",
-        height:"100%",
+        display:"flex",height:"100%",
         width:`${slides.length*100}%`,
         transform:`translateX(-${(idx/slides.length)*100}%)`,
         transition:"transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)",
@@ -303,21 +273,10 @@ function ImageCarousel({slides,height=220,onTap}){
           </div>
         ))}
       </div>
-
       {slides.length>1&&(
-        <div style={{
-          position:"absolute",top:12,left:12,
-          display:"flex",gap:5,alignItems:"center",
-          pointerEvents:"none",zIndex:3,
-        }}>
+        <div style={{position:"absolute",top:12,left:12,display:"flex",gap:5,alignItems:"center",pointerEvents:"none",zIndex:3}}>
           {slides.map((_,i)=>(
-            <div key={i} style={{
-              width:i===idx?18:6,
-              height:6,
-              borderRadius:3,
-              background:i===idx?"rgba(255,255,255,1)":"rgba(255,255,255,0.5)",
-              transition:"all 0.25s",
-            }}/>
+            <div key={i} style={{width:i===idx?18:6,height:6,borderRadius:3,background:i===idx?"rgba(255,255,255,1)":"rgba(255,255,255,0.5)",transition:"all 0.25s"}}/>
           ))}
         </div>
       )}
@@ -332,65 +291,22 @@ function FeaturedCard({s,onClick,saved,onToggleSave,t}){
   const hasCoords=s.lat&&s.lng&&!isNaN(s.lat)&&!isNaN(s.lng);
   const mapSlide=hasCoords?staticMapUrl(s.lat,s.lng):{address:s.address||s.gallery};
   const slides=[...images,mapSlide];
-
-  const INFO_PANEL_HEIGHT = 55;
-  const PILL_BOTTOM = INFO_PANEL_HEIGHT + 3;
-
+  const INFO_PANEL_HEIGHT=55;
+  const PILL_BOTTOM=INFO_PANEL_HEIGHT+3;
   return(
-    <div
-      style={{
-        cursor:"pointer",
-        position:"relative",
-        height:FEATURED_CARD_HEIGHT,
-        overflow:"hidden",
-        background:s.color||LIGHT,
-      }}
-    >
+    <div style={{cursor:"pointer",position:"relative",height:FEATURED_CARD_HEIGHT,overflow:"hidden",background:s.color||LIGHT}}>
       <div style={{position:"absolute",inset:0,zIndex:1}}>
         <ImageCarousel slides={slides} height={FEATURED_CARD_HEIGHT} onTap={onClick}/>
       </div>
-
       {badgeInfo&&(
-        <div style={{
-          position:"absolute",top:10,right:10,zIndex:5,
-          background:badgeInfo.color,
-          backdropFilter:"blur(6px)",
-          WebkitBackdropFilter:"blur(6px)",
-          color:WHITE,fontSize:9,fontWeight:700,
-          letterSpacing:"0.10em",textTransform:"uppercase",
-          padding:"4px 8px",borderRadius:3,
-          border:"1px solid rgba(255,255,255,0.25)",
-          pointerEvents:"none",
-        }}>{badgeInfo.label}</div>
+        <div style={{position:"absolute",top:10,right:10,zIndex:5,background:badgeInfo.color,backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",color:WHITE,fontSize:9,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",padding:"4px 8px",borderRadius:3,border:"1px solid rgba(255,255,255,0.25)",pointerEvents:"none"}}>{badgeInfo.label}</div>
       )}
-
-      <div
-        style={{position:"absolute",bottom:PILL_BOTTOM,right:12,zIndex:6,pointerEvents:"auto"}}
-        onClick={e=>{e.stopPropagation();onToggleSave();}}
-      >
-        <PlanPillDark saved={saved} onToggle={onToggleSave}/>
+      <div style={{position:"absolute",bottom:PILL_BOTTOM,right:12,zIndex:6,pointerEvents:"auto"}} onClick={e=>{e.stopPropagation();onToggleSave();}}>
+        <PlanPill saved={saved} onToggle={onToggleSave}/>
       </div>
-
-      <div
-        style={{
-          position:"absolute",
-          bottom:0,left:0,right:0,
-          background:"rgba(255,255,255,0.60)",
-          padding:"5px 12px 6px",
-          zIndex:4,
-          pointerEvents:"none",
-        }}
-      >
-        <div style={{
-          fontSize:18,fontWeight:700,color:INK,lineHeight:1.2,
-          overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:3,
-        }}>{s.artist}</div>
-        <div style={{
-          fontSize:15,fontWeight:500,color:INK,lineHeight:1.25,
-          display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden",
-        }}>
-          {s.gallery}{s.address?` · ${shortAddr(s.address)}`:""}
-        </div>
+      <div style={{position:"absolute",bottom:0,left:0,right:0,background:"rgba(255,255,255,0.60)",padding:"5px 12px 6px",zIndex:4,pointerEvents:"none"}}>
+        <div style={{fontSize:18,fontWeight:700,color:INK,lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:3}}>{s.artist}</div>
+        <div style={{fontSize:15,fontWeight:500,color:INK,lineHeight:1.25,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{s.gallery}{s.address?` · ${shortAddr(s.address)}`:""}</div>
       </div>
     </div>
   );
@@ -409,7 +325,7 @@ function TextCard({s,onClick,saved,onToggleSave,t}){
       </div>
       <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6,flexShrink:0}}>
         {badgeInfo&&<span style={{fontSize:10,padding:"3px 8px",background:badgeInfo.color,color:WHITE,borderRadius:3,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase"}}>{badgeInfo.label}</span>}
-        <PlanPillDark saved={saved} onToggle={onToggleSave}/>
+        <PlanPill saved={saved} onToggle={onToggleSave}/>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={BORDER} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
       </div>
     </div>
@@ -485,13 +401,11 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
   const mapSlide=hasCoords?staticMapUrl(detail.lat,detail.lng):{address:detail.address||detail.gallery};
   const slides=[...images,mapSlide];
   const on=saved.has(detail.id);
-
   const staticRows=[
-    [t.dates, detail.dates],
-    [t.hours, detail.hours||"—"],
-    [t.area, detail.hood],
+    [t.dates,detail.dates],
+    [t.hours,detail.hours||"—"],
+    [t.area,detail.hood],
   ];
-
   return(
     <div style={{position:"fixed",inset:0,background:WHITE,zIndex:2000,overflowY:"auto",animation:"slideUp 0.32s cubic-bezier(0.16,1,0.3,1)",maxWidth:430,margin:"0 auto"}}>
       <div style={{position:"sticky",top:0,background:WHITE,borderBottom:`1px solid ${BORDER}`,height:52,display:"flex",alignItems:"center",padding:"0 4px",zIndex:10,flexShrink:0}}>
@@ -500,31 +414,21 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
           <span style={{fontSize:16,fontWeight:600,color:INK}}>{sourceLabel}</span>
         </button>
       </div>
-
       <ImageCarousel slides={slides} height={280}/>
-
       <div style={{padding:"24px 20px 0"}}>
         <div style={{fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:8}}>{detail.gallery}</div>
         {!detail.between&&<div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,fontStyle:"italic",fontWeight:500,lineHeight:1.15,marginBottom:6}}>{detail.title}</div>}
         {!detail.between&&detail.artist&&<div style={{fontSize:17,fontWeight:400,marginBottom:20,color:INK}}>{detail.artist}</div>}
-
         {!detail.between&&(
           <div style={{border:`1px solid ${BORDER}`,borderRadius:4,marginBottom:16,overflow:"hidden"}}>
-            {staticRows.map(([label,val],i)=>(
-              <div key={label} style={{
-                padding:"12px 16px",
-                borderBottom:`1px solid ${BORDER}`,
-                display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,
-              }}>
+            {staticRows.map(([label,val])=>(
+              <div key={label} style={{padding:"12px 16px",borderBottom:`1px solid ${BORDER}`,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
                 <div style={{fontSize:10,letterSpacing:"0.10em",textTransform:"uppercase",color:MID,fontWeight:600,flexShrink:0}}>{label}</div>
                 <div style={{fontSize:13,fontWeight:600,color:INK,textAlign:"right"}}>{val}</div>
               </div>
             ))}
             {detail.byAppointment&&(
-              <div
-                onClick={()=>onApptEmail&&onApptEmail()}
-                style={{padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,cursor:"pointer"}}
-              >
+              <div onClick={()=>onApptEmail&&onApptEmail()} style={{padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,cursor:"pointer"}}>
                 <div style={{fontSize:10,letterSpacing:"0.10em",textTransform:"uppercase",color:MID,fontWeight:600,flexShrink:0}}>{t.byAppointment}</div>
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
                   <span style={{fontSize:13,fontWeight:600,color:BLUE}}>{t.requestAppt}</span>
@@ -534,7 +438,6 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
             )}
           </div>
         )}
-
         {!detail.between&&(
           <div style={{position:"relative",marginBottom:20}}>
             {toastId===detail.id&&toastVisible&&<div style={{position:"absolute",top:-36,left:"50%",transform:"translateX(-50%)",background:INK,color:WHITE,fontSize:11,fontWeight:600,whiteSpace:"nowrap",padding:"6px 10px",borderRadius:4,pointerEvents:"none",zIndex:10}}>{on?t.inPlan:"Removed from Plan"}</div>}
@@ -544,7 +447,6 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
             </button>
           </div>
         )}
-
         {!detail.between&&(
           <div onClick={onVenue} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 0",borderTop:`1px solid ${BORDER}`,borderBottom:`1px solid ${BORDER}`,cursor:"pointer",marginBottom:24}}>
             <div>
@@ -555,9 +457,7 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
           </div>
         )}
-
         {detail.desc&&<div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:400,lineHeight:1.8,marginBottom:28,color:INK}}>{detail.desc}</div>}
-
         {detail.reviewed&&detail.quote&&(
           <div style={{background:"#EEF2FD",borderLeft:`3px solid ${BLUE}`,padding:"18px 16px",marginBottom:28,borderRadius:"0 4px 4px 0"}}>
             <div style={{fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:10}}>{t.frameReview}</div>
@@ -565,7 +465,6 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
             <div style={{fontSize:12,color:MID}}>{detail.by}</div>
           </div>
         )}
-
         <button onClick={()=>{
           capture("share_tapped",{gallery:detail.gallery,title:detail.title});
           if(navigator.share){navigator.share({title:`${detail.title} — ${detail.gallery}`,url:window.location.href});}
@@ -863,4 +762,142 @@ export default function App(){
 
   const tabs=[
     {key:"featured",label:t.featured,icon:(active)=>(
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active?BLUE:MID} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active?BLUE:MID} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    )},
+    {key:"shows",label:t.shows,icon:(active)=>(
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active?BLUE:MID} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    )},
+    {key:"map",label:t.map,icon:(active)=>(
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active?BLUE:MID} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+    )},
+    ...(FEATURES.reviews?[{key:"reviews",label:t.reviews,icon:(active)=>(
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active?BLUE:MID} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    )}]:[]),
+  ];
+
+  if(showAdmin)return<AdminPage onExit={()=>setShowAdmin(false)}/>;
+
+  return(
+    <div style={{fontFamily:"'DM Sans',sans-serif",background:WHITE,height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden",maxWidth:430,margin:"0 auto",position:"relative",boxShadow:"0 0 60px rgba(0,0,0,0.08)"}}>
+
+      <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,height:52,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",flexShrink:0,zIndex:10}}>
+        <div onClick={handleHeaderTap} style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic",fontWeight:600,color:INK,cursor:"default",userSelect:"none"}}>{t.city}</div>
+        <div style={{display:"flex",gap:4}}>
+          {["en","fr"].map(l=>(
+            <button key={l} onClick={()=>setLang(l)} style={{padding:"5px 10px",borderRadius:3,border:`1px solid ${lang===l?INK:BORDER}`,background:lang===l?INK:WHITE,color:lang===l?WHITE:MID,fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>{l}</button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{flex:1,overflow:"hidden",position:"relative",background:WHITE,display:"flex",flexDirection:"column"}}>
+
+        {/* FEATURED */}
+        {tab==="featured"&&(
+          <div style={{height:"100%",overflowY:"auto"}}>
+            {loading&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.loading}</div>}
+            {loadError&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.error}</div>}
+            {!loading&&!loadError&&SHOWS.filter(s=>s.featured&&!s.between).length===0&&(
+              <div style={{padding:"60px 20px",textAlign:"center"}}>
+                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontStyle:"italic",color:MID}}>No featured shows yet</div>
+              </div>
+            )}
+            {!loading&&!loadError&&SHOWS.filter(s=>s.featured&&!s.between).map(s=>(
+              <FeaturedCard key={s.id} s={s} t={t} onClick={()=>openDetail(s,"featured")} saved={saved.has(s.id)} onToggleSave={()=>{toggleSave(s.id);showToast(s.id);capture("plan_toggled",{gallery:s.gallery,action:saved.has(s.id)?"removed":"added"});}}/>
+            ))}
+            <div style={{height:20}}/>
+          </div>
+        )}
+
+        {/* SHOWS */}
+        {tab==="shows"&&(
+          <div style={{height:"100%",overflowY:"auto"}}>
+            {loading&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.loading}</div>}
+            {loadError&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.error}</div>}
+            {!loading&&!loadError&&(<>
+              {allCurrent.length>0&&<SectionRow title={t.allShows} onClick={()=>setSubPage({title:t.allShows,shows:allCurrent})}/>}
+              {openingThisWeek.length>0&&<SectionRow title={t.openingThisWeek} onClick={()=>setSubPage({title:t.openingThisWeek,shows:openingThisWeek})}/>}
+              {closingThisWeek.length>0&&<SectionRow title={t.closingThisWeek} onClick={()=>setSubPage({title:t.closingThisWeek,shows:closingThisWeek})}/>}
+              {!userLocation&&!locationDenied&&(
+                <div onClick={requestLocation} style={{padding:"20px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:12}}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                    <span style={{fontSize:15,color:MID,fontWeight:500}}>{t.enableLocation}</span>
+                  </div>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BORDER} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+              )}
+              {userLocation&&nearbyShows.length>0&&<SectionRow title={t.nearby} onClick={()=>setSubPage({title:t.nearby,shows:nearbyShows})}/>}
+              {activeHoods.map(hood=>{
+                const hs=SHOWS.filter(s=>!s.between&&s.hood===hood&&(isOnNow(s)||isOpeningThisWeek(s)));
+                return hs.length>0?<SectionRow key={hood} title={hood} onClick={()=>setSubPage({title:hood,shows:hs})}/>:null;
+              })}
+              {editorsPicks.length>0&&<SectionRow title={t.editorsPicks} onClick={()=>setSubPage({title:t.editorsPicks,shows:editorsPicks})}/>}
+              <div style={{padding:"32px 16px 48px",background:LIGHT,marginTop:8}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                  {[
+                    {icon:"📋",label:t.listYourShow,action:()=>window.open("https://tally.so/r/D4Je7b","_blank")},
+                    {icon:"⭐",label:t.featureYourShow,action:()=>{capture("feature_tapped");setEmailSheet({subject:"Feature my exhibition on Frame",body:"Hi Frame team,\n\nI'd like to feature my exhibition.\n\n"});}},
+                    {icon:"✉",label:t.sayHello,action:()=>setEmailSheet({subject:"Hello from Frame",body:""})},
+                    {icon:"📷",label:t.followUs,action:()=>window.open("https://instagram.com/useframe.ca","_blank")},
+                  ].map(({icon,label,action})=>(
+                    <button key={label} onClick={action} style={{padding:"20px 16px",background:WHITE,border:`1px solid ${BORDER}`,borderRadius:10,display:"flex",flexDirection:"column",alignItems:"center",gap:8,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
+                      <span style={{fontSize:24}}>{icon}</span>
+                      <span style={{fontSize:13,fontWeight:600,color:INK,textAlign:"center"}}>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>)}
+          </div>
+        )}
+
+        {/* MAP */}
+        <div style={{display:tab==="map"?"flex":"none",flexDirection:"column",height:"100%",position:"relative"}}>
+          <div style={{position:"absolute",top:14,left:"50%",transform:"translateX(-50%)",zIndex:1000,display:"flex",background:"rgba(255,255,255,0.35)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",border:"1px solid rgba(255,255,255,0.5)",borderRadius:6,overflow:"hidden",boxShadow:"0 2px 12px rgba(0,0,0,0.07)"}}>
+            {[["all","All Shows"],["plan",t.myPlan]].map(([mode,label])=>(<button key={mode} onClick={()=>setMapMode(mode)} style={{padding:"9px 20px",fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:700,background:mapMode===mode?"rgba(43,91,232,0.90)":"transparent",color:mapMode===mode?WHITE:"rgba(15,14,12,0.75)",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",transition:"all 0.15s"}}>{label}</button>))}
+          </div>
+          {mapMode==="plan"&&saved.size===0&&(<div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:999,textAlign:"center",pointerEvents:"none",padding:"0 40px"}}><div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic",color:MID,marginBottom:8}}>{t.noShowsInPlan}</div><div style={{fontSize:13,color:BORDER,lineHeight:1.6}}>{t.addFromShows}</div></div>)}
+          <div ref={mapRef} style={{flex:1,width:"100%"}}/>
+        </div>
+
+        {FEATURES.reviews&&tab==="reviews"&&(
+          <div style={{height:"100%",overflowY:"auto",padding:"20px",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <div style={{textAlign:"center",color:MID,fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic"}}>Reviews coming soon.</div>
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Tab Bar */}
+      <div style={{background:WHITE,borderTop:`1px solid ${BORDER}`,display:"flex",flexShrink:0,paddingBottom:"max(env(safe-area-inset-bottom), 20px)",zIndex:10}}>
+        {tabs.map(({key,label,icon})=>{
+          const active=tab===key;
+          return(
+            <button key={key} onClick={()=>handleTabSwitch(key)} style={{flex:1,paddingTop:14,paddingBottom:10,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4,background:"transparent",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",position:"relative"}}>
+              {active&&<div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:32,height:2,borderRadius:2,background:BLUE}}/>}
+              {icon(active)}
+              <span style={{fontSize:10,fontWeight:active?700:500,letterSpacing:"0.06em",textTransform:"uppercase",color:active?BLUE:MID}}>{label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {subPage&&<ShowsSubPage title={subPage.title} shows={subPage.shows} onBack={()=>setSubPage(null)} onSelect={s=>{setSubPage(null);openDetail(s,"shows");}} saved={saved} toggleSave={toggleSave} t={t}/>}
+      {detail&&<DetailPage detail={detail} sourceLabel={sourceLabel} onBack={()=>setDetail(null)} saved={saved} toggleSave={(id)=>{capture("plan_toggled",{gallery:detail.gallery,action:saved.has(id)?"removed":"added"});toggleSave(id);}} showToast={showToast} toastId={toastId} toastVisible={toastVisible} t={t} onVenue={()=>setVenuePage(detail)} onApptEmail={detail.contact_email?()=>setEmailSheet({email:detail.contact_email,subject:`Appointment request — ${detail.title}`,body:`Hi,\n\nI'd like to request a visit for "${detail.title}" by ${detail.artist}.\n\nThank you!`}):undefined}/>}
+      {venuePage&&<VenuePage show={venuePage} onBack={()=>setVenuePage(null)} t={t} onEmailSheet={venuePage.contact_email?()=>setEmailSheet({email:venuePage.contact_email,subject:'Visit enquiry — '+venuePage.gallery,body:'Hi,\n\nI\'d like to get in touch regarding '+venuePage.gallery+'.\n\nThank you!'}):undefined}/>}
+      {emailSheet&&<EmailSheet email={emailSheet.email||CONTACT_EMAIL} subject={emailSheet.subject} body={emailSheet.body} onClose={()=>setEmailSheet(null)}/>}
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+        @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+        *{-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;}
+        ::-webkit-scrollbar{display:none;}
+        .gm-style-iw{padding:0!important;border-radius:6px!important;overflow:hidden!important;}
+        .gm-style-iw-d{overflow:hidden!important;padding:0!important;}
+        .gm-style-iw-c{padding:0!important;border-radius:6px!important;box-shadow:0 12px 40px rgba(0,0,0,0.16)!important;}
+        .gm-ui-hover-effect{top:4px!important;right:4px!important;}
+        .gm-style-iw-tc{display:none!important;}
+      `}</style>
+    </div>
+  );
+}
