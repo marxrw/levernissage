@@ -245,7 +245,9 @@ function ImageCarousel({slides,height=220,onTap,directionsBottom=10}){
     if(isHorizontal.current&&Math.abs(dx)>40){
       go(dx<0?1:-1);
     } else if(!didSwipe.current&&dt<250&&Math.abs(dy)<10&&Math.abs(dx)<10&&onTap){
-      onTap();
+      const target=e.changedTouches[0].target;
+      const isLink=target.closest&&target.closest('a[href]');
+      if(!isLink)onTap();
     }
     touchStartX.current=null;
     touchStartY.current=null;
