@@ -198,9 +198,10 @@ function PlanPill({saved,onToggle}){
 }
 
 // ── Image Carousel ────────────────────────────────────────────────────────────
-// directionsOffset: bottom distance for the Directions button on the static map slide.
-// Pass FEATURED_INFO_PANEL_HEIGHT + padding from FeaturedCard so the button clears the white overlay.
-function ImageCarousel({slides,height=220,onTap,directionsOffset=12}){
+// directionsBottom: px from bottom of the carousel container to place the Directions button.
+// In FeaturedCard this is FEATURED_INFO_PANEL_HEIGHT + 10 so the button sits above the white overlay.
+// Everywhere else (detail, shows) it is 10 — true bottom-left of the image area.
+function ImageCarousel({slides,height=220,onTap,directionsBottom=10}){
   const[idx,setIdx]=useState(0);
   const touchStartX=useRef(null);
   const touchStartY=useRef(null);
@@ -250,6 +251,31 @@ function ImageCarousel({slides,height=220,onTap,directionsOffset=12}){
     didSwipe.current=false;
   };
 
+  // Directions button: styled to match badge/pill system — frosted dark capsule, uppercase, arrow
+  const directionsLabel=(window.__lvT&&window.__lvT.getDirections)||"Directions";
+  const directionsStyle={
+    position:"absolute",
+    bottom:directionsBottom,
+    left:12,
+    zIndex:10,
+    background:"rgba(15,14,12,0.60)",
+    backdropFilter:"blur(6px)",
+    WebkitBackdropFilter:"blur(6px)",
+    color:WHITE,
+    fontSize:9,
+    fontWeight:700,
+    letterSpacing:"0.08em",
+    textTransform:"uppercase",
+    padding:"4px 10px",
+    borderRadius:20,
+    border:"1px solid rgba(255,255,255,0.18)",
+    textDecoration:"none",
+    whiteSpace:"nowrap",
+    fontFamily:"'DM Sans',sans-serif",
+    boxShadow:"0 1px 4px rgba(0,0,0,0.12)",
+    pointerEvents:"auto",
+  };
+
   return(
     <div
       style={{position:"relative",height,overflow:"hidden",userSelect:"none",touchAction:"pan-y"}}
@@ -265,19 +291,36 @@ function ImageCarousel({slides,height=220,onTap,directionsOffset=12}){
         willChange:"transform",
       }}>
         {slides.map((slide,i)=>(
-          <div key={i} style={{width:`${100/slides.length}%`,height:"100%",flexShrink:0,overflow:"hidden"}}>
+          <div key={i} style={{width:`${100/slides.length}%`,height:"100%",flexShrink:0,overflow:"hidden",position:"relative"}}>
             {typeof slide==="string"?(
               <img src={slide} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block",pointerEvents:"none"}} onError={e=>e.target.style.display="none"}/>
             ):slide.mapUrl?(
-              <div style={{position:"relative",width:"100%",height:"100%"}}>
+              <>
                 <img src={slide.mapUrl} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block",pointerEvents:"none"}}/>
-                <a href={mapsUrl(slide.address)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{position:"absolute",bottom:directionsOffset,left:"50%",transform:"translateX(-50%)",background:"rgba(15,14,12,0.75)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",color:WHITE,borderRadius:6,padding:"8px 16px",fontSize:11,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",textDecoration:"none",whiteSpace:"nowrap",zIndex:10}}>{window.__lvT&&window.__lvT.getDirections||"Directions"} ↗</a>
-              </div>
+                <a
+                  href={mapsUrl(slide.address)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={e=>e.stopPropagation()}
+                  style={directionsStyle}
+                >
+                  {directionsLabel} ↗
+                </a>
+              </>
             ):(
-              <div style={{width:"100%",height:"100%",background:"#f0ede8",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}>
+              // No-coords fallback: beige card with address + directions button
+              <div style={{width:"100%",height:"100%",background:"#f0ede8",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,position:"relative"}}>
                 <div style={{fontSize:28}}>📍</div>
                 <div style={{fontSize:13,fontWeight:600,color:INK,textAlign:"center",padding:"0 20px",lineHeight:1.4}}>{slide.address}</div>
-                <a href={mapsUrl(slide.address)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{background:INK,color:WHITE,borderRadius:6,padding:"8px 16px",fontSize:11,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",textDecoration:"none",marginTop:4}}>{window.__lvT&&window.__lvT.getDirections||"Directions"} ↗</a>
+                <a
+                  href={mapsUrl(slide.address)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={e=>e.stopPropagation()}
+                  style={{...directionsStyle,position:"absolute",bottom:directionsBottom,left:12}}
+                >
+                  {directionsLabel} ↗
+                </a>
               </div>
             )}
           </div>
@@ -302,12 +345,12 @@ function FeaturedCard({s,onClick,saved,onToggleSave,t}){
   const mapSlide=hasCoords?{mapUrl:staticMapUrl(s.lat,s.lng),address:s.address||s.gallery}:{address:s.address||s.gallery};
   const slides=[...images,mapSlide];
   const PILL_BOTTOM=FEATURED_INFO_PANEL_HEIGHT+3;
-  // Directions button raised above the white info overlay with a comfortable gap
-  const DIRECTIONS_OFFSET=FEATURED_INFO_PANEL_HEIGHT+12;
+  // Directions button must clear the white info overlay — sit just above it
+  const DIRECTIONS_BOTTOM=FEATURED_INFO_PANEL_HEIGHT+10;
   return(
     <div style={{cursor:"pointer",position:"relative",height:FEATURED_CARD_HEIGHT,overflow:"hidden",background:s.color||LIGHT}}>
       <div style={{position:"absolute",inset:0,zIndex:1}}>
-        <ImageCarousel slides={slides} height={FEATURED_CARD_HEIGHT} onTap={onClick} directionsOffset={DIRECTIONS_OFFSET}/>
+        <ImageCarousel slides={slides} height={FEATURED_CARD_HEIGHT} onTap={onClick} directionsBottom={DIRECTIONS_BOTTOM}/>
       </div>
       {badgeInfo&&(
         <div style={{position:"absolute",top:10,right:10,zIndex:5,background:badgeInfo.color,backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",color:WHITE,fontSize:9,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",padding:"4px 8px",borderRadius:3,border:"1px solid rgba(255,255,255,0.25)",pointerEvents:"none"}}>{badgeInfo.label}</div>
@@ -424,6 +467,7 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
           <span style={{fontSize:16,fontWeight:600,color:INK}}>{sourceLabel}</span>
         </button>
       </div>
+      {/* Detail page has no overlay — default directionsBottom=10 is true bottom-left */}
       <ImageCarousel slides={slides} height={280}/>
       <div style={{padding:"24px 20px 0"}}>
         <div style={{fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:8}}>{detail.gallery}</div>
@@ -721,7 +765,7 @@ export default function App(){
       };
       const infoWindow=new google.maps.InfoWindow({content:getInfoContent(),disableAutoPan:false});
       marker.addListener("click",()=>{markersRef.current.forEach(m=>m.iw.close());infoWindow.setContent(getInfoContent());infoWindow.open({anchor:marker,map});});
-      // Store getInfoContent so the lang-change effect above can call it on open windows
+      // Store getInfoContent so the lang-change effect can call it on open windows
       markersRef.current.push({id:s.id,marker,iw:infoWindow,getInfoContent});
       return marker;
     };
