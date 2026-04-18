@@ -695,6 +695,7 @@ export default function App(){
   const[toastVisible,setToastVisible]=useState(false);
   const toastTimer=useRef(null);
   const t=T[lang];
+  window.__lvT=t; // set synchronously so carousel JSX always reads current lang
 
   useEffect(()=>{
     fetchShows().then(data=>{setSHOWS(dailyShuffle(data));setLoading(false);}).catch(()=>{setLoadError(true);setLoading(false);});
@@ -717,7 +718,6 @@ export default function App(){
   // t in deps ensures lang switches update __lvT immediately and refresh any open InfoWindow.
   useEffect(()=>{
     window.__lvOpen=(id)=>{const s=SHOWS.find(x=>x.id===id);if(s){setDetail(s);setDetailSource(tab);}};
-    window.__lvT=t;
     markersRef.current.forEach(m=>{
       if(m.iw.getMap()&&m.getInfoContent){
         m.iw.setContent(m.getInfoContent());
