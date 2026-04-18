@@ -323,7 +323,7 @@ function TextCard({s,onClick,saved,onToggleSave,t}){
         <div style={{fontSize:15,color:MID,marginBottom:4}}>{s.artist}</div>
         <div style={{fontSize:13,color:MID}}>{s.hood}{s.dates?` · ${s.dates}`:""}</div>
       </div>
-      <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",justifyContent:"space-between",alignSelf:"stretch",flexShrink:0}}>
+      <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",justifyContent:"space-evenly",alignSelf:"stretch",flexShrink:0}}>
         {badgeInfo&&<span style={{fontSize:10,padding:"3px 8px",background:badgeInfo.color,color:WHITE,borderRadius:3,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase"}}>{badgeInfo.label}</span>}
         <PlanPill saved={saved} onToggle={onToggleSave}/>
       </div>
