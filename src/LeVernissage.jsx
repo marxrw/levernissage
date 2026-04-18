@@ -264,9 +264,11 @@ function ImageCarousel({slides,height=220,onTap}){
         {slides.map((slide,i)=>(
           <div key={i} style={{width:`${100/slides.length}%`,height:"100%",flexShrink:0,overflow:"hidden"}}>
             {typeof slide==="string"?(
+              <img src={slide} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block",pointerEvents:"none"}} onError={e=>e.target.style.display="none"}/>
+            ):slide.mapUrl?(
               <div style={{position:"relative",width:"100%",height:"100%"}}>
-                <img src={slide} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block",pointerEvents:"none"}} onError={e=>e.target.style.display="none"}/>
-                <a href={mapsUrl(slide)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{position:"absolute",bottom:12,left:"50%",transform:"translateX(-50%)",background:"rgba(15,14,12,0.75)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",color:WHITE,borderRadius:6,padding:"8px 16px",fontSize:11,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",textDecoration:"none",whiteSpace:"nowrap"}}>{window.__lvT&&window.__lvT.getDirections||"Directions"} ↗</a>
+                <img src={slide.mapUrl} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block",pointerEvents:"none"}}/>
+                <a href={mapsUrl(slide.address)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{position:"absolute",bottom:12,left:"50%",transform:"translateX(-50%)",background:"rgba(15,14,12,0.75)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",color:WHITE,borderRadius:6,padding:"8px 16px",fontSize:11,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",textDecoration:"none",whiteSpace:"nowrap"}}>{window.__lvT&&window.__lvT.getDirections||"Directions"} ↗</a>
               </div>
             ):(
               <div style={{width:"100%",height:"100%",background:"#f0ede8",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}>
@@ -294,7 +296,7 @@ function FeaturedCard({s,onClick,saved,onToggleSave,t}){
   const badgeInfo=statusBadgeInfo(s,t);
   const images=getImages(s);
   const hasCoords=s.lat&&s.lng&&!isNaN(s.lat)&&!isNaN(s.lng);
-  const mapSlide=hasCoords?staticMapUrl(s.lat,s.lng):{address:s.address||s.gallery};
+  const mapSlide=hasCoords?{mapUrl:staticMapUrl(s.lat,s.lng),address:s.address||s.gallery}:{address:s.address||s.gallery};
   const slides=[...images,mapSlide];
   const INFO_PANEL_HEIGHT=55;
   const PILL_BOTTOM=INFO_PANEL_HEIGHT+3;
@@ -402,7 +404,7 @@ function VenuePage({show,onBack,t,onEmailSheet}){
 function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastId,toastVisible,t,onVenue,onApptEmail}){
   const images=getImages(detail);
   const hasCoords=detail.lat&&detail.lng&&!isNaN(detail.lat)&&!isNaN(detail.lng);
-  const mapSlide=hasCoords?staticMapUrl(detail.lat,detail.lng):{address:detail.address||detail.gallery};
+  const mapSlide=hasCoords?{mapUrl:staticMapUrl(detail.lat,detail.lng),address:detail.address||detail.gallery}:{address:detail.address||detail.gallery};
   const slides=[...images,mapSlide];
   const on=saved.has(detail.id);
   const staticRows=[
