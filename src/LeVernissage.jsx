@@ -82,6 +82,7 @@ const T={
     badgeOnNow:"On Now",badgeLastDay:"Last Day",badgeClosingSoon:"Closing Soon",
     badgeOpeningSoon:"Opening Soon",badgeOpening:"Opening",badgeUpcoming:"Upcoming",
     days:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+    view:"View →",
   },
   fr:{
     city:"Montréal",featured:"En vedette",shows:"Expositions",map:"Carte",reviews:"Critiques",
@@ -99,6 +100,7 @@ const T={
     badgeOnNow:"En cours",badgeLastDay:"Dernier jour",badgeClosingSoon:"Fermeture imminente",
     badgeOpeningSoon:"Ouverture prochaine",badgeOpening:"Ouverture",badgeUpcoming:"À venir",
     days:["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"],
+    view:"Voir →",
   }
 };
 
@@ -267,7 +269,7 @@ function ImageCarousel({slides,height=220,onTap}){
               <div style={{width:"100%",height:"100%",background:"#f0ede8",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}>
                 <div style={{fontSize:28}}>📍</div>
                 <div style={{fontSize:13,fontWeight:600,color:INK,textAlign:"center",padding:"0 20px",lineHeight:1.4}}>{slide.address}</div>
-                <a href={mapsUrl(slide.address)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{background:INK,color:WHITE,borderRadius:6,padding:"8px 16px",fontSize:11,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",textDecoration:"none",marginTop:4}}>Directions ↗</a>
+                <a href={mapsUrl(slide.address)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{background:INK,color:WHITE,borderRadius:6,padding:"8px 16px",fontSize:11,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",textDecoration:"none",marginTop:4}}>{window.__lvT&&window.__lvT.getDirections||"Directions"} ↗</a>
               </div>
             )}
           </div>
@@ -669,8 +671,8 @@ export default function App(){
   };
 
   useEffect(()=>{
-    window.__lvOpen=(id)=>{const s=SHOWS.find(x=>x.id===id);if(s){setDetail(s);setDetailSource(tab);}};
-    return()=>{delete window.__lvOpen;};
+    window.__lvOpen=(id)=>{const s=SHOWS.find(x=>x.id===id);if(s){setDetail(s);setDetailSource(tab);}};window.__lvT=t;
+    return()=>{delete window.__lvOpen;delete window.__lvT;};
   },[SHOWS,tab]);
 
   const handleHeaderTap=()=>{
@@ -693,7 +695,7 @@ export default function App(){
       const icon={url:"data:image/svg+xml;charset=UTF-8,"+encodeURIComponent(pinSVG(s.featured,s.id)),scaledSize:new google.maps.Size(34,48),anchor:new google.maps.Point(17,48)};
       const marker=new google.maps.Marker({position,icon,title:s.gallery});
       const sa=shortAddr(s.address);
-      const infoContent=`<div style="width:220px;font-family:'DM Sans',sans-serif;background:#fff;border-radius:6px;overflow:hidden;"><div style="height:5px;background:${s.color};"></div><div style="padding:14px 15px;"><div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#2B5BE8;font-weight:700;margin-bottom:6px;">${s.gallery}</div><div style="font-family:'Cormorant Garamond',serif;font-size:17px;font-style:italic;font-weight:600;color:#0F0E0C;line-height:1.2;margin-bottom:3px;">${s.title}</div><div style="font-size:12px;color:#6B6560;margin-bottom:10px;">${s.artist}</div><div style="font-size:11px;color:#9B9590;margin-bottom:13px;">📍 ${sa}</div><div style="display:flex;gap:8px;"><a href="${mapsUrl(s.address)}" target="_blank" style="flex:1;background:#F4F4F4;color:#0F0E0C;border:none;padding:10px 0;border-radius:3px;font-size:9px;letter-spacing:.10em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;display:flex;align-items:center;justify-content:center;">Directions</a><button onclick="window.__lvOpen('${s.id}')" ontouchend="event.preventDefault();window.__lvOpen('${s.id}')" style="flex:1;background:#0F0E0C;color:#fff;border:none;padding:10px 0;border-radius:3px;font-size:9px;letter-spacing:.10em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">View →</button></div></div></div>`;
+      const infoContent=`<div style="width:220px;font-family:'DM Sans',sans-serif;background:#fff;border-radius:6px;overflow:hidden;"><div style="height:5px;background:${s.color};"></div><div style="padding:14px 15px;"><div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#2B5BE8;font-weight:700;margin-bottom:6px;">${s.gallery}</div><div style="font-family:'Cormorant Garamond',serif;font-size:17px;font-style:italic;font-weight:600;color:#0F0E0C;line-height:1.2;margin-bottom:3px;">${s.title}</div><div style="font-size:12px;color:#6B6560;margin-bottom:10px;">${s.artist}</div><div style="font-size:11px;color:#9B9590;margin-bottom:13px;">📍 ${sa}</div><div style="display:flex;gap:8px;"><a href="${mapsUrl(s.address)}" target="_blank" style="flex:1;background:#F4F4F4;color:#0F0E0C;border:none;padding:10px 0;border-radius:3px;font-size:9px;letter-spacing:.10em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;display:flex;align-items:center;justify-content:center;">${window.__lvT&&window.__lvT.getDirections||"Directions"}</a><button onclick="window.__lvOpen('${s.id}')" ontouchend="event.preventDefault();window.__lvOpen('${s.id}')" style="flex:1;background:#0F0E0C;color:#fff;border:none;padding:10px 0;border-radius:3px;font-size:9px;letter-spacing:.10em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">${window.__lvT&&window.__lvT.view||"View →"}</button></div></div></div>`;
       const infoWindow=new google.maps.InfoWindow({content:infoContent,disableAutoPan:false});
       marker.addListener("click",()=>{markersRef.current.forEach(m=>m.iw.close());infoWindow.open({anchor:marker,map});});
       markersRef.current.push({id:s.id,marker,iw:infoWindow});
@@ -853,7 +855,7 @@ export default function App(){
         {/* MAP */}
         <div style={{display:tab==="map"?"flex":"none",flexDirection:"column",height:"100%",position:"relative"}}>
           <div style={{position:"absolute",top:14,left:"50%",transform:"translateX(-50%)",zIndex:1000,display:"flex",background:"rgba(255,255,255,0.35)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",border:"1px solid rgba(255,255,255,0.5)",borderRadius:6,overflow:"hidden",boxShadow:"0 2px 12px rgba(0,0,0,0.07)"}}>
-            {[["all","All Shows"],["plan",t.myPlan]].map(([mode,label])=>(<button key={mode} onClick={()=>setMapMode(mode)} style={{padding:"9px 20px",fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:700,background:mapMode===mode?"rgba(43,91,232,0.90)":"transparent",color:mapMode===mode?WHITE:"rgba(15,14,12,0.75)",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",transition:"all 0.15s"}}>{label}</button>))}
+            {[["all",t.allShows],["plan",t.myPlan]].map(([mode,label])=>(<button key={mode} onClick={()=>setMapMode(mode)} style={{padding:"9px 20px",fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:700,background:mapMode===mode?"rgba(43,91,232,0.90)":"transparent",color:mapMode===mode?WHITE:"rgba(15,14,12,0.75)",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",transition:"all 0.15s"}}>{label}</button>))}
           </div>
           {mapMode==="plan"&&saved.size===0&&(<div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:999,textAlign:"center",pointerEvents:"none",padding:"0 40px"}}><div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic",color:MID,marginBottom:8}}>{t.noShowsInPlan}</div><div style={{fontSize:13,color:BORDER,lineHeight:1.6}}>{t.addFromShows}</div></div>)}
           <div ref={mapRef} style={{flex:1,width:"100%"}}/>
