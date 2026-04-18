@@ -675,11 +675,12 @@ export default function App(){
     );
   };
 
+  // ── Single effect for all window globals — includes t in deps so lang changes propagate ──
   useEffect(()=>{
-    window.__lvOpen=(id)=>{const s=SHOWS.find(x=>x.id===id);if(s){setDetail(s);setDetailSource(tab);}};window.__lvT=t;
+    window.__lvOpen=(id)=>{const s=SHOWS.find(x=>x.id===id);if(s){setDetail(s);setDetailSource(tab);}};
+    window.__lvT=t;
     return()=>{delete window.__lvOpen;};
-  },[SHOWS,tab]);
-  useEffect(()=>{ window.__lvT=t; },[t]);
+  },[SHOWS,tab,t]);
 
   const handleHeaderTap=()=>{
     setTapCount(prev=>{
