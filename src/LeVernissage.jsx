@@ -342,7 +342,7 @@ function FeaturedCard({s,onClick,saved,onToggleSave,t}){
   const slides=[...images,mapSlide];
   const displayArtist=artistDisplayName(s.artist);
   return(
-    <div style={{cursor:"pointer",position:"relative",height:FEATURED_CARD_HEIGHT,overflow:"hidden",background:s.color||LIGHT}}>
+    <div style={{cursor:"pointer",position:"relative",height:FEATURED_CARD_HEIGHT,overflow:"hidden",background:s.color||LIGHT,borderBottom:`2px solid ${BLUE}`}}>
       <div style={{position:"absolute",inset:0,zIndex:1}}>
         <ImageCarousel slides={slides} height={FEATURED_CARD_HEIGHT} onTap={onClick} directionsBottom={FEATURED_PILL_BOTTOM}/>
       </div>
