@@ -17,6 +17,17 @@ function getDailySeed(){const d=new Date();return d.getFullYear()*10000+(d.getMo
 function seededRandom(seed){let s=seed;return()=>{s=(s*1664525+1013904223)&0xffffffff;return(s>>>0)/0xffffffff;};}
 function dailyShuffle(arr){const a=[...arr];const rand=seededRandom(getDailySeed());for(let i=a.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
+// ── Artist display helper ─────────────────────────────────────────────────────
+// Counts named artists by splitting on common separators
+function artistDisplayName(artist) {
+  if (!artist) return "";
+  // Split on " and ", " & ", or ","
+  const parts = artist.split(/\s*(?:,|&|\band\b)\s*/i).map(s => s.trim()).filter(Boolean);
+  if (parts.length >= 3) return "Group Exhibition";
+  // 1 or 2 names: return as-is, let CSS truncate
+  return artist;
+}
+
 async function fetchShows(){
   const res=await fetch(`${SUPABASE_URL}/rest/v1/shows?status=eq.approved&order=gallery.asc`,{headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`}});
   if(!res.ok)throw new Error("Failed to fetch shows");
@@ -114,7 +125,6 @@ const BADGE_AMBER="rgba(160,110,20,0.50)";
 const NEARBY_RADIUS_KM=2.5;
 const FEATURED_CARD_HEIGHT=202;
 const FEATURED_INFO_PANEL_HEIGHT=55;
-// Pill sits at this bottom value — Directions button shares it for flush alignment
 const FEATURED_PILL_BOTTOM=FEATURED_INFO_PANEL_HEIGHT+3;
 
 function isClosingThisWeek(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<=7;}
@@ -200,9 +210,6 @@ function PlanPill({saved,onToggle}){
 }
 
 // ── Image Carousel ────────────────────────────────────────────────────────────
-// directionsBottom: distance from bottom of carousel to the Directions button.
-//   Featured card passes FEATURED_PILL_BOTTOM so the button's bottom edge aligns
-//   exactly with the Plan pill's bottom edge. Everywhere else defaults to 10px.
 function ImageCarousel({slides,height=220,onTap,directionsBottom=10}){
   const[idx,setIdx]=useState(0);
   const touchStartX=useRef(null);
@@ -255,9 +262,6 @@ function ImageCarousel({slides,height=220,onTap,directionsBottom=10}){
     didSwipe.current=false;
   };
 
-  // directionsLabel is read inline in JSX so it stays reactive to lang changes
-
-  // Shared style for the Directions button — frosted dark capsule matching badge/pill language
   const dirBtnStyle={
     position:"absolute",
     bottom:directionsBottom,
@@ -336,10 +340,10 @@ function FeaturedCard({s,onClick,saved,onToggleSave,t}){
   const hasCoords=s.lat&&s.lng&&!isNaN(s.lat)&&!isNaN(s.lng);
   const mapSlide=hasCoords?{mapUrl:staticMapUrl(s.lat,s.lng),address:s.address||s.gallery}:{address:s.address||s.gallery};
   const slides=[...images,mapSlide];
+  const displayArtist=artistDisplayName(s.artist);
   return(
     <div style={{cursor:"pointer",position:"relative",height:FEATURED_CARD_HEIGHT,overflow:"hidden",background:s.color||LIGHT}}>
       <div style={{position:"absolute",inset:0,zIndex:1}}>
-        {/* directionsBottom = FEATURED_PILL_BOTTOM so Directions button bottom edge aligns with Plan pill bottom edge */}
         <ImageCarousel slides={slides} height={FEATURED_CARD_HEIGHT} onTap={onClick} directionsBottom={FEATURED_PILL_BOTTOM}/>
       </div>
       {badgeInfo&&(
@@ -349,7 +353,7 @@ function FeaturedCard({s,onClick,saved,onToggleSave,t}){
         <PlanPill saved={saved} onToggle={onToggleSave}/>
       </div>
       <div style={{position:"absolute",bottom:0,left:0,right:0,background:"rgba(255,255,255,0.60)",padding:"5px 12px 6px",zIndex:4,pointerEvents:"none"}}>
-        <div style={{fontSize:18,fontWeight:700,color:INK,lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:3}}>{s.artist}</div>
+        <div style={{fontSize:18,fontWeight:700,color:INK,lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:3}}>{displayArtist}</div>
         <div style={{fontSize:15,fontWeight:500,color:INK,lineHeight:1.25,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{s.gallery}{s.address?` · ${shortAddr(s.address)}`:""}</div>
       </div>
     </div>
@@ -359,12 +363,13 @@ function FeaturedCard({s,onClick,saved,onToggleSave,t}){
 // ── Text Card ─────────────────────────────────────────────────────────────────
 function TextCard({s,onClick,saved,onToggleSave,t}){
   const badgeInfo=statusBadgeInfo(s,t);
+  const displayArtist=artistDisplayName(s.artist);
   return(
     <div onClick={onClick} style={{padding:"16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
       <div style={{flex:1,minWidth:0}}>
         <div style={{fontSize:12,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:5}}>{s.gallery}</div>
         <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontStyle:"italic",fontWeight:600,color:INK,lineHeight:1.2,marginBottom:4}}>{s.title}</div>
-        <div style={{fontSize:15,color:MID,marginBottom:4}}>{s.artist}</div>
+        <div style={{fontSize:15,color:MID,marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{displayArtist}</div>
         <div style={{fontSize:13,color:MID}}>{s.hood}{s.dates?` · ${s.dates}`:""}</div>
       </div>
       <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",justifyContent:"space-evenly",alignSelf:"stretch",flexShrink:0}}>
@@ -457,11 +462,11 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
           <span style={{fontSize:16,fontWeight:600,color:INK}}>{sourceLabel}</span>
         </button>
       </div>
-      {/* No overlay here — default directionsBottom=10 puts button at true bottom-left */}
       <ImageCarousel slides={slides} height={280}/>
       <div style={{padding:"24px 20px 0"}}>
         <div style={{fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:8}}>{detail.gallery}</div>
         {!detail.between&&<div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,fontStyle:"italic",fontWeight:500,lineHeight:1.15,marginBottom:6}}>{detail.title}</div>}
+        {/* Detail page always shows full artist names */}
         {!detail.between&&detail.artist&&<div style={{fontSize:17,fontWeight:400,marginBottom:20,color:INK}}>{detail.artist}</div>}
         {!detail.between&&(
           <div style={{border:`1px solid ${BORDER}`,borderRadius:4,marginBottom:16,overflow:"hidden"}}>
@@ -695,7 +700,7 @@ export default function App(){
   const[toastVisible,setToastVisible]=useState(false);
   const toastTimer=useRef(null);
   const t=T[lang];
-  window.__lvT=t; // set synchronously so carousel JSX always reads current lang
+  window.__lvT=t;
 
   useEffect(()=>{
     fetchShows().then(data=>{setSHOWS(dailyShuffle(data));setLoading(false);}).catch(()=>{setLoadError(true);setLoading(false);});
@@ -714,8 +719,6 @@ export default function App(){
     );
   };
 
-  // Single effect for all window globals.
-  // t in deps ensures lang switches update __lvT immediately and refresh any open InfoWindow.
   useEffect(()=>{
     window.__lvOpen=(id)=>{const s=SHOWS.find(x=>x.id===id);if(s){setDetail(s);setDetailSource(tab);}};
     markersRef.current.forEach(m=>{
