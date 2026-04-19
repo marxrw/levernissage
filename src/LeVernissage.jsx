@@ -819,7 +819,7 @@ export default function App(){
 
   const tabs=[
     {key:"featured",label:t.featured,icon:(active)=>(
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active?BLUE:MID} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1 L20 8 L12 23 L4 8 Z" stroke={active?BLUE:MID} strokeWidth="1.5"/><line x1="4" y1="8" x2="20" y2="8" stroke={active?BLUE:MID} strokeWidth="1.5"/><line x1="8.5" y1="1" x2="12" y2="8" stroke={active?BLUE:MID} strokeWidth="0.6"/><line x1="15.5" y1="1" x2="12" y2="8" stroke={active?BLUE:MID} strokeWidth="0.6"/><line x1="4" y1="8" x2="12" y2="23" stroke={active?BLUE:MID} strokeWidth="0.6"/><line x1="20" y1="8" x2="12" y2="23" stroke={active?BLUE:MID} strokeWidth="0.6"/><line x1="5" y1="9" x2="19" y2="22" stroke={active?BLUE:MID} strokeWidth="0.5"/><line x1="19" y1="9" x2="5" y2="22" stroke={active?BLUE:MID} strokeWidth="0.5"/></svg>
     )},
     {key:"shows",label:t.shows,icon:(active)=>(
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active?BLUE:MID} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
@@ -892,13 +892,13 @@ export default function App(){
               <div style={{padding:"32px 16px 48px",background:LIGHT,marginTop:8}}>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                   {[
-                    {icon:"📋",label:t.listYourShow,action:()=>window.open("https://tally.so/r/D4Je7b","_blank")},
-                    {icon:"⭐",label:t.featureYourShow,action:()=>{capture("feature_tapped");setEmailSheet({subject:"Feature my exhibition on Frame",body:"Hi Frame team,\n\nI'd like to feature my exhibition.\n\n"});}},
-                    {icon:"✉",label:t.sayHello,action:()=>setEmailSheet({subject:"Hello from Frame",body:""})},
-                    {icon:"📷",label:t.followUs,action:()=>window.open("https://instagram.com/useframe.ca","_blank")},
+                    {icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M3 15v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/></svg>,label:t.listYourShow,action:()=>window.open("https://tally.so/r/D4Je7b","_blank")},
+                    {icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1 L20 8 L12 23 L4 8 Z" stroke={INK} strokeWidth="1.5"/><line x1="4" y1="8" x2="20" y2="8" stroke={INK} strokeWidth="1.5"/><line x1="8.5" y1="1" x2="12" y2="8" stroke={INK} strokeWidth="0.6"/><line x1="15.5" y1="1" x2="12" y2="8" stroke={INK} strokeWidth="0.6"/><line x1="4" y1="8" x2="12" y2="23" stroke={INK} strokeWidth="0.6"/><line x1="20" y1="8" x2="12" y2="23" stroke={INK} strokeWidth="0.6"/><line x1="5" y1="9" x2="19" y2="22" stroke={INK} strokeWidth="0.5"/><line x1="19" y1="9" x2="5" y2="22" stroke={INK} strokeWidth="0.5"/></svg>,label:t.featureYourShow,action:()=>{capture("feature_tapped");setEmailSheet({subject:"Feature my exhibition on Frame",body:"Hi Frame team,\n\nI'd like to feature my exhibition.\n\n"});}},
+                    {icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>,label:t.sayHello,action:()=>setEmailSheet({subject:"Hello from Frame",body:""})},
+                    {icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" strokeWidth="2.5"/></svg>,label:t.followUs,action:()=>window.open("https://instagram.com/useframe.ca","_blank")},
                   ].map(({icon,label,action})=>(
                     <button key={label} onClick={action} style={{padding:"20px 16px",background:WHITE,border:`1px solid ${BORDER}`,borderRadius:10,display:"flex",flexDirection:"column",alignItems:"center",gap:8,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
-                      <span style={{fontSize:24}}>{icon}</span>
+                      {icon}
                       <span style={{fontSize:13,fontWeight:600,color:INK,textAlign:"center"}}>{label}</span>
                     </button>
                   ))}
