@@ -303,7 +303,7 @@ function ImageCarousel({slides,height=220,onTap,directionsBottom=10}){
               <>
                 <img src={slide.mapUrl} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block",pointerEvents:"none"}}/>
                 <a href={mapsUrl(slide.address)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={dirBtnStyle}>
-                  {(window.__lvT&&window.__lvT.getDirections)||"Directions"} ↗
+                  {(window.__lvT&&window.__lvT.getDirections)||"Directions"} ↗︎
                 </a>
               </>
             ):(
@@ -311,7 +311,7 @@ function ImageCarousel({slides,height=220,onTap,directionsBottom=10}){
                 <div style={{fontSize:28}}>📍</div>
                 <div style={{fontSize:13,fontWeight:600,color:INK,textAlign:"center",padding:"0 20px",lineHeight:1.4}}>{slide.address}</div>
                 <a href={mapsUrl(slide.address)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={dirBtnStyle}>
-                  {(window.__lvT&&window.__lvT.getDirections)||"Directions"} ↗
+                  {(window.__lvT&&window.__lvT.getDirections)||"Directions"} ↗︎
                 </a>
               </div>
             )}
@@ -750,7 +750,7 @@ export default function App(){
         const lv=window.__lvT||{};
         const dir=lv.getDirections||"Directions";
         const view=lv.view||"View →";
-        return `<div style="width:220px;font-family:'DM Sans',sans-serif;background:#fff;border-radius:6px;overflow:hidden;"><div style="height:5px;background:${s.color};"></div><div style="padding:14px 15px;"><div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#2B5BE8;font-weight:700;margin-bottom:6px;">${s.gallery}</div><div style="font-family:'Cormorant Garamond',serif;font-size:17px;font-style:italic;font-weight:600;color:#0F0E0C;line-height:1.2;margin-bottom:3px;">${s.title}</div><div style="font-size:12px;color:#6B6560;margin-bottom:10px;">${s.artist}</div><div style="font-size:11px;color:#9B9590;margin-bottom:13px;">📍 ${sa}</div><div style="display:flex;gap:6px;"><a href="${mapsUrl(s.address)}" target="_blank" style="flex:1;background:rgba(15,14,12,0.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:#fff;border:1px solid rgba(255,255,255,0.20);border-radius:20px;padding:4px 8px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;display:flex;align-items:center;justify-content:center;white-space:nowrap;">${dir} ↗</a><button onclick="window.__lvOpen('${s.id}')" ontouchend="event.preventDefault();window.__lvOpen('${s.id}')" style="flex:1;background:rgba(15,14,12,0.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:#fff;border:1px solid rgba(255,255,255,0.20);border-radius:20px;padding:4px 8px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">${view}</button></div></div></div>`;
+        return `<div style="width:220px;font-family:'DM Sans',sans-serif;background:#fff;border-radius:6px;overflow:hidden;"><div style="height:5px;background:${s.color};"></div><div style="padding:14px 15px;"><div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#2B5BE8;font-weight:700;margin-bottom:6px;">${s.gallery}</div><div style="font-family:'Cormorant Garamond',serif;font-size:17px;font-style:italic;font-weight:600;color:#0F0E0C;line-height:1.2;margin-bottom:3px;">${s.title}</div><div style="font-size:12px;color:#6B6560;margin-bottom:10px;">${s.artist}</div><div style="font-size:11px;color:#9B9590;margin-bottom:13px;">📍 ${sa}</div><div style="display:flex;gap:6px;"><a href="${mapsUrl(s.address)}" target="_blank" style="flex:1;background:rgba(15,14,12,0.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:#fff;border:1px solid rgba(255,255,255,0.20);border-radius:20px;padding:4px 8px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;display:flex;align-items:center;justify-content:center;white-space:nowrap;">${dir} ↗︎</a><button onclick="window.__lvOpen('${s.id}')" ontouchend="event.preventDefault();window.__lvOpen('${s.id}')" style="flex:1;background:rgba(15,14,12,0.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:#fff;border:1px solid rgba(255,255,255,0.20);border-radius:20px;padding:4px 8px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;">${view}</button></div></div></div>`;
       };
       const infoWindow=new google.maps.InfoWindow({content:getInfoContent(),disableAutoPan:false});
       marker.addListener("click",()=>{markersRef.current.forEach(m=>m.iw.close());infoWindow.setContent(getInfoContent());infoWindow.open({anchor:marker,map});});
