@@ -215,6 +215,10 @@ function ImageCarousel({slides,height=220,onTap,directionsBottom=10}){
   const touchStartTime=useRef(null);
   const isHorizontal=useRef(false);
   const didSwipe=useRef(false);
+  const mouseStartX=useRef(null);
+  const mouseStartY=useRef(null);
+  const isDragging=useRef(false);
+  const didMouseSwipe=useRef(false);
 
   if(!slides||slides.length===0)return<div style={{height,background:LIGHT}}/>;
 
@@ -260,6 +264,35 @@ function ImageCarousel({slides,height=220,onTap,directionsBottom=10}){
     didSwipe.current=false;
   };
 
+  const onMouseDown=(e)=>{
+    mouseStartX.current=e.clientX;
+    mouseStartY.current=e.clientY;
+    isDragging.current=true;
+    didMouseSwipe.current=false;
+  };
+
+  const onMouseMove=(e)=>{
+    if(!isDragging.current)return;
+    const dx=e.clientX-mouseStartX.current;
+    if(Math.abs(dx)>8)didMouseSwipe.current=true;
+  };
+
+  const onMouseUp=(e)=>{
+    if(!isDragging.current)return;
+    const dx=e.clientX-mouseStartX.current;
+    const dy=e.clientY-mouseStartY.current;
+    if(didMouseSwipe.current&&Math.abs(dx)>40){
+      go(dx<0?1:-1);
+    } else if(!didMouseSwipe.current&&Math.abs(dx)<8&&Math.abs(dy)<8&&onTap){
+      const isLink=e.target.closest&&e.target.closest('a[href]');
+      if(!isLink)onTap();
+    }
+    isDragging.current=false;
+    didMouseSwipe.current=false;
+    mouseStartX.current=null;
+    mouseStartY.current=null;
+  };
+
   const dirBtnStyle={
     position:"absolute",bottom:directionsBottom,left:12,zIndex:10,
     background:"rgba(15,14,12,0.65)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",
@@ -270,8 +303,9 @@ function ImageCarousel({slides,height=220,onTap,directionsBottom=10}){
   };
 
   return(
-    <div style={{position:"relative",height,overflow:"hidden",userSelect:"none",touchAction:"pan-y"}}
-      onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
+    <div style={{position:"relative",height,overflow:"hidden",userSelect:"none",touchAction:"pan-y",cursor:"pointer"}}
+      onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
+      onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={()=>{isDragging.current=false;}}>
       <div style={{display:"flex",height:"100%",width:`${slides.length*100}%`,
         transform:`translateX(-${(idx/slides.length)*100}%)`,
         transition:"transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)",willChange:"transform"}}>
@@ -299,9 +333,9 @@ function ImageCarousel({slides,height=220,onTap,directionsBottom=10}){
         ))}
       </div>
       {slides.length>1&&(
-        <div style={{position:"absolute",top:12,left:12,display:"flex",gap:5,alignItems:"center",pointerEvents:"none",zIndex:3}}>
+        <div style={{position:"absolute",top:12,left:12,display:"flex",gap:5,alignItems:"center",zIndex:3}}>
           {slides.map((_,i)=>(
-            <div key={i} style={{width:i===idx?18:6,height:6,borderRadius:3,background:i===idx?"rgba(255,255,255,1)":"rgba(255,255,255,0.5)",transition:"all 0.25s"}}/>
+            <div key={i} onClick={e=>{e.stopPropagation();setIdx(i);}} style={{width:i===idx?18:6,height:6,borderRadius:3,background:i===idx?"rgba(255,255,255,1)":"rgba(255,255,255,0.5)",transition:"all 0.25s",cursor:"pointer"}}/>
           ))}
         </div>
       )}
