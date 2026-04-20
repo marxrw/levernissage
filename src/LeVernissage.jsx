@@ -749,27 +749,8 @@ export default function App(){
   useEffect(()=>{
     if(tab!=="map")return;
     if(gMapRef.current)return;
-    class PulseOverlay extends google.maps.OverlayView {
-      constructor(position){super();this.position=position;this.div=null;}
-      onAdd(){
-        const div=document.createElement("div");
-        div.style.cssText="position:absolute;width:40px;height:40px;margin-left:-20px;margin-top:-20px;border-radius:50%;border:2.5px solid #2B5BE8;opacity:0;pointer-events:none;animation:mapPulse 1.8s ease-out infinite;";
-        if(!document.getElementById("mapPulseStyle")){
-          const s=document.createElement("style");s.id="mapPulseStyle";
-          s.textContent="@keyframes mapPulse{0%{transform:scale(1);opacity:0.8}100%{transform:scale(2.4);opacity:0}}";
-          document.head.appendChild(s);
-        }
-        this.div=div;
-        this.getPanes().overlayMouseTarget.appendChild(div);
-      }
-      draw(){
-        const proj=this.getProjection();
-        const pt=proj.fromLatLngToDivPixel(this.position);
-        if(pt&&this.div){this.div.style.left=pt.x+"px";this.div.style.top=(pt.y-14)+"px";}
-      }
-      onRemove(){if(this.div){this.div.parentNode?.removeChild(this.div);this.div=null;}}
-    }
     let activePulse=null;
+    let PulseOverlay=null;
 
     const buildMarker=(google,map,s,position)=>{
       const icon={url:"data:image/svg+xml;charset=UTF-8,"+encodeURIComponent(pinSVG(s.featured,s.id)),scaledSize:new google.maps.Size(34,48),anchor:new google.maps.Point(17,48)};
@@ -801,6 +782,26 @@ export default function App(){
       const google=window.google;
       const map=new google.maps.Map(mapRef.current,{center:{lat:45.5080,lng:-73.5750},zoom:13,disableDefaultUI:true,zoomControl:true,clickableIcons:false,styles:[{featureType:"poi",elementType:"labels",stylers:[{visibility:"off"}]},{featureType:"transit",elementType:"labels",stylers:[{visibility:"off"}]},{featureType:"water",elementType:"geometry",stylers:[{color:"#d4e4f0"}]},{featureType:"landscape",elementType:"geometry",stylers:[{color:"#f5f4f0"}]}]});
       gMapRef.current=map;
+      PulseOverlay=class extends google.maps.OverlayView {
+        constructor(position){super();this.position=position;this.div=null;}
+        onAdd(){
+          const div=document.createElement("div");
+          div.style.cssText="position:absolute;width:40px;height:40px;margin-left:-20px;margin-top:-20px;border-radius:50%;border:2.5px solid #2B5BE8;opacity:0;pointer-events:none;animation:mapPulse 1.8s ease-out infinite;";
+          if(!document.getElementById("mapPulseStyle")){
+            const s=document.createElement("style");s.id="mapPulseStyle";
+            s.textContent="@keyframes mapPulse{0%{transform:scale(1);opacity:0.8}100%{transform:scale(2.4);opacity:0}}";
+            document.head.appendChild(s);
+          }
+          this.div=div;
+          this.getPanes().overlayMouseTarget.appendChild(div);
+        }
+        draw(){
+          const proj=this.getProjection();
+          const pt=proj.fromLatLngToDivPixel(this.position);
+          if(pt&&this.div){this.div.style.left=pt.x+"px";this.div.style.top=(pt.y-14)+"px";}
+        }
+        onRemove(){if(this.div){this.div.parentNode?.removeChild(this.div);this.div=null;}}
+      };
       map.addListener("click",()=>{markersRef.current.forEach(m=>m.iw.close());if(activePulse){activePulse.setMap(null);activePulse=null;}});
       const geocoder=new google.maps.Geocoder();
       const seenPositions={};
