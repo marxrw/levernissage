@@ -907,8 +907,8 @@ export default function App(){
   if(showAdmin)return<AdminPage onExit={()=>setShowAdmin(false)}/>;
 
   return(
-    <div style={{background:"#1A1A18",minHeight:"100vh",display:"flex",alignItems:"flex-start",justifyContent:"center"}}>
-    <div style={{fontFamily:"'DM Sans',sans-serif",background:WHITE,height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden",width:"100%",maxWidth:430,position:"sticky",top:0,boxShadow:"0 0 80px rgba(0,0,0,0.5)"}}>
+    <div style={{background:"#1A1A18",minHeight:"100vh",height:"100vh",display:"flex",alignItems:"flex-start",justifyContent:"center"}}>
+    <div style={{fontFamily:"'DM Sans',sans-serif",background:WHITE,height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden",width:"100%",maxWidth:430,position:"relative",boxShadow:"0 0 80px rgba(0,0,0,0.5)"}}>
 
       <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,height:52,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",flexShrink:0,zIndex:10}}>
         <div onClick={handleHeaderTap} style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic",fontWeight:600,color:INK,cursor:"default",userSelect:"none"}}>{t.city}</div>
