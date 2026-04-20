@@ -707,7 +707,38 @@ export default function App(){
   window.__lvT=t;
 
   useEffect(()=>{
-    fetchShows().then(data=>{setSHOWS(dailyShuffle(data));setLoading(false);}).catch(()=>{setLoadError(true);setLoading(false);});
+    fetchShows().then(data=>{
+      // Tier sort for featured tab
+      const now=new Date();
+      const diffDays=(s)=>{
+        if(s.openDate&&new Date(s.openDate)>now)return(new Date(s.openDate)-now)/86400000;
+        if(s.closeDate)return(new Date(s.closeDate)-now)/86400000;
+        return 999;
+      };
+      const tier=(s)=>{
+        if(!s.openDate&&!s.closeDate)return 3;
+        const od=s.openDate?new Date(s.openDate):null;
+        const cd=s.closeDate?new Date(s.closeDate):null;
+        const daysToOpen=od?(od-now)/86400000:null;
+        const daysToClose=cd?(cd-now)/86400000:null;
+        // Tier 1: opening within 3 days or closing within 3 days
+        if(daysToOpen!==null&&daysToOpen>=0&&daysToOpen<=3)return 1;
+        if(daysToClose!==null&&daysToClose>=0&&daysToClose<=3)return 1;
+        // Tier 2: opening or closing within 7 days, or on now
+        if(daysToOpen!==null&&daysToOpen>=0&&daysToOpen<=7)return 2;
+        if(daysToClose!==null&&daysToClose>=0&&daysToClose<=7)return 2;
+        if(od&&cd&&od<=now&&cd>=now)return 2;
+        return 3;
+      };
+      const shuffled=[...data].sort(()=>Math.random()-0.5);
+      const sorted=shuffled.sort((a,b)=>{
+        const ta=tier(a),tb=tier(b);
+        if(ta!==tb)return ta-tb;
+        if(ta<3)return diffDays(a)-diffDays(b);
+        return 0;
+      });
+      setSHOWS(sorted);setLoading(false);
+    }).catch(()=>{setLoadError(true);setLoading(false);});
     window.addEventListener("appinstalled",()=>capture("pwa_installed"));
   },[]);
 
@@ -875,7 +906,8 @@ export default function App(){
   if(showAdmin)return<AdminPage onExit={()=>setShowAdmin(false)}/>;
 
   return(
-    <div style={{fontFamily:"'DM Sans',sans-serif",background:WHITE,height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden",maxWidth:430,margin:"0 auto",position:"relative",boxShadow:"0 0 60px rgba(0,0,0,0.08)"}}>
+    <div style={{background:"#1A1A18",minHeight:"100vh",display:"flex",alignItems:"flex-start",justifyContent:"center"}}>
+    <div style={{fontFamily:"'DM Sans',sans-serif",background:WHITE,height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden",width:"100%",maxWidth:430,position:"relative",boxShadow:"0 0 80px rgba(0,0,0,0.5)"}}>
 
       <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,height:52,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",flexShrink:0,zIndex:10}}>
         <div onClick={handleHeaderTap} style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic",fontWeight:600,color:INK,cursor:"default",userSelect:"none"}}>{t.city}</div>
@@ -912,6 +944,7 @@ export default function App(){
             {loadError&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.error}</div>}
             {!loading&&!loadError&&(<>
               {allCurrent.length>0&&<SectionRow title={t.allShows} onClick={()=>setSubPage({title:t.allShows,shows:allCurrent})}/>}
+              {editorsPicks.length>0&&<SectionRow title={t.editorsPicks} onClick={()=>setSubPage({title:t.editorsPicks,shows:editorsPicks})}/>}
               {openingThisWeek.length>0&&<SectionRow title={t.openingThisWeek} onClick={()=>setSubPage({title:t.openingThisWeek,shows:openingThisWeek})}/>}
               {closingThisWeek.length>0&&<SectionRow title={t.closingThisWeek} onClick={()=>setSubPage({title:t.closingThisWeek,shows:closingThisWeek})}/>}
               {!userLocation&&!locationDenied&&(
@@ -996,6 +1029,7 @@ export default function App(){
         .gm-ui-hover-effect{top:4px!important;right:4px!important;}
         .gm-style-iw-tc{display:none!important;}
       `}</style>
+    </div>
     </div>
   );
 }
