@@ -54,6 +54,7 @@ async function fetchShows(){
     }))
     .filter(s=>{
       if(s.featured)return true;
+      if(s.editors_pick)return true;
       if(!s.openDate)return true;
       const openDate=new Date(s.openDate);
       openDate.setHours(0,0,0,0);
