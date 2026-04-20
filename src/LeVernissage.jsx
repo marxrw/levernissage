@@ -88,7 +88,9 @@ const T={
     frameReview:"Frame Review",onNow:"On Now",loading:"Loading…",error:"Could not load shows.",
     addToPlan:"+ Plan",inPlan:"✓ Plan",venue:"Venue",
     listYourShow:"List your show",featureYourShow:"Feature your show",
-    sayHello:"Say hello",followUs:"Instagram",contactGallery:"Contact the gallery",
+    getInTouch:"Get in touch",comeToMyCity:"Come to my city",
+    listingSubtitle:"Free listing",featureSubtitle:"Premium placement",
+    contactGallery:"Contact the gallery",
     enableLocation:"Enable location for nearby shows",
     badgeOnNow:"On Now",badgeLastDay:"Last Day",badgeClosingSoon:"Closing Soon",
     badgeOpeningSoon:"Opening Soon",badgeOpening:"Opening",badgeUpcoming:"Upcoming",
@@ -106,7 +108,9 @@ const T={
     frameReview:"Critique Frame",onNow:"En cours",loading:"Chargement…",error:"Impossible de charger.",
     addToPlan:"+ Plan",inPlan:"✓ Plan",venue:"Lieu",
     listYourShow:"Soumettre une expo",featureYourShow:"Mettre en vedette",
-    sayHello:"Nous écrire",followUs:"Instagram",contactGallery:"Contacter la galerie",
+    getInTouch:"Nous contacter",comeToMyCity:"Frame près de chez moi",
+    listingSubtitle:"Soumission gratuite",featureSubtitle:"Placement premium",
+    contactGallery:"Contacter la galerie",
     enableLocation:"Activer la localisation",
     badgeOnNow:"En cours",badgeLastDay:"Dernier jour",badgeClosingSoon:"Fermeture imminente",
     badgeOpeningSoon:"Ouverture prochaine",badgeOpening:"Ouverture",badgeUpcoming:"À venir",
@@ -895,14 +899,15 @@ export default function App(){
               <div style={{padding:"32px 16px 48px",background:LIGHT,marginTop:8}}>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                   {[
-                    {icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M3 15v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/></svg>,label:t.listYourShow,action:()=>window.open("https://tally.so/r/D4Je7b","_blank")},
-                    {icon:<svg width="24" height="24" viewBox="0 0 26 28" fill="none" strokeLinecap="round" strokeLinejoin="round"><defs><clipPath id="ctafc"><path d="M9 5 L17 5 L22 11 L13 26 L4 11 Z"/></clipPath></defs><path d="M9 5 L17 5 L22 11 L13 26 L4 11 Z" stroke={INK} strokeWidth="1.5"/><line x1="4" y1="11" x2="22" y2="11" stroke={INK} strokeWidth="1.5"/><line x1="9" y1="5" x2="4" y2="11" stroke={INK} strokeWidth="0.6"/><line x1="17" y1="5" x2="22" y2="11" stroke={INK} strokeWidth="0.6"/><line x1="9" y1="5" x2="13" y2="11" stroke={INK} strokeWidth="0.6"/><line x1="17" y1="5" x2="13" y2="11" stroke={INK} strokeWidth="0.6"/><line x1="4" y1="11" x2="13" y2="26" stroke={INK} strokeWidth="0.6"/><line x1="22" y1="11" x2="13" y2="26" stroke={INK} strokeWidth="0.6"/><g clipPath="url(#ctafc)"><line x1="4" y1="11" x2="22" y2="26" stroke={INK} strokeWidth="0.5"/><line x1="22" y1="11" x2="4" y2="26" stroke={INK} strokeWidth="0.5"/></g></svg>,label:t.featureYourShow,action:()=>{capture("feature_tapped");setEmailSheet({subject:"Feature my exhibition on Frame",body:"Hi Frame team,\n\nI'd like to feature my exhibition.\n\n"});}},
-                    {icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>,label:t.sayHello,action:()=>setEmailSheet({subject:"Hello from Frame",body:""})},
-                    {icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" strokeWidth="2.5"/></svg>,label:t.followUs,action:()=>window.open("https://instagram.com/useframe.ca","_blank")},
-                  ].map(({icon,label,action})=>(
-                    <button key={label} onClick={action} style={{padding:"20px 16px",background:WHITE,border:`1px solid ${BORDER}`,borderRadius:10,display:"flex",flexDirection:"column",alignItems:"center",gap:8,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
+                    {icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M3 15v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/></svg>,label:t.listYourShow,subtitle:t.listingSubtitle,action:()=>window.open("https://tally.so/r/D4Je7b","_blank")},
+                    {icon:<svg width="24" height="24" viewBox="0 0 26 28" fill="none" strokeLinecap="round" strokeLinejoin="round"><defs><clipPath id="ctafc"><path d="M9 5 L17 5 L22 11 L13 26 L4 11 Z"/></clipPath></defs><path d="M9 5 L17 5 L22 11 L13 26 L4 11 Z" stroke={INK} strokeWidth="1.5"/><line x1="4" y1="11" x2="22" y2="11" stroke={INK} strokeWidth="1.5"/><line x1="9" y1="5" x2="4" y2="11" stroke={INK} strokeWidth="0.6"/><line x1="17" y1="5" x2="22" y2="11" stroke={INK} strokeWidth="0.6"/><line x1="9" y1="5" x2="13" y2="11" stroke={INK} strokeWidth="0.6"/><line x1="17" y1="5" x2="13" y2="11" stroke={INK} strokeWidth="0.6"/><line x1="4" y1="11" x2="13" y2="26" stroke={INK} strokeWidth="0.6"/><line x1="22" y1="11" x2="13" y2="26" stroke={INK} strokeWidth="0.6"/><g clipPath="url(#ctafc)"><line x1="4" y1="11" x2="22" y2="26" stroke={INK} strokeWidth="0.5"/><line x1="22" y1="11" x2="4" y2="26" stroke={INK} strokeWidth="0.5"/></g></svg>,label:t.featureYourShow,subtitle:t.featureSubtitle,action:()=>{capture("feature_tapped");window.open("https://tally.so/r/44Nz2o","_blank");}},
+                    {icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>,label:t.getInTouch,subtitle:null,action:()=>setEmailSheet({subject:"Hello from Frame",body:""})},
+                    {icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 3C4 3 2 5 2 8c0 4 5 9 5 9s5-5 5-9c0-3-2-5-5-5z"/><circle cx="7" cy="8" r="2" fill="none" stroke={INK} strokeWidth="1.5"/><path d="M15 6C13 6 12 7.5 12 9c0 3 3 6 3 6s3-3 3-6c0-1.5-1-3-3-3z"/><circle cx="15" cy="9" r="1.5" fill="none" stroke={INK} strokeWidth="1.5"/><path d="M7 17 Q11 21 15 15" fill="none" stroke={INK} strokeWidth="1.2" strokeLinecap="round" strokeDasharray="2 3"/></svg>,label:t.comeToMyCity,subtitle:null,action:()=>window.open("https://tally.so/r/ja9zeJ","_blank")},
+                  ].map(({icon,label,subtitle,action})=>(
+                    <button key={label} onClick={action} style={{padding:"20px 16px",background:WHITE,border:`1px solid ${BORDER}`,borderRadius:10,display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
                       {icon}
                       <span style={{fontSize:13,fontWeight:600,color:INK,textAlign:"center"}}>{label}</span>
+                      {subtitle&&<span style={{fontSize:11,fontWeight:400,color:MID,textAlign:"center"}}>{subtitle}</span>}
                     </button>
                   ))}
                 </div>
