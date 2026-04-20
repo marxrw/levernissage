@@ -18,7 +18,32 @@
     <link rel="icon" type="image/png" href="/icons/frame-icon-192.png" />
     <style>
       @media screen and (orientation:landscape) and (max-width:768px){
-        body{display:none;}
+        body { display: none; }
+        #landscape-msg { display: flex; }
+      }
+      #landscape-msg {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: #1A1A18;
+        color: #FFFFFF;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        font-family: 'DM Sans', sans-serif;
+        z-index: 9999;
+      }
+      #landscape-msg span.title {
+        font-family: 'Cormorant Garamond', Georgia, serif;
+        font-style: italic;
+        font-size: 22px;
+        color: #FFFFFF;
+      }
+      #landscape-msg span.sub {
+        font-size: 13px;
+        color: rgba(255,255,255,0.5);
+        letter-spacing: 0.06em;
       }
     </style>
     <script>
@@ -31,6 +56,10 @@
     </script>
   </head>
   <body style="margin:0;padding:0;background:#FFFFFF;">
+    <div id="landscape-msg">
+      <span class="title">Frame</span>
+      <span class="sub">Frame is made for portrait</span>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
