@@ -925,14 +925,41 @@ export default function App(){
           <div style={{height:"100%",overflowY:"auto"}}>
             {loading&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.loading}</div>}
             {loadError&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.error}</div>}
-            {!loading&&!loadError&&SHOWS.filter(s=>s.featured&&!s.between).length===0&&(
-              <div style={{padding:"60px 20px",textAlign:"center"}}>
-                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontStyle:"italic",color:MID}}>No featured shows yet</div>
-              </div>
-            )}
-            {!loading&&!loadError&&SHOWS.filter(s=>s.featured&&!s.between).map(s=>(
-              <FeaturedCard key={s.id} s={s} t={t} onClick={()=>openDetail(s,"featured")} saved={saved.has(s.id)} onToggleSave={()=>{toggleSave(s.id);showToast(s.id);capture("plan_toggled",{gallery:s.gallery,action:saved.has(s.id)?"removed":"added"});}}/>
-            ))}
+            {!loading&&!loadError&&(()=>{
+              const now=new Date();
+              const featuredShows=SHOWS.filter(s=>s.featured&&!s.between);
+              const diffDays=(s)=>{
+                if(s.openDate&&new Date(s.openDate)>now)return(new Date(s.openDate)-now)/86400000;
+                if(s.closeDate)return(new Date(s.closeDate)-now)/86400000;
+                return 999;
+              };
+              const tier=(s)=>{
+                const od=s.openDate?new Date(s.openDate):null;
+                const cd=s.closeDate?new Date(s.closeDate):null;
+                const daysToOpen=od?(od-now)/86400000:null;
+                const daysToClose=cd?(cd-now)/86400000:null;
+                if(daysToOpen!==null&&daysToOpen>=0&&daysToOpen<=3)return 1;
+                if(daysToClose!==null&&daysToClose>=0&&daysToClose<=3)return 1;
+                if(daysToOpen!==null&&daysToOpen>=0&&daysToOpen<=7)return 2;
+                if(daysToClose!==null&&daysToClose>=0&&daysToClose<=7)return 2;
+                if(od&&cd&&od<=now&&cd>=now)return 2;
+                return 3;
+              };
+              const sorted=[...featuredShows].sort((a,b)=>{
+                const ta=tier(a),tb=tier(b);
+                if(ta!==tb)return ta-tb;
+                if(ta<3)return diffDays(a)-diffDays(b);
+                return 0;
+              });
+              if(sorted.length===0)return(
+                <div style={{padding:"60px 20px",textAlign:"center"}}>
+                  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontStyle:"italic",color:MID}}>No featured shows yet</div>
+                </div>
+              );
+              return sorted.map(s=>(
+                <FeaturedCard key={s.id} s={s} t={t} onClick={()=>openDetail(s,"featured")} saved={saved.has(s.id)} onToggleSave={()=>{toggleSave(s.id);showToast(s.id);capture("plan_toggled",{gallery:s.gallery,action:saved.has(s.id)?"removed":"added"});}}/>
+              ));
+            })()}
             <div style={{height:20}}/>
           </div>
         )}
