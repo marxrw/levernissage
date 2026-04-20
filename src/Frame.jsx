@@ -17,14 +17,10 @@ function getDailySeed(){const d=new Date();return d.getFullYear()*10000+(d.getMo
 function seededRandom(seed){let s=seed;return()=>{s=(s*1664525+1013904223)&0xffffffff;return(s>>>0)/0xffffffff;};}
 function dailyShuffle(arr){const a=[...arr];const rand=seededRandom(getDailySeed());for(let i=a.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
-// ── Artist display helper ─────────────────────────────────────────────────────
-// Counts named artists by splitting on common separators
 function artistDisplayName(artist) {
   if (!artist) return "";
-  // Split on " and ", " & ", or ","
   const parts = artist.split(/\s*(?:,|&|\band\b)\s*/i).map(s => s.trim()).filter(Boolean);
   if (parts.length >= 3) return "Group Exhibition";
-  // 1 or 2 names: return as-is, let CSS truncate
   return artist;
 }
 
@@ -170,7 +166,6 @@ function pinSVG(featured,id){
   return`<svg xmlns="http://www.w3.org/2000/svg" width="34" height="48" viewBox="0 0 34 48"><defs><filter id="pn${fid}"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="rgba(0,0,0,0.32)"/></filter></defs><ellipse cx="17" cy="46.5" rx="5" ry="1.5" fill="rgba(0,0,0,0.14)"/><line x1="17" y1="18" x2="17" y2="44" stroke="#BBBBBB" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="15" r="14" fill="white" filter="url(#pn${fid})"/><circle cx="17" cy="15" r="12" fill="#E8251A"/><circle cx="17" cy="15" r="12" fill="none" stroke="white" stroke-width="2"/></svg>`;
 }
 
-// ── Email Sheet ───────────────────────────────────────────────────────────────
 function EmailSheet({email,subject="",body="",onClose}){
   const gmailUrl=`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   const mailtoUrl=`mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -197,7 +192,6 @@ function EmailSheet({email,subject="",body="",onClose}){
   );
 }
 
-// ── Plan Pill ─────────────────────────────────────────────────────────────────
 function PlanPill({saved,onToggle}){
   return(
     <button onClick={e=>{e.stopPropagation();onToggle();}} style={{
@@ -214,7 +208,6 @@ function PlanPill({saved,onToggle}){
   );
 }
 
-// ── Image Carousel ────────────────────────────────────────────────────────────
 function ImageCarousel({slides,height=220,onTap,directionsBottom=10}){
   const[idx,setIdx]=useState(0);
   const touchStartX=useRef(null);
@@ -268,42 +261,20 @@ function ImageCarousel({slides,height=220,onTap,directionsBottom=10}){
   };
 
   const dirBtnStyle={
-    position:"absolute",
-    bottom:directionsBottom,
-    left:12,
-    zIndex:10,
-    background:"rgba(15,14,12,0.65)",
-    backdropFilter:"blur(6px)",
-    WebkitBackdropFilter:"blur(6px)",
-    color:WHITE,
-    fontSize:9,
-    fontWeight:700,
-    letterSpacing:"0.08em",
-    textTransform:"uppercase",
-    padding:"4px 10px",
-    borderRadius:20,
-    border:"1px solid rgba(255,255,255,0.20)",
-    textDecoration:"none",
-    whiteSpace:"nowrap",
-    fontFamily:"'DM Sans',sans-serif",
-    boxShadow:"0 1px 4px rgba(0,0,0,0.15)",
-    pointerEvents:"auto",
+    position:"absolute",bottom:directionsBottom,left:12,zIndex:10,
+    background:"rgba(15,14,12,0.65)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",
+    color:WHITE,fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",
+    padding:"4px 10px",borderRadius:20,border:"1px solid rgba(255,255,255,0.20)",
+    textDecoration:"none",whiteSpace:"nowrap",fontFamily:"'DM Sans',sans-serif",
+    boxShadow:"0 1px 4px rgba(0,0,0,0.15)",pointerEvents:"auto",
   };
 
   return(
-    <div
-      style={{position:"relative",height,overflow:"hidden",userSelect:"none",touchAction:"pan-y"}}
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-    >
-      <div style={{
-        display:"flex",height:"100%",
-        width:`${slides.length*100}%`,
+    <div style={{position:"relative",height,overflow:"hidden",userSelect:"none",touchAction:"pan-y"}}
+      onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
+      <div style={{display:"flex",height:"100%",width:`${slides.length*100}%`,
         transform:`translateX(-${(idx/slides.length)*100}%)`,
-        transition:"transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)",
-        willChange:"transform",
-      }}>
+        transition:"transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)",willChange:"transform"}}>
         {slides.map((slide,i)=>(
           <div key={i} style={{width:`${100/slides.length}%`,height:"100%",flexShrink:0,overflow:"hidden",position:"relative"}}>
             {typeof slide==="string"?(
@@ -338,7 +309,6 @@ function ImageCarousel({slides,height=220,onTap,directionsBottom=10}){
   );
 }
 
-// ── Featured Card ─────────────────────────────────────────────────────────────
 function FeaturedCard({s,onClick,saved,onToggleSave,t}){
   const badgeInfo=statusBadgeInfo(s,t);
   const images=getImages(s);
@@ -365,7 +335,6 @@ function FeaturedCard({s,onClick,saved,onToggleSave,t}){
   );
 }
 
-// ── Text Card ─────────────────────────────────────────────────────────────────
 function TextCard({s,onClick,saved,onToggleSave,t}){
   const badgeInfo=statusBadgeInfo(s,t);
   const displayArtist=artistDisplayName(s.artist);
@@ -385,7 +354,6 @@ function TextCard({s,onClick,saved,onToggleSave,t}){
   );
 }
 
-// ── Shows Sub Page ────────────────────────────────────────────────────────────
 function ShowsSubPage({title,shows,onBack,onSelect,saved,toggleSave,t}){
   return(
     <div style={{position:"fixed",inset:0,background:WHITE,zIndex:1500,display:"flex",flexDirection:"column",maxWidth:430,margin:"0 auto",animation:"slideUp 0.28s cubic-bezier(0.16,1,0.3,1)"}}>
@@ -403,7 +371,6 @@ function ShowsSubPage({title,shows,onBack,onSelect,saved,toggleSave,t}){
   );
 }
 
-// ── Venue Page ────────────────────────────────────────────────────────────────
 function VenuePage({show,onBack,t,onEmailSheet}){
   const hasCoords=show.lat&&show.lng&&!isNaN(show.lat)&&!isNaN(show.lng);
   const embedSrc=hasCoords
@@ -447,7 +414,6 @@ function VenuePage({show,onBack,t,onEmailSheet}){
   );
 }
 
-// ── Detail Page ───────────────────────────────────────────────────────────────
 function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastId,toastVisible,t,onVenue,onApptEmail}){
   const images=getImages(detail);
   const hasCoords=detail.lat&&detail.lng&&!isNaN(detail.lat)&&!isNaN(detail.lng);
@@ -471,7 +437,6 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
       <div style={{padding:"24px 20px 0"}}>
         <div style={{fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:8}}>{detail.gallery}</div>
         {!detail.between&&<div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,fontStyle:"italic",fontWeight:500,lineHeight:1.15,marginBottom:6}}>{detail.title}</div>}
-        {/* Detail page always shows full artist names */}
         {!detail.between&&detail.artist&&<div style={{fontSize:17,fontWeight:400,marginBottom:20,color:INK}}>{detail.artist}</div>}
         {!detail.between&&(
           <div style={{border:`1px solid ${BORDER}`,borderRadius:4,marginBottom:16,overflow:"hidden"}}>
@@ -532,7 +497,6 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
   );
 }
 
-// ── Admin Page ────────────────────────────────────────────────────────────────
 function AdminPage({onExit}){
   const[authed,setAuthed]=useState(false);
   const[pwInput,setPwInput]=useState("");
@@ -678,7 +642,6 @@ function AdminPage({onExit}){
   );
 }
 
-// ── Main App ──────────────────────────────────────────────────────────────────
 export default function App(){
   const[tab,setTab]=useState("featured");
   const[detail,setDetail]=useState(null);
@@ -708,8 +671,8 @@ export default function App(){
   window.__lvT=t;
 
   useEffect(()=>{
-    fetchShows().then(data=>{
-      // Tier sort for featured tab
+    const CACHE_KEY="frame_shows_cache";
+    const sortShows=(data)=>{
       const now=new Date();
       const diffDays=(s)=>{
         if(s.openDate&&new Date(s.openDate)>now)return(new Date(s.openDate)-now)/86400000;
@@ -722,23 +685,28 @@ export default function App(){
         const cd=s.closeDate?new Date(s.closeDate):null;
         const daysToOpen=od?(od-now)/86400000:null;
         const daysToClose=cd?(cd-now)/86400000:null;
-        // Tier 1: opening within 3 days or closing within 3 days
         if(daysToOpen!==null&&daysToOpen>=0&&daysToOpen<=3)return 1;
         if(daysToClose!==null&&daysToClose>=0&&daysToClose<=3)return 1;
-        // Tier 2: opening or closing within 7 days, or on now
         if(daysToOpen!==null&&daysToOpen>=0&&daysToOpen<=7)return 2;
         if(daysToClose!==null&&daysToClose>=0&&daysToClose<=7)return 2;
         if(od&&cd&&od<=now&&cd>=now)return 2;
         return 3;
       };
       const shuffled=[...data].sort(()=>Math.random()-0.5);
-      const sorted=shuffled.sort((a,b)=>{
+      return shuffled.sort((a,b)=>{
         const ta=tier(a),tb=tier(b);
         if(ta!==tb)return ta-tb;
         if(ta<3)return diffDays(a)-diffDays(b);
         return 0;
       });
-      setSHOWS(sorted);setLoading(false);
+    };
+    try{
+      const cached=localStorage.getItem(CACHE_KEY);
+      if(cached){const parsed=JSON.parse(cached);if(parsed?.length){setSHOWS(sortShows(parsed));setLoading(false);}}
+    }catch(_){}
+    fetchShows().then(data=>{
+      try{localStorage.setItem(CACHE_KEY,JSON.stringify(data));}catch(_){}
+      setSHOWS(sortShows(data));setLoading(false);
     }).catch(()=>{setLoadError(true);setLoading(false);});
     window.addEventListener("appinstalled",()=>capture("pwa_installed"));
   },[]);
@@ -758,9 +726,7 @@ export default function App(){
   useEffect(()=>{
     window.__lvOpen=(id)=>{const s=SHOWS.find(x=>x.id===id);if(s){setDetail(s);setDetailSource(tab);}};
     markersRef.current.forEach(m=>{
-      if(m.iw.getMap()&&m.getInfoContent){
-        m.iw.setContent(m.getInfoContent());
-      }
+      if(m.iw.getMap()&&m.getInfoContent){m.iw.setContent(m.getInfoContent());}
     });
     return()=>{delete window.__lvOpen;};
   },[SHOWS,tab,t]);
@@ -921,7 +887,6 @@ export default function App(){
 
       <div style={{flex:1,overflow:"hidden",position:"relative",background:WHITE,display:"flex",flexDirection:"column"}}>
 
-        {/* FEATURED */}
         {tab==="featured"&&(
           <div style={{height:"100%",overflowY:"auto"}}>
             {loading&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.loading}</div>}
@@ -965,7 +930,6 @@ export default function App(){
           </div>
         )}
 
-        {/* SHOWS */}
         {tab==="shows"&&(
           <div style={{height:"100%",overflowY:"auto"}}>
             {loading&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.loading}</div>}
@@ -1009,7 +973,6 @@ export default function App(){
           </div>
         )}
 
-        {/* MAP */}
         <div style={{display:tab==="map"?"flex":"none",flexDirection:"column",height:"100%",position:"relative"}}>
           <div style={{position:"absolute",top:14,left:"50%",transform:"translateX(-50%)",zIndex:1000,display:"flex",background:"rgba(255,255,255,0.35)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",border:"1px solid rgba(255,255,255,0.5)",borderRadius:6,overflow:"hidden",boxShadow:"0 2px 12px rgba(0,0,0,0.07)"}}>
             {[["all",t.allShows],["plan",t.myPlan]].map(([mode,label])=>(<button key={mode} onClick={()=>setMapMode(mode)} style={{padding:"9px 20px",fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:700,background:mapMode===mode?"rgba(43,91,232,0.90)":"transparent",color:mapMode===mode?WHITE:"rgba(15,14,12,0.75)",border:"none",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",transition:"all 0.15s"}}>{label}</button>))}
@@ -1025,7 +988,6 @@ export default function App(){
         )}
       </div>
 
-      {/* Bottom Tab Bar */}
       <div style={{background:WHITE,borderTop:`1px solid ${BORDER}`,display:"flex",flexShrink:0,paddingBottom:"max(env(safe-area-inset-bottom), 20px)",zIndex:10}}>
         {tabs.map(({key,label,icon})=>{
           const active=tab===key;
