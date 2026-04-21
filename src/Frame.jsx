@@ -182,7 +182,7 @@ function SplashScreen({visible}){
         fontFamily:"'Cormorant Garamond',serif",
         fontSize:36,fontStyle:"italic",fontWeight:600,
         color:INK,
-        animation:"framePulse 1.8s ease-in-out infinite",
+        animation:"frameFadeIn 0.6s ease forwards",
       }}>Frame</div>
     </div>
   );
@@ -355,7 +355,7 @@ function ImageCarousel({slides,height=220,onTap,directionsBottom=10,onFirstImage
                 </a>
               </>
             ):(
-              <div style={{width:"100%",height:"100%",background:"#f0ede8",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,position:"relative"}}>
+              <div style={{width:"100%",height:"100%",background:CARD_PLACEHOLDER,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,position:"relative"}}>
                 <div style={{fontSize:28}}>📍</div>
                 <div style={{fontSize:13,fontWeight:600,color:INK,textAlign:"center",padding:"0 20px",lineHeight:1.4}}>{slide.address}</div>
                 <a href={mapsUrl(slide.address)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={dirBtnStyle}>
@@ -795,17 +795,14 @@ export default function App(){
       setSHOWS(sortShows(data));setLoading(false);
     }).catch(()=>{setLoadError(true);setLoading(false);revealFeed();});
     window.addEventListener("appinstalled",()=>capture("pwa_installed"));
-    // Safety fallback — reveal after 4s no matter what
     const fallback=setTimeout(()=>revealFeed(),4000);
     return()=>clearTimeout(fallback);
   },[]);
 
-  // If there are no featured shows at all, reveal immediately after data loads
   useEffect(()=>{
     if(!loading&&!loadError){
       const featured=SHOWS.filter(s=>s.featured&&!s.between);
       if(featured.length===0)revealFeed();
-      // If fewer than INITIAL_CARDS_TO_WAIT featured shows, lower the bar
       else if(featured.length<INITIAL_CARDS_TO_WAIT){
         initialLoadsRef.current+=INITIAL_CARDS_TO_WAIT-featured.length;
       }
@@ -1113,7 +1110,7 @@ export default function App(){
       <style>{`
         @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
         @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
-        @keyframes framePulse{0%,100%{opacity:1}50%{opacity:0.35}}
+        @keyframes frameFadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
         *{-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;}
         ::-webkit-scrollbar{display:none;}
         .gm-style-iw{padding:0!important;border-radius:6px!important;overflow:hidden!important;}
