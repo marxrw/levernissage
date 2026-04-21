@@ -118,6 +118,7 @@ const T={
 
 const INK="#0F0E0C",BLUE="#2B5BE8",WHITE="#FFFFFF",BORDER="#E8E5E0",MID="#6B6560",LIGHT="#F4F4F4";
 const FEATURED_COLOR="#F5A623";
+const CARD_PLACEHOLDER="#F0EDE8";
 const TODAY=new Date();
 const BADGE_GREEN="rgba(26,122,74,0.50)";
 const BADGE_BLUE="rgba(26,74,138,0.50)";
@@ -127,6 +128,7 @@ const NEARBY_RADIUS_KM=2.5;
 const FEATURED_CARD_HEIGHT=202;
 const FEATURED_INFO_PANEL_HEIGHT=55;
 const FEATURED_PILL_BOTTOM=FEATURED_INFO_PANEL_HEIGHT+3;
+const INITIAL_CARDS_TO_WAIT=3;
 
 function isClosingThisWeek(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<=7;}
 function isLastDay(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<1;}
@@ -164,6 +166,26 @@ function pinSVG(featured,id){
   const fid=id||"x";
   if(featured){return`<svg xmlns="http://www.w3.org/2000/svg" width="34" height="48" viewBox="0 0 34 48"><defs><filter id="pf${fid}"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="rgba(0,0,0,0.32)"/></filter></defs><ellipse cx="17" cy="46.5" rx="5" ry="1.5" fill="rgba(0,0,0,0.14)"/><line x1="17" y1="18" x2="17" y2="44" stroke="#BBBBBB" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="15" r="14" fill="white" filter="url(#pf${fid})"/><circle cx="17" cy="15" r="12" fill="#7BA7D4"/><circle cx="17" cy="15" r="12" fill="none" stroke="white" stroke-width="2"/><text x="17" y="20" font-family="sans-serif" font-size="14" fill="white" text-anchor="middle">✦</text></svg>`;}
   return`<svg xmlns="http://www.w3.org/2000/svg" width="34" height="48" viewBox="0 0 34 48"><defs><filter id="pn${fid}"><feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="rgba(0,0,0,0.32)"/></filter></defs><ellipse cx="17" cy="46.5" rx="5" ry="1.5" fill="rgba(0,0,0,0.14)"/><line x1="17" y1="18" x2="17" y2="44" stroke="#BBBBBB" stroke-width="1.5" stroke-linecap="round"/><circle cx="17" cy="15" r="14" fill="white" filter="url(#pn${fid})"/><circle cx="17" cy="15" r="12" fill="#E8251A"/><circle cx="17" cy="15" r="12" fill="none" stroke="white" stroke-width="2"/></svg>`;
+}
+
+function SplashScreen({visible}){
+  return(
+    <div style={{
+      position:"fixed",inset:0,background:WHITE,zIndex:9000,
+      display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+      maxWidth:430,margin:"0 auto",
+      opacity:visible?1:0,
+      transition:"opacity 0.5s ease",
+      pointerEvents:visible?"auto":"none",
+    }}>
+      <div style={{
+        fontFamily:"'Cormorant Garamond',serif",
+        fontSize:36,fontStyle:"italic",fontWeight:600,
+        color:INK,
+        animation:"framePulse 1.8s ease-in-out infinite",
+      }}>Frame</div>
+    </div>
+  );
 }
 
 function EmailSheet({email,subject="",body="",onClose}){
@@ -208,7 +230,7 @@ function PlanPill({saved,onToggle}){
   );
 }
 
-function ImageCarousel({slides,height=220,onTap,directionsBottom=10}){
+function ImageCarousel({slides,height=220,onTap,directionsBottom=10,onFirstImageLoad}){
   const[idx,setIdx]=useState(0);
   const touchStartX=useRef(null);
   const touchStartY=useRef(null);
@@ -219,8 +241,9 @@ function ImageCarousel({slides,height=220,onTap,directionsBottom=10}){
   const mouseStartY=useRef(null);
   const isDragging=useRef(false);
   const didMouseSwipe=useRef(false);
+  const firstImageLoaded=useRef(false);
 
-  if(!slides||slides.length===0)return<div style={{height,background:LIGHT}}/>;
+  if(!slides||slides.length===0)return<div style={{height,background:CARD_PLACEHOLDER}}/>;
 
   const go=(n)=>setIdx(i=>Math.max(0,Math.min(slides.length-1,i+n)));
 
@@ -293,6 +316,13 @@ function ImageCarousel({slides,height=220,onTap,directionsBottom=10}){
     mouseStartY.current=null;
   };
 
+  const handleFirstLoad=()=>{
+    if(!firstImageLoaded.current){
+      firstImageLoaded.current=true;
+      onFirstImageLoad&&onFirstImageLoad();
+    }
+  };
+
   const dirBtnStyle={
     position:"absolute",bottom:directionsBottom,left:12,zIndex:10,
     background:"rgba(15,14,12,0.65)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",
@@ -310,12 +340,16 @@ function ImageCarousel({slides,height=220,onTap,directionsBottom=10}){
         transform:`translateX(-${(idx/slides.length)*100}%)`,
         transition:"transform 0.32s cubic-bezier(0.25,0.46,0.45,0.94)",willChange:"transform"}}>
         {slides.map((slide,i)=>(
-          <div key={i} style={{width:`${100/slides.length}%`,height:"100%",flexShrink:0,overflow:"hidden",position:"relative"}}>
+          <div key={i} style={{width:`${100/slides.length}%`,height:"100%",flexShrink:0,overflow:"hidden",position:"relative",background:CARD_PLACEHOLDER}}>
             {typeof slide==="string"?(
-              <img src={slide} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block",pointerEvents:"none"}} onError={e=>e.target.style.display="none"}/>
+              <img src={slide} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block",pointerEvents:"none"}}
+                onLoad={i===0?handleFirstLoad:undefined}
+                onError={e=>{e.target.style.display="none";if(i===0)handleFirstLoad();}}/>
             ):slide.mapUrl?(
               <>
-                <img src={slide.mapUrl} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block",pointerEvents:"none"}}/>
+                <img src={slide.mapUrl} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block",pointerEvents:"none"}}
+                  onLoad={i===0?handleFirstLoad:undefined}
+                  onError={e=>{e.target.style.display="none";if(i===0)handleFirstLoad();}}/>
                 <a href={mapsUrl(slide.address)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={dirBtnStyle}>
                   {(window.__lvT&&window.__lvT.getDirections)||"Directions"}<svg width="9" height="9" viewBox="0 0 12 12" fill="none" style={{marginLeft:4,flexShrink:0}}><path d="M2 10L10 2M10 2H4M10 2V8" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </a>
@@ -343,7 +377,7 @@ function ImageCarousel({slides,height=220,onTap,directionsBottom=10}){
   );
 }
 
-function FeaturedCard({s,onClick,saved,onToggleSave,t}){
+function FeaturedCard({s,onClick,saved,onToggleSave,t,onFirstImageLoad}){
   const badgeInfo=statusBadgeInfo(s,t);
   const images=getImages(s);
   const hasCoords=s.lat&&s.lng&&!isNaN(s.lat)&&!isNaN(s.lng);
@@ -351,9 +385,9 @@ function FeaturedCard({s,onClick,saved,onToggleSave,t}){
   const slides=[...images,mapSlide];
   const displayArtist=artistDisplayName(s.artist);
   return(
-    <div style={{cursor:"pointer",position:"relative",height:FEATURED_CARD_HEIGHT,overflow:"hidden",background:s.color||LIGHT,borderBottom:`0.25px solid ${BLUE}`}}>
+    <div style={{cursor:"pointer",position:"relative",height:FEATURED_CARD_HEIGHT,overflow:"hidden",background:CARD_PLACEHOLDER,borderBottom:`0.25px solid ${BLUE}`}}>
       <div style={{position:"absolute",inset:0,zIndex:1}}>
-        <ImageCarousel slides={slides} height={FEATURED_CARD_HEIGHT} onTap={onClick} directionsBottom={FEATURED_PILL_BOTTOM}/>
+        <ImageCarousel slides={slides} height={FEATURED_CARD_HEIGHT} onTap={onClick} directionsBottom={FEATURED_PILL_BOTTOM} onFirstImageLoad={onFirstImageLoad}/>
       </div>
       {badgeInfo&&(
         <div style={{position:"absolute",top:10,right:10,zIndex:5,background:badgeInfo.color,backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)",color:WHITE,fontSize:9,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",padding:"4px 8px",borderRadius:3,border:"1px solid rgba(255,255,255,0.25)",pointerEvents:"none"}}>{badgeInfo.label}</div>
@@ -693,6 +727,10 @@ export default function App(){
   const[userLocation,setUserLocation]=useState(null);
   const[locationDenied,setLocationDenied]=useState(false);
   const[emailSheet,setEmailSheet]=useState(null);
+  const[splashVisible,setSplashVisible]=useState(true);
+  const[feedVisible,setFeedVisible]=useState(false);
+  const initialLoadsRef=useRef(0);
+  const feedRevealedRef=useRef(false);
   const tapTimer=useRef(null);
   const mapRef=useRef(null);
   const gMapRef=useRef(null);
@@ -703,6 +741,20 @@ export default function App(){
   const toastTimer=useRef(null);
   const t=T[lang];
   window.__lvT=t;
+
+  const revealFeed=()=>{
+    if(feedRevealedRef.current)return;
+    feedRevealedRef.current=true;
+    setFeedVisible(true);
+    setTimeout(()=>setSplashVisible(false),400);
+  };
+
+  const onCardImageLoad=()=>{
+    initialLoadsRef.current+=1;
+    if(initialLoadsRef.current>=INITIAL_CARDS_TO_WAIT){
+      revealFeed();
+    }
+  };
 
   useEffect(()=>{
     const CACHE_KEY="frame_shows_cache";
@@ -741,9 +793,24 @@ export default function App(){
     fetchShows().then(data=>{
       try{localStorage.setItem(CACHE_KEY,JSON.stringify(data));}catch(_){}
       setSHOWS(sortShows(data));setLoading(false);
-    }).catch(()=>{setLoadError(true);setLoading(false);});
+    }).catch(()=>{setLoadError(true);setLoading(false);revealFeed();});
     window.addEventListener("appinstalled",()=>capture("pwa_installed"));
+    // Safety fallback — reveal after 4s no matter what
+    const fallback=setTimeout(()=>revealFeed(),4000);
+    return()=>clearTimeout(fallback);
   },[]);
+
+  // If there are no featured shows at all, reveal immediately after data loads
+  useEffect(()=>{
+    if(!loading&&!loadError){
+      const featured=SHOWS.filter(s=>s.featured&&!s.between);
+      if(featured.length===0)revealFeed();
+      // If fewer than INITIAL_CARDS_TO_WAIT featured shows, lower the bar
+      else if(featured.length<INITIAL_CARDS_TO_WAIT){
+        initialLoadsRef.current+=INITIAL_CARDS_TO_WAIT-featured.length;
+      }
+    }
+  },[loading,loadError,SHOWS]);
 
   const toggleSave=(id)=>setSaved(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n;});
   const showToast=(id)=>{setToastId(id);setToastVisible(true);clearTimeout(toastTimer.current);toastTimer.current=setTimeout(()=>setToastVisible(false),2000);};
@@ -910,6 +977,8 @@ export default function App(){
     <div style={{background:"#1A1A18",width:"100vw",height:"100vh",display:"flex",justifyContent:"center"}}>
     <div style={{fontFamily:"'DM Sans',sans-serif",background:WHITE,height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden",width:"100%",maxWidth:430,position:"relative",boxShadow:"0 0 80px rgba(0,0,0,0.5)"}}>
 
+      <SplashScreen visible={splashVisible}/>
+
       <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,height:52,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",flexShrink:0,zIndex:10}}>
         <div onClick={handleHeaderTap} style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic",fontWeight:600,color:INK,cursor:"default",userSelect:"none"}}>{t.city}</div>
         <div style={{display:"flex",gap:4}}>
@@ -922,10 +991,9 @@ export default function App(){
       <div style={{flex:1,overflow:"hidden",position:"relative",background:WHITE,display:"flex",flexDirection:"column"}}>
 
         {tab==="featured"&&(
-          <div style={{height:"100%",overflowY:"auto"}}>
-            {loading&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.loading}</div>}
+          <div style={{height:"100%",overflowY:"auto",opacity:feedVisible?1:0,transition:"opacity 0.5s ease"}}>
             {loadError&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.error}</div>}
-            {!loading&&!loadError&&(()=>{
+            {!loadError&&(()=>{
               const now=new Date();
               const featuredShows=SHOWS.filter(s=>s.featured&&!s.between);
               const diffDays=(s)=>{
@@ -956,8 +1024,10 @@ export default function App(){
                   <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontStyle:"italic",color:MID}}>No featured shows yet</div>
                 </div>
               );
-              return sorted.map(s=>(
-                <FeaturedCard key={s.id} s={s} t={t} onClick={()=>openDetail(s,"featured")} saved={saved.has(s.id)} onToggleSave={()=>{toggleSave(s.id);showToast(s.id);capture("plan_toggled",{gallery:s.gallery,action:saved.has(s.id)?"removed":"added"});}}/>
+              return sorted.map((s,i)=>(
+                <FeaturedCard key={s.id} s={s} t={t} onClick={()=>openDetail(s,"featured")} saved={saved.has(s.id)}
+                  onFirstImageLoad={i<INITIAL_CARDS_TO_WAIT?onCardImageLoad:undefined}
+                  onToggleSave={()=>{toggleSave(s.id);showToast(s.id);capture("plan_toggled",{gallery:s.gallery,action:saved.has(s.id)?"removed":"added"});}}/>
               ));
             })()}
             <div style={{height:20}}/>
@@ -1043,6 +1113,7 @@ export default function App(){
       <style>{`
         @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
         @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+        @keyframes framePulse{0%,100%{opacity:1}50%{opacity:0.35}}
         *{-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;}
         ::-webkit-scrollbar{display:none;}
         .gm-style-iw{padding:0!important;border-radius:6px!important;overflow:hidden!important;}
