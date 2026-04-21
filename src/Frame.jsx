@@ -1110,7 +1110,7 @@ export default function App(){
       <style>{`
         @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
         @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
-        @keyframes frameFadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes frameFadeIn{from{opacity:0}to{opacity:1}}
         *{-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;}
         ::-webkit-scrollbar{display:none;}
         .gm-style-iw{padding:0!important;border-radius:6px!important;overflow:hidden!important;}
