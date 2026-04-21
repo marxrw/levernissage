@@ -175,7 +175,7 @@ function SplashScreen({visible}){
       display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
       maxWidth:430,margin:"0 auto",
       opacity:visible?1:0,
-      transition:"opacity 0.5s ease",
+      transition:"opacity 0.8s ease",
       pointerEvents:visible?"auto":"none",
     }}>
       <div style={{
@@ -746,7 +746,7 @@ export default function App(){
     if(feedRevealedRef.current)return;
     feedRevealedRef.current=true;
     setFeedVisible(true);
-    setTimeout(()=>setSplashVisible(false),400);
+    setTimeout(()=>setSplashVisible(false),600);
   };
 
   const onCardImageLoad=()=>{
@@ -988,7 +988,7 @@ export default function App(){
       <div style={{flex:1,overflow:"hidden",position:"relative",background:WHITE,display:"flex",flexDirection:"column"}}>
 
         {tab==="featured"&&(
-          <div style={{height:"100%",overflowY:"auto",opacity:feedVisible?1:0,transition:"opacity 0.5s ease"}}>
+          <div style={{height:"100%",overflowY:"auto",opacity:feedVisible?1:0,transition:"opacity 0.6s ease"}}>
             {loadError&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.error}</div>}
             {!loadError&&(()=>{
               const now=new Date();
