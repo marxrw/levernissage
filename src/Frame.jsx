@@ -756,36 +756,37 @@ export default function App(){
     }
   };
 
+  const sortShows=(data)=>{
+    const now=new Date();
+    const diffDays=(s)=>{
+      if(s.openDate&&new Date(s.openDate)>now)return(new Date(s.openDate)-now)/86400000;
+      if(s.closeDate)return(new Date(s.closeDate)-now)/86400000;
+      return 999;
+    };
+    const tier=(s)=>{
+      if(!s.openDate&&!s.closeDate)return 3;
+      const od=s.openDate?new Date(s.openDate):null;
+      const cd=s.closeDate?new Date(s.closeDate):null;
+      const daysToOpen=od?(od-now)/86400000:null;
+      const daysToClose=cd?(cd-now)/86400000:null;
+      if(daysToOpen!==null&&daysToOpen>=0&&daysToOpen<=3)return 1;
+      if(daysToClose!==null&&daysToClose>=0&&daysToClose<=3)return 1;
+      if(daysToOpen!==null&&daysToOpen>=0&&daysToOpen<=7)return 2;
+      if(daysToClose!==null&&daysToClose>=0&&daysToClose<=7)return 2;
+      if(od&&cd&&od<=now&&cd>=now)return 2;
+      return 3;
+    };
+    const shuffled=dailyShuffle(data);
+    return shuffled.sort((a,b)=>{
+      const ta=tier(a),tb=tier(b);
+      if(ta!==tb)return ta-tb;
+      if(ta<3)return diffDays(a)-diffDays(b);
+      return 0;
+    });
+  };
+
   useEffect(()=>{
     const CACHE_KEY="frame_shows_cache";
-    const sortShows=(data)=>{
-      const now=new Date();
-      const diffDays=(s)=>{
-        if(s.openDate&&new Date(s.openDate)>now)return(new Date(s.openDate)-now)/86400000;
-        if(s.closeDate)return(new Date(s.closeDate)-now)/86400000;
-        return 999;
-      };
-      const tier=(s)=>{
-        if(!s.openDate&&!s.closeDate)return 3;
-        const od=s.openDate?new Date(s.openDate):null;
-        const cd=s.closeDate?new Date(s.closeDate):null;
-        const daysToOpen=od?(od-now)/86400000:null;
-        const daysToClose=cd?(cd-now)/86400000:null;
-        if(daysToOpen!==null&&daysToOpen>=0&&daysToOpen<=3)return 1;
-        if(daysToClose!==null&&daysToClose>=0&&daysToClose<=3)return 1;
-        if(daysToOpen!==null&&daysToOpen>=0&&daysToOpen<=7)return 2;
-        if(daysToClose!==null&&daysToClose>=0&&daysToClose<=7)return 2;
-        if(od&&cd&&od<=now&&cd>=now)return 2;
-        return 3;
-      };
-      const shuffled=[...data].sort(()=>Math.random()-0.5);
-      return shuffled.sort((a,b)=>{
-        const ta=tier(a),tb=tier(b);
-        if(ta!==tb)return ta-tb;
-        if(ta<3)return diffDays(a)-diffDays(b);
-        return 0;
-      });
-    };
     try{
       const cached=localStorage.getItem(CACHE_KEY);
       if(cached){const parsed=JSON.parse(cached);if(parsed?.length){setSHOWS(sortShows(parsed));setLoading(false);}}
@@ -953,6 +954,34 @@ export default function App(){
     </div>
   );
 
+  const featuredSorted=(()=>{
+    const now=new Date();
+    const featuredShows=SHOWS.filter(s=>s.featured&&!s.between);
+    const diffDays=(s)=>{
+      if(s.openDate&&new Date(s.openDate)>now)return(new Date(s.openDate)-now)/86400000;
+      if(s.closeDate)return(new Date(s.closeDate)-now)/86400000;
+      return 999;
+    };
+    const tier=(s)=>{
+      const od=s.openDate?new Date(s.openDate):null;
+      const cd=s.closeDate?new Date(s.closeDate):null;
+      const daysToOpen=od?(od-now)/86400000:null;
+      const daysToClose=cd?(cd-now)/86400000:null;
+      if(daysToOpen!==null&&daysToOpen>=0&&daysToOpen<=3)return 1;
+      if(daysToClose!==null&&daysToClose>=0&&daysToClose<=3)return 1;
+      if(daysToOpen!==null&&daysToOpen>=0&&daysToOpen<=7)return 2;
+      if(daysToClose!==null&&daysToClose>=0&&daysToClose<=7)return 2;
+      if(od&&cd&&od<=now&&cd>=now)return 2;
+      return 3;
+    };
+    return dailyShuffle(featuredShows).sort((a,b)=>{
+      const ta=tier(a),tb=tier(b);
+      if(ta!==tb)return ta-tb;
+      if(ta<3)return diffDays(a)-diffDays(b);
+      return 0;
+    });
+  })();
+
   const tabs=[
     {key:"featured",label:t.featured,icon:(active)=>(
       <svg width="22" height="22" viewBox="0 0 26 28" fill="none" strokeLinecap="round" strokeLinejoin="round"><defs><clipPath id="fc"><path d="M9 5 L17 5 L22 11 L13 26 L4 11 Z"/></clipPath></defs><path d="M9 5 L17 5 L22 11 L13 26 L4 11 Z" stroke={active?BLUE:MID} strokeWidth="1.5"/><line x1="4" y1="11" x2="22" y2="11" stroke={active?BLUE:MID} strokeWidth="1.5"/><line x1="9" y1="5" x2="4" y2="11" stroke={active?BLUE:MID} strokeWidth="0.6"/><line x1="17" y1="5" x2="22" y2="11" stroke={active?BLUE:MID} strokeWidth="0.6"/><line x1="9" y1="5" x2="13" y2="11" stroke={active?BLUE:MID} strokeWidth="0.6"/><line x1="17" y1="5" x2="13" y2="11" stroke={active?BLUE:MID} strokeWidth="0.6"/><line x1="4" y1="11" x2="13" y2="26" stroke={active?BLUE:MID} strokeWidth="0.6"/><line x1="22" y1="11" x2="13" y2="26" stroke={active?BLUE:MID} strokeWidth="0.6"/><g clipPath="url(#fc)"><line x1="4" y1="11" x2="22" y2="26" stroke={active?BLUE:MID} strokeWidth="0.5"/><line x1="22" y1="11" x2="4" y2="26" stroke={active?BLUE:MID} strokeWidth="0.5"/></g></svg>
@@ -991,37 +1020,12 @@ export default function App(){
           <div style={{height:"100%",overflowY:"auto",opacity:feedVisible?1:0,transition:"opacity 0.6s ease"}}>
             {loadError&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.error}</div>}
             {!loadError&&(()=>{
-              const now=new Date();
-              const featuredShows=SHOWS.filter(s=>s.featured&&!s.between);
-              const diffDays=(s)=>{
-                if(s.openDate&&new Date(s.openDate)>now)return(new Date(s.openDate)-now)/86400000;
-                if(s.closeDate)return(new Date(s.closeDate)-now)/86400000;
-                return 999;
-              };
-              const tier=(s)=>{
-                const od=s.openDate?new Date(s.openDate):null;
-                const cd=s.closeDate?new Date(s.closeDate):null;
-                const daysToOpen=od?(od-now)/86400000:null;
-                const daysToClose=cd?(cd-now)/86400000:null;
-                if(daysToOpen!==null&&daysToOpen>=0&&daysToOpen<=3)return 1;
-                if(daysToClose!==null&&daysToClose>=0&&daysToClose<=3)return 1;
-                if(daysToOpen!==null&&daysToOpen>=0&&daysToOpen<=7)return 2;
-                if(daysToClose!==null&&daysToClose>=0&&daysToClose<=7)return 2;
-                if(od&&cd&&od<=now&&cd>=now)return 2;
-                return 3;
-              };
-              const sorted=[...featuredShows].sort((a,b)=>{
-                const ta=tier(a),tb=tier(b);
-                if(ta!==tb)return ta-tb;
-                if(ta<3)return diffDays(a)-diffDays(b);
-                return 0;
-              });
-              if(sorted.length===0)return(
+              if(featuredSorted.length===0)return(
                 <div style={{padding:"60px 20px",textAlign:"center"}}>
                   <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontStyle:"italic",color:MID}}>No featured shows yet</div>
                 </div>
               );
-              return sorted.map((s,i)=>(
+              return featuredSorted.map((s,i)=>(
                 <FeaturedCard key={s.id} s={s} t={t} onClick={()=>openDetail(s,"featured")} saved={saved.has(s.id)}
                   onFirstImageLoad={i<INITIAL_CARDS_TO_WAIT?onCardImageLoad:undefined}
                   onToggleSave={()=>{toggleSave(s.id);showToast(s.id);capture("plan_toggled",{gallery:s.gallery,action:saved.has(s.id)?"removed":"added"});}}/>
