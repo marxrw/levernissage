@@ -182,7 +182,8 @@ function SplashScreen({visible}){
         fontFamily:"'Cormorant Garamond',serif",
         fontSize:36,fontStyle:"italic",fontWeight:600,
         color:INK,
-        animation:"frameFadeIn 0.6s ease forwards",
+        opacity:0,
+        animation:"frameFadeIn 0.6s ease 0.05s forwards",
       }}>Frame</div>
     </div>
   );
@@ -776,8 +777,7 @@ export default function App(){
       if(od&&cd&&od<=now&&cd>=now)return 2;
       return 3;
     };
-    const shuffled=dailyShuffle(data);
-    return shuffled.sort((a,b)=>{
+    return dailyShuffle(data).sort((a,b)=>{
       const ta=tier(a),tb=tier(b);
       if(ta!==tb)return ta-tb;
       if(ta<3)return diffDays(a)-diffDays(b);
@@ -947,13 +947,6 @@ export default function App(){
   };
   const sourceLabel=detailSource==="featured"?t.featured:detailSource==="shows"?t.shows:t.map;
 
-  const SectionRow=({title,onClick})=>(
-    <div onClick={onClick} style={{padding:"20px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-      <div style={{fontSize:18,fontWeight:600,color:INK}}>{title}</div>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-    </div>
-  );
-
   const featuredSorted=(()=>{
     const now=new Date();
     const featuredShows=SHOWS.filter(s=>s.featured&&!s.between);
@@ -981,6 +974,13 @@ export default function App(){
       return 0;
     });
   })();
+
+  const SectionRow=({title,onClick})=>(
+    <div onClick={onClick} style={{padding:"20px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+      <div style={{fontSize:18,fontWeight:600,color:INK}}>{title}</div>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </div>
+  );
 
   const tabs=[
     {key:"featured",label:t.featured,icon:(active)=>(
