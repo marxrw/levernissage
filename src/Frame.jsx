@@ -89,8 +89,8 @@ const T={
     listingSubtitle:"Free listing",featureSubtitle:"Premium placement",
     contactGallery:"Contact the gallery",
     enableLocation:"Enable location for nearby shows",
-    badgeOnNow:"On Now",badgeLastDay:"Last Day",badgeClosingSoon:"Closing Soon",
-    badgeOpeningSoon:"Opening Soon",badgeOpening:"Opening",badgeUpcoming:"Upcoming",
+    badgeOnNow:"On Now",badgeClosingToday:"Closing Today",badgeClosing:"Closing",
+    badgeOpeningToday:"Opening Today",badgeOpening:"Opening",badgeUpcoming:"Upcoming",
     days:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
     details:"Details",
   },
@@ -109,8 +109,8 @@ const T={
     listingSubtitle:"Soumission gratuite",featureSubtitle:"Placement premium",
     contactGallery:"Contacter la galerie",
     enableLocation:"Activer la localisation",
-    badgeOnNow:"En cours",badgeLastDay:"Dernier jour",badgeClosingSoon:"Fermeture imminente",
-    badgeOpeningSoon:"Ouverture prochaine",badgeOpening:"Ouverture",badgeUpcoming:"À venir",
+    badgeOnNow:"En cours",badgeClosingToday:"Ferme aujourd'hui",badgeClosing:"Ferme",
+    badgeOpeningToday:"Ouvre aujourd'hui",badgeOpening:"Ouverture",badgeUpcoming:"À venir",
     days:["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"],
     details:"Détails",
   }
@@ -130,23 +130,31 @@ const FEATURED_INFO_PANEL_HEIGHT=55;
 const FEATURED_PILL_BOTTOM=FEATURED_INFO_PANEL_HEIGHT+3;
 const INITIAL_CARDS_TO_WAIT=3;
 
-function isClosingThisWeek(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<=7;}
-function isLastDay(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<1;}
-function isOpeningThisWeek(s){if(!s.openDate)return false;const d=(new Date(s.openDate)-TODAY)/86400000;return d>=-1&&d<=7;}
+function isClosingWithinWeek(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<=7;}
+function isClosingToday(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<1;}
+function isOpeningWithinWeek(s){if(!s.openDate)return false;const d=(new Date(s.openDate)-TODAY)/86400000;return d>=0&&d<=7;}
+function isOpeningToday(s){if(!s.openDate)return false;const d=(new Date(s.openDate)-TODAY)/86400000;return d>=0&&d<1;}
 function isOnNow(s){if(!s.openDate||!s.closeDate)return false;return new Date(s.openDate)<=TODAY&&new Date(s.closeDate)>=TODAY;}
 function isUpcoming(s){if(!s.openDate)return false;const d=(new Date(s.openDate)-TODAY)/86400000;return d>7;}
 
+// kept for Shows tab section filtering
+function isOpeningThisWeek(s){if(!s.openDate)return false;const d=(new Date(s.openDate)-TODAY)/86400000;return d>=-1&&d<=7;}
+function isClosingThisWeek(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<=7;}
+
 function statusBadgeInfo(s,t){
+  // Priority: Closing Today → Closing [Day] → On Now → Opening Today → Opening [Day] → Upcoming
   if(isOnNow(s)){
-    if(isLastDay(s))return{label:t.badgeLastDay,color:BADGE_RED};
-    if(isClosingThisWeek(s))return{label:t.badgeClosingSoon,color:BADGE_RED};
+    if(isClosingToday(s))return{label:t.badgeClosingToday,color:BADGE_RED};
+    if(isClosingWithinWeek(s)){
+      const closeDay=new Date(s.closeDate);
+      return{label:`${t.badgeClosing} ${t.days[closeDay.getDay()]}`,color:BADGE_RED};
+    }
     return{label:t.badgeOnNow,color:BADGE_GREEN};
   }
-  if(isOpeningThisWeek(s)&&!isOnNow(s)){
+  if(isOpeningWithinWeek(s)&&!isOnNow(s)){
+    if(isOpeningToday(s))return{label:t.badgeOpeningToday,color:BADGE_BLUE};
     const openDay=new Date(s.openDate);
-    const diffDays=Math.round((openDay-TODAY)/86400000);
-    const label=diffDays<=1?t.badgeOpeningSoon:`${t.badgeOpening} ${t.days[openDay.getDay()]}`;
-    return{label,color:BADGE_BLUE};
+    return{label:`${t.badgeOpening} ${t.days[openDay.getDay()]}`,color:BADGE_BLUE};
   }
   if(isUpcoming(s))return{label:t.badgeUpcoming,color:BADGE_AMBER};
   return null;
@@ -960,12 +968,16 @@ export default function App(){
       const cd=s.closeDate?new Date(s.closeDate):null;
       const daysToOpen=od?(od-now)/86400000:null;
       const daysToClose=cd?(cd-now)/86400000:null;
+      // Tier 1: opening or closing within 3 days (most urgent)
       if(daysToOpen!==null&&daysToOpen>=0&&daysToOpen<=3)return 1;
       if(daysToClose!==null&&daysToClose>=0&&daysToClose<=3)return 1;
+      // Tier 2: opening or closing within 7 days
       if(daysToOpen!==null&&daysToOpen>=0&&daysToOpen<=7)return 2;
       if(daysToClose!==null&&daysToClose>=0&&daysToClose<=7)return 2;
-      if(od&&cd&&od<=now&&cd>=now)return 2;
-      return 3;
+      // Tier 3: comfortably on now
+      if(od&&cd&&od<=now&&cd>=now)return 3;
+      // Tier 4: upcoming (far future) and undated
+      return 4;
     };
     return dailyShuffle(featuredShows).sort((a,b)=>{
       const ta=tier(a),tb=tier(b);
