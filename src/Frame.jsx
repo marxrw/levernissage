@@ -119,7 +119,7 @@ const T={
 const INK="#0F0E0C",BLUE="#2B5BE8",WHITE="#FFFFFF",BORDER="#E8E5E0",MID="#6B6560",LIGHT="#F4F4F4";
 const FEATURED_COLOR="#F5A623";
 const CARD_PLACEHOLDER="#F0EDE8";
-const TODAY=new Date();
+const TODAY=new Date();TODAY.setHours(0,0,0,0);
 const BADGE_GREEN="rgba(26,122,74,0.50)";
 const BADGE_BLUE="rgba(26,74,138,0.50)";
 const BADGE_RED="rgba(204,26,26,0.50)";
@@ -130,32 +130,25 @@ const FEATURED_INFO_PANEL_HEIGHT=55;
 const FEATURED_PILL_BOTTOM=FEATURED_INFO_PANEL_HEIGHT+3;
 const INITIAL_CARDS_TO_WAIT=3;
 
-function isClosingWithinWeek(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<=7;}
-function isClosingToday(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<1;}
-function isOpeningWithinWeek(s){if(!s.openDate)return false;const d=(new Date(s.openDate)-TODAY)/86400000;return d>=0&&d<=7;}
-function isOpeningToday(s){if(!s.openDate)return false;const d=(new Date(s.openDate)-TODAY)/86400000;return d>=0&&d<1;}
-function isOnNow(s){if(!s.openDate||!s.closeDate)return false;return new Date(s.openDate)<=TODAY&&new Date(s.closeDate)>=TODAY;}
-function isUpcoming(s){if(!s.openDate)return false;const d=(new Date(s.openDate)-TODAY)/86400000;return d>7;}
+function dayDiff(dateStr){return(new Date(dateStr)-TODAY)/86400000;}
+function isClosingToday(s){if(!s.closeDate)return false;const d=dayDiff(s.closeDate);return d>=0&&d<1;}
+function isClosingThisWeek(s){if(!s.closeDate)return false;const d=dayDiff(s.closeDate);return d>=1&&d<=7;}
+function isOpeningToday(s){if(!s.openDate)return false;const d=dayDiff(s.openDate);return d>=0&&d<1;}
+function isOpeningThisWeek(s){if(!s.openDate)return false;const d=dayDiff(s.openDate);return d>=1&&d<=7;}
+function isOnNow(s){if(!s.openDate||!s.closeDate)return false;const od=new Date(s.openDate);od.setHours(0,0,0,0);const cd=new Date(s.closeDate);cd.setHours(0,0,0,0);return od<TODAY&&cd>=TODAY;}
+function isUpcoming(s){if(!s.openDate)return false;return dayDiff(s.openDate)>7;}
 
 // kept for Shows tab section filtering
-function isOpeningThisWeek(s){if(!s.openDate)return false;const d=(new Date(s.openDate)-TODAY)/86400000;return d>=-1&&d<=7;}
-function isClosingThisWeek(s){if(!s.closeDate)return false;const d=(new Date(s.closeDate)-TODAY)/86400000;return d>=0&&d<=7;}
+function isOpeningThisWeekSection(s){if(!s.openDate)return false;const d=dayDiff(s.openDate);return d>=-1&&d<=7;}
+function isClosingThisWeekSection(s){if(!s.closeDate)return false;const d=dayDiff(s.closeDate);return d>=0&&d<=7;}
 
 function statusBadgeInfo(s,t){
-  // Priority: Closing Today → Closing [Day] → On Now → Opening Today → Opening [Day] → Upcoming
-  if(isOnNow(s)){
-    if(isClosingToday(s))return{label:t.badgeClosingToday,color:BADGE_RED};
-    if(isClosingWithinWeek(s)){
-      const closeDay=new Date(s.closeDate);
-      return{label:`${t.badgeClosing} ${t.days[closeDay.getDay()]}`,color:BADGE_RED};
-    }
-    return{label:t.badgeOnNow,color:BADGE_GREEN};
-  }
-  if(isOpeningWithinWeek(s)&&!isOnNow(s)){
-    if(isOpeningToday(s))return{label:t.badgeOpeningToday,color:BADGE_BLUE};
-    const openDay=new Date(s.openDate);
-    return{label:`${t.badgeOpening} ${t.days[openDay.getDay()]}`,color:BADGE_BLUE};
-  }
+  // Priority: Closing Today → Opening Today → Opening [Day] → Closing [Day] → On Now → Upcoming
+  if(isClosingToday(s))return{label:t.badgeClosingToday,color:BADGE_RED};
+  if(isOpeningToday(s))return{label:t.badgeOpeningToday,color:BADGE_BLUE};
+  if(isOpeningThisWeek(s)){const d=new Date(s.openDate);return{label:`${t.badgeOpening} ${t.days[d.getDay()]}`,color:BADGE_BLUE};}
+  if(isClosingThisWeek(s)){const d=new Date(s.closeDate);return{label:`${t.badgeClosing} ${t.days[d.getDay()]}`,color:BADGE_RED};}
+  if(isOnNow(s))return{label:t.badgeOnNow,color:BADGE_GREEN};
   if(isUpcoming(s))return{label:t.badgeUpcoming,color:BADGE_AMBER};
   return null;
 }
@@ -939,13 +932,13 @@ export default function App(){
     clustererRef.current.addMarkers(toShow.map(m=>m.marker));
   },[mapMode,saved]);
 
-  const allCurrent=SHOWS.filter(s=>!s.between&&isOnNow(s));
-  const openingThisWeek=SHOWS.filter(s=>!s.between&&isOpeningThisWeek(s)&&!isOnNow(s));
-  const closingThisWeek=SHOWS.filter(s=>!s.between&&isClosingThisWeek(s));
+  const allCurrent=SHOWS.filter(s=>!s.between&&(isOnNow(s)||isClosingToday(s)));
+  const openingThisWeek=SHOWS.filter(s=>!s.between&&(isOpeningToday(s)||isOpeningThisWeek(s)));
+  const closingThisWeek=SHOWS.filter(s=>!s.between&&(isClosingToday(s)||isClosingThisWeek(s)));
   const editorsPicks=SHOWS.filter(s=>!s.between&&s.editors_pick);
-  const activeHoods=[...new Set(SHOWS.filter(s=>!s.between&&(isOnNow(s)||isOpeningThisWeek(s))).map(s=>s.hood).filter(Boolean))].sort();
+  const activeHoods=[...new Set(SHOWS.filter(s=>!s.between&&(isOnNow(s)||isClosingToday(s)||isOpeningToday(s)||isOpeningThisWeek(s))).map(s=>s.hood).filter(Boolean))].sort();
   const nearbyShows=userLocation
-    ?SHOWS.filter(s=>!s.between&&(isOnNow(s)||isOpeningThisWeek(s))&&s.lat&&s.lng&&distanceKm(userLocation.lat,userLocation.lng,s.lat,s.lng)<=NEARBY_RADIUS_KM)
+    ?SHOWS.filter(s=>!s.between&&(isOnNow(s)||isClosingToday(s)||isOpeningToday(s)||isOpeningThisWeek(s))&&s.lat&&s.lng&&distanceKm(userLocation.lat,userLocation.lng,s.lat,s.lng)<=NEARBY_RADIUS_KM)
       .sort((a,b)=>distanceKm(userLocation.lat,userLocation.lng,a.lat,a.lng)-distanceKm(userLocation.lat,userLocation.lng,b.lat,b.lng))
     :[];
 
@@ -956,33 +949,25 @@ export default function App(){
   const sourceLabel=detailSource==="featured"?t.featured:detailSource==="shows"?t.shows:t.map;
 
   const featuredSorted=(()=>{
-    const now=new Date();
     const featuredShows=SHOWS.filter(s=>s.featured&&!s.between);
-    const diffDays=(s)=>{
-      if(s.openDate&&new Date(s.openDate)>now)return(new Date(s.openDate)-now)/86400000;
-      if(s.closeDate)return(new Date(s.closeDate)-now)/86400000;
-      return 999;
-    };
     const tier=(s)=>{
-      const od=s.openDate?new Date(s.openDate):null;
-      const cd=s.closeDate?new Date(s.closeDate):null;
-      const daysToOpen=od?(od-now)/86400000:null;
-      const daysToClose=cd?(cd-now)/86400000:null;
-      // Tier 1: opening or closing within 3 days (most urgent)
-      if(daysToOpen!==null&&daysToOpen>=0&&daysToOpen<=3)return 1;
-      if(daysToClose!==null&&daysToClose>=0&&daysToClose<=3)return 1;
-      // Tier 2: opening or closing within 7 days
-      if(daysToOpen!==null&&daysToOpen>=0&&daysToOpen<=7)return 2;
-      if(daysToClose!==null&&daysToClose>=0&&daysToClose<=7)return 2;
-      // Tier 3: comfortably on now
-      if(od&&cd&&od<=now&&cd>=now)return 3;
-      // Tier 4: upcoming (far future) and undated
-      return 4;
+      if(isClosingToday(s))return 1;
+      if(isOpeningToday(s))return 2;
+      if(isOpeningThisWeek(s))return 3;
+      if(isClosingThisWeek(s))return 4;
+      if(isOnNow(s))return 5;
+      return 6; // upcoming + undated
+    };
+    const diffDays=(s)=>{
+      if(s.openDate&&dayDiff(s.openDate)>0)return dayDiff(s.openDate);
+      if(s.closeDate)return dayDiff(s.closeDate);
+      return 999;
     };
     return dailyShuffle(featuredShows).sort((a,b)=>{
       const ta=tier(a),tb=tier(b);
       if(ta!==tb)return ta-tb;
-      if(ta<3)return diffDays(a)-diffDays(b);
+      // within tiers 3 and 4, sort by soonest date
+      if(ta===3||ta===4)return diffDays(a)-diffDays(b);
       return 0;
     });
   })();
@@ -1067,7 +1052,7 @@ export default function App(){
               )}
               {userLocation&&nearbyShows.length>0&&<SectionRow title={t.nearby} onClick={()=>setSubPage({title:t.nearby,shows:nearbyShows})}/>}
               {activeHoods.map(hood=>{
-                const hs=SHOWS.filter(s=>!s.between&&s.hood===hood&&(isOnNow(s)||isOpeningThisWeek(s)));
+                const hs=SHOWS.filter(s=>!s.between&&s.hood===hood&&(isOnNow(s)||isClosingToday(s)||isOpeningToday(s)||isOpeningThisWeek(s)));
                 return hs.length>0?<SectionRow key={hood} title={hood} onClick={()=>setSubPage({title:hood,shows:hs})}/>:null;
               })}
               <div style={{padding:"32px 16px 48px",background:LIGHT,marginTop:8}}>
