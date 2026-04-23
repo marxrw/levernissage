@@ -52,7 +52,7 @@ async function fetchShows(){
       if(s.featured)return true;
       if(s.editors_pick)return true;
       if(!s.openDate)return true;
-      const openDate=new Date(s.openDate);
+      const openDate=new Date(s.openDate.split("-")[0],s.openDate.split("-")[1]-1,s.openDate.split("-")[2]);
       openDate.setHours(0,0,0,0);
       return(openDate-today)<=THREE_DAYS;
     });
@@ -130,17 +130,14 @@ const FEATURED_INFO_PANEL_HEIGHT=55;
 const FEATURED_PILL_BOTTOM=FEATURED_INFO_PANEL_HEIGHT+3;
 const INITIAL_CARDS_TO_WAIT=3;
 
-function dayDiff(dateStr){return(new Date(dateStr)-TODAY)/86400000;}
+function parseLocalDate(str){if(!str)return null;const[y,m,d]=str.split("-");return new Date(y,m-1,d);}
+function dayDiff(dateStr){if(!dateStr)return null;return(parseLocalDate(dateStr)-TODAY)/86400000;}
 function isClosingToday(s){if(!s.closeDate)return false;const d=dayDiff(s.closeDate);return d>=0&&d<1;}
 function isClosingThisWeek(s){if(!s.closeDate)return false;const d=dayDiff(s.closeDate);return d>=1&&d<=7;}
 function isOpeningToday(s){if(!s.openDate)return false;const d=dayDiff(s.openDate);return d>=0&&d<1;}
 function isOpeningThisWeek(s){if(!s.openDate)return false;const d=dayDiff(s.openDate);return d>=1&&d<=7;}
-function isOnNow(s){if(!s.openDate||!s.closeDate)return false;const od=new Date(s.openDate);od.setHours(0,0,0,0);const cd=new Date(s.closeDate);cd.setHours(0,0,0,0);return od<TODAY&&cd>=TODAY;}
+function isOnNow(s){if(!s.openDate||!s.closeDate)return false;const od=parseLocalDate(s.openDate);const cd=parseLocalDate(s.closeDate);return od<TODAY&&cd>=TODAY;}
 function isUpcoming(s){if(!s.openDate)return false;return dayDiff(s.openDate)>7;}
-
-// kept for Shows tab section filtering
-function isOpeningThisWeekSection(s){if(!s.openDate)return false;const d=dayDiff(s.openDate);return d>=-1&&d<=7;}
-function isClosingThisWeekSection(s){if(!s.closeDate)return false;const d=dayDiff(s.closeDate);return d>=0&&d<=7;}
 
 function statusBadgeInfo(s,t){
   // Priority: Closing Today → Opening Today → Opening [Day] → Closing [Day] → On Now → Upcoming
