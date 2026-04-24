@@ -138,7 +138,7 @@ const T={
 
 const INK="#0F0E0C",BLUE="#2B5BE8",WHITE="#FFFFFF",BORDER="#E8E5E0",MID="#6B6560",LIGHT="#F4F4F4";
 const FEATURED_COLOR="#F5A623";
-const CARD_PLACEHOLDER="#F0EDE8";
+const CARD_PLACEHOLDER="#FFFFFF";
 const TODAY=new Date();TODAY.setHours(0,0,0,0);
 const BADGE_GREEN="rgba(26,122,74,0.50)";
 const BADGE_BLUE="rgba(26,74,138,0.50)";
@@ -933,9 +933,9 @@ export default function App(){
   const revealFeed=()=>{
     if(feedRevealedRef.current)return;
     feedRevealedRef.current=true;
-    setFeedVisible(true);
-    setTimeout(()=>setSplashVisible(false),600);
-    // Show PWA prompt 3 seconds after feed reveals
+    // Fade splash out first — feed renders underneath invisibly, no brown flash
+    setSplashVisible(false);
+    setTimeout(()=>setFeedVisible(true),50);
     pwaTimer.current=setTimeout(()=>setShowPWA(true),3000);
   };
 
@@ -1201,7 +1201,7 @@ export default function App(){
       <div style={{flex:1,overflow:"hidden",position:"relative",background:WHITE,display:"flex",flexDirection:"column"}}>
 
         {tab==="featured"&&(
-          <div style={{height:"100%",overflowY:"auto",opacity:feedVisible?1:0,transition:"opacity 0.6s ease"}}>
+          <div style={{height:"100%",overflowY:"auto"}}>
             {loadError&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.error}</div>}
             {!loadError&&(()=>{
               if(featuredSorted.length===0)return(
