@@ -93,6 +93,16 @@ const T={
     badgeOpeningToday:"Opening Today",badgeOpening:"Opening",badgeUpcoming:"Upcoming",
     days:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
     details:"Details",
+    pwaHeadline:"Your art guide, one tap away.",
+    pwaBody:"Frame on your home screen like any other app. No download, no App Store.",
+    pwaStep1Safari:"Tap ••• in the Safari toolbar",
+    pwaStep2Safari:"Tap Share",
+    pwaStep3Safari:"Tap Add to Home Screen",
+    pwaAndStep1:"Tap ⋮ in Chrome",
+    pwaAndStep2:"Tap Add to Home Screen",
+    pwaSafariOnlyTitle:"Open Frame in Safari",
+    pwaSafariOnlyBody:"Adding to your home screen only works in Safari. Copy the link and paste it in Safari — it takes two seconds.",
+    pwaGotIt:"Got it",
   },
   fr:{
     city:"Montréal",featured:"En vedette",shows:"Expositions",map:"Carte",reviews:"Critiques",
@@ -113,6 +123,16 @@ const T={
     badgeOpeningToday:"Ouvre aujourd'hui",badgeOpening:"Ouverture",badgeUpcoming:"À venir",
     days:["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"],
     details:"Détails",
+    pwaHeadline:"Votre guide d'art, à portée de main.",
+    pwaBody:"Frame sur votre écran d'accueil comme une vraie app. Sans téléchargement, sans App Store.",
+    pwaStep1Safari:"Appuyez sur ••• dans Safari",
+    pwaStep2Safari:"Appuyez sur Partager",
+    pwaStep3Safari:"Appuyez sur Sur l'écran d'accueil",
+    pwaAndStep1:"Appuyez sur ⋮ dans Chrome",
+    pwaAndStep2:"Appuyez sur Ajouter à l'écran d'accueil",
+    pwaSafariOnlyTitle:"Ouvrez Frame dans Safari",
+    pwaSafariOnlyBody:"L'ajout à l'écran d'accueil ne fonctionne que dans Safari. Copiez le lien et collez-le dans Safari — ça prend deux secondes.",
+    pwaGotIt:"Compris",
   }
 };
 
@@ -129,6 +149,174 @@ const FEATURED_CARD_HEIGHT=202;
 const FEATURED_INFO_PANEL_HEIGHT=55;
 const FEATURED_PILL_BOTTOM=FEATURED_INFO_PANEL_HEIGHT+3;
 const INITIAL_CARDS_TO_WAIT=3;
+const PWA_STORAGE_KEY="frame_pwa_prompted";
+
+function detectPWAContext() {
+  const ua = navigator.userAgent;
+  const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+  const isIOS = /iPhone|iPad|iPod/.test(ua);
+  const isAndroid = /Android/.test(ua);
+  const isIOSSafari = isIOS && /Safari/.test(ua) && !/CriOS/.test(ua) && !/FxiOS/.test(ua) && !/OPiOS/.test(ua);
+  const isIOSOther = isIOS && !isIOSSafari;
+  const isAndroidChrome = isAndroid && /Chrome/.test(ua) && !/OPR/.test(ua);
+  const isMobile = isIOS || isAndroid;
+  // ?pwa=1 bypasses localStorage check for testing
+  const forceShow = new URLSearchParams(window.location.search).get('pwa') === '1';
+  const alreadySeen = !forceShow && !!localStorage.getItem(PWA_STORAGE_KEY);
+  return { isStandalone, isIOSSafari, isIOSOther, isAndroidChrome, isMobile, alreadySeen };
+}
+
+function PWAPrompt({ t, onDismiss }) {
+  const ctx = detectPWAContext();
+  if (ctx.isStandalone || ctx.alreadySeen || !ctx.isMobile) return null;
+  if (!ctx.isIOSSafari && !ctx.isIOSOther && !ctx.isAndroidChrome) return null;
+
+  const handleDismiss = () => {
+    localStorage.setItem(PWA_STORAGE_KEY, '1');
+    onDismiss();
+  };
+
+  const overlayStyle = {
+    position: "fixed", inset: 0, zIndex: 8000,
+    background: "rgba(15,14,12,0.45)",
+    backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)",
+    display: "flex", flexDirection: "column", justifyContent: "flex-end",
+    maxWidth: 430, margin: "0 auto",
+    animation: "pwaFadeIn 0.3s ease forwards",
+  };
+
+  const sheetStyle = {
+    background: WHITE,
+    borderRadius: "20px 20px 0 0",
+    paddingBottom: "max(env(safe-area-inset-bottom), 36px)",
+    animation: "pwaSlideUp 0.42s cubic-bezier(0.16,1,0.3,1) forwards",
+  };
+
+  const stepStyle = {
+    display: "flex", alignItems: "center", gap: 16,
+    padding: "15px 0", borderBottom: `1px solid ${BORDER}`,
+  };
+
+  const stepNumStyle = {
+    fontFamily: "'Cormorant Garamond', serif",
+    fontSize: 22, fontStyle: "italic", fontWeight: 400,
+    color: "#D4D0CB", width: 20, flexShrink: 0, lineHeight: 1,
+  };
+
+  const stepTextStyle = {
+    fontSize: 16, fontWeight: 600, color: INK, flex: 1,
+  };
+
+  const ShareIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{opacity:0.45,flexShrink:0}}>
+      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+      <polyline points="16 6 12 2 8 6"/>
+      <line x1="12" y1="2" x2="12" y2="15"/>
+    </svg>
+  );
+
+  const PlusBoxIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{opacity:0.45,flexShrink:0}}>
+      <rect x="1" y="1" width="16" height="16" rx="3" stroke={INK} strokeWidth="1.8"/>
+      <line x1="9" y1="5" x2="9" y2="13" stroke={INK} strokeWidth="1.8" strokeLinecap="round"/>
+      <line x1="5" y1="9" x2="13" y2="9" stroke={INK} strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  );
+
+  const DotsHIcon = () => (
+    <svg width="18" height="6" viewBox="0 0 18 6" style={{opacity:0.45,flexShrink:0}}>
+      <circle cx="2.5" cy="3" r="2.5" fill={INK}/>
+      <circle cx="9" cy="3" r="2.5" fill={INK}/>
+      <circle cx="15.5" cy="3" r="2.5" fill={INK}/>
+    </svg>
+  );
+
+  const DotsVIcon = () => (
+    <svg width="5" height="18" viewBox="0 0 5 18" style={{opacity:0.45,flexShrink:0}}>
+      <circle cx="2.5" cy="2.5" r="2.5" fill={INK}/>
+      <circle cx="2.5" cy="9" r="2.5" fill={INK}/>
+      <circle cx="2.5" cy="15.5" r="2.5" fill={INK}/>
+    </svg>
+  );
+
+  return (
+    <div style={overlayStyle} onClick={handleDismiss}>
+      <div style={sheetStyle} onClick={e => e.stopPropagation()}>
+        {/* Handle */}
+        <div style={{width:36,height:4,borderRadius:2,background:BORDER,margin:"12px auto 24px"}}/>
+
+        {/* Top row */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px",marginBottom:20}}>
+          <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:13,fontStyle:"italic",fontWeight:600,color:MID,letterSpacing:"0.08em"}}>Frame</span>
+          <button onClick={handleDismiss} style={{width:28,height:28,borderRadius:"50%",background:LIGHT,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:MID,fontSize:14,fontFamily:"sans-serif",lineHeight:1}}>✕</button>
+        </div>
+
+        {/* Headline */}
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:30,fontStyle:"italic",fontWeight:600,color:INK,lineHeight:1.15,padding:"0 24px",marginBottom:8}}>{t.pwaHeadline}</div>
+
+        {/* Body */}
+        <div style={{fontSize:15,color:MID,padding:"0 24px",marginBottom:28,lineHeight:1.55}}>{t.pwaBody}</div>
+
+        {/* iOS Safari steps */}
+        {ctx.isIOSSafari && (
+          <div style={{padding:"0 24px",marginBottom:28}}>
+            <div style={{...stepStyle,borderTop:`1px solid ${BORDER}`}}>
+              <div style={stepNumStyle}>1</div>
+              <div style={stepTextStyle}>{t.pwaStep1Safari}</div>
+              <DotsHIcon/>
+            </div>
+            <div style={stepStyle}>
+              <div style={stepNumStyle}>2</div>
+              <div style={stepTextStyle}>{t.pwaStep2Safari}</div>
+              <ShareIcon/>
+            </div>
+            <div style={stepStyle}>
+              <div style={stepNumStyle}>3</div>
+              <div style={stepTextStyle}>{t.pwaStep3Safari}</div>
+              <PlusBoxIcon/>
+            </div>
+          </div>
+        )}
+
+        {/* iOS other browser */}
+        {ctx.isIOSOther && (
+          <div style={{margin:"0 24px 28px",background:LIGHT,borderRadius:10,padding:"18px 16px",display:"flex",gap:14,alignItems:"flex-start"}}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,marginTop:1}}>
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <div>
+              <div style={{fontSize:15,fontWeight:600,color:INK,marginBottom:5,lineHeight:1.4}}>{t.pwaSafariOnlyTitle}</div>
+              <div style={{fontSize:13,color:MID,lineHeight:1.55}}>{t.pwaSafariOnlyBody}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Android Chrome steps */}
+        {ctx.isAndroidChrome && (
+          <div style={{padding:"0 24px",marginBottom:28}}>
+            <div style={{...stepStyle,borderTop:`1px solid ${BORDER}`}}>
+              <div style={stepNumStyle}>1</div>
+              <div style={stepTextStyle}>{t.pwaAndStep1}</div>
+              <DotsVIcon/>
+            </div>
+            <div style={stepStyle}>
+              <div style={stepNumStyle}>2</div>
+              <div style={stepTextStyle}>{t.pwaAndStep2}</div>
+              <PlusBoxIcon/>
+            </div>
+          </div>
+        )}
+
+        {/* CTA */}
+        <button onClick={handleDismiss} style={{margin:"0 24px",width:"calc(100% - 48px)",padding:16,borderRadius:6,background:INK,color:WHITE,border:"none",fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",cursor:"pointer"}}>
+          {t.pwaGotIt}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function parseLocalDate(str){if(!str)return null;const[y,m,d]=str.split("-");return new Date(y,m-1,d);}
 function dayDiff(dateStr){if(!dateStr)return null;return(parseLocalDate(dateStr)-TODAY)/86400000;}
@@ -140,7 +328,6 @@ function isOnNow(s){if(!s.openDate||!s.closeDate)return false;const od=parseLoca
 function isUpcoming(s){if(!s.openDate)return false;return dayDiff(s.openDate)>7;}
 
 function statusBadgeInfo(s,t){
-  // Priority: Closing Today → Opening Today → Opening [Day] → Closing [Day] → On Now → Upcoming
   if(isClosingToday(s))return{label:t.badgeClosingToday,color:BADGE_RED};
   if(isOpeningToday(s))return{label:t.badgeOpeningToday,color:BADGE_BLUE};
   if(isOpeningThisWeek(s)){const d=new Date(s.openDate);return{label:`${t.badgeOpening} ${t.days[d.getDay()]}`,color:BADGE_BLUE};}
@@ -728,6 +915,7 @@ export default function App(){
   const[emailSheet,setEmailSheet]=useState(null);
   const[splashVisible,setSplashVisible]=useState(true);
   const[feedVisible,setFeedVisible]=useState(false);
+  const[showPWA,setShowPWA]=useState(false);
   const initialLoadsRef=useRef(0);
   const feedRevealedRef=useRef(false);
   const tapTimer=useRef(null);
@@ -738,6 +926,7 @@ export default function App(){
   const[toastId,setToastId]=useState(null);
   const[toastVisible,setToastVisible]=useState(false);
   const toastTimer=useRef(null);
+  const pwaTimer=useRef(null);
   const t=T[lang];
   window.__lvT=t;
 
@@ -746,6 +935,8 @@ export default function App(){
     feedRevealedRef.current=true;
     setFeedVisible(true);
     setTimeout(()=>setSplashVisible(false),600);
+    // Show PWA prompt 3 seconds after feed reveals
+    pwaTimer.current=setTimeout(()=>setShowPWA(true),3000);
   };
 
   const onCardImageLoad=()=>{
@@ -795,7 +986,7 @@ export default function App(){
     }).catch(()=>{setLoadError(true);setLoading(false);revealFeed();});
     window.addEventListener("appinstalled",()=>capture("pwa_installed"));
     const fallback=setTimeout(()=>revealFeed(),4000);
-    return()=>clearTimeout(fallback);
+    return()=>{clearTimeout(fallback);clearTimeout(pwaTimer.current);};
   },[]);
 
   useEffect(()=>{
@@ -953,7 +1144,7 @@ export default function App(){
       if(isOpeningThisWeek(s))return 3;
       if(isClosingThisWeek(s))return 4;
       if(isOnNow(s))return 5;
-      return 6; // upcoming + undated
+      return 6;
     };
     const diffDays=(s)=>{
       if(s.openDate&&dayDiff(s.openDate)>0)return dayDiff(s.openDate);
@@ -963,7 +1154,6 @@ export default function App(){
     return dailyShuffle(featuredShows).sort((a,b)=>{
       const ta=tier(a),tb=tier(b);
       if(ta!==tb)return ta-tb;
-      // within tiers 3 and 4, sort by soonest date
       if(ta===3||ta===4)return diffDays(a)-diffDays(b);
       return 0;
     });
@@ -1104,11 +1294,14 @@ export default function App(){
       {detail&&<DetailPage detail={detail} sourceLabel={sourceLabel} onBack={()=>setDetail(null)} saved={saved} toggleSave={(id)=>{capture("plan_toggled",{gallery:detail.gallery,action:saved.has(id)?"removed":"added"});toggleSave(id);}} showToast={showToast} toastId={toastId} toastVisible={toastVisible} t={t} onVenue={()=>setVenuePage(detail)} onApptEmail={detail.contact_email?()=>setEmailSheet({email:detail.contact_email,subject:`Appointment request — ${detail.title}`,body:`Hi,\n\nI'd like to request a visit for "${detail.title}" by ${detail.artist}.\n\nThank you!`}):undefined}/>}
       {venuePage&&<VenuePage show={venuePage} onBack={()=>setVenuePage(null)} t={t} onEmailSheet={venuePage.contact_email?()=>setEmailSheet({email:venuePage.contact_email,subject:'Visit enquiry — '+venuePage.gallery,body:'Hi,\n\nI\'d like to get in touch regarding '+venuePage.gallery+'.\n\nThank you!'}):undefined}/>}
       {emailSheet&&<EmailSheet email={emailSheet.email||CONTACT_EMAIL} subject={emailSheet.subject} body={emailSheet.body} onClose={()=>setEmailSheet(null)}/>}
+      {showPWA&&<PWAPrompt t={t} onDismiss={()=>setShowPWA(false)}/>}
 
       <style>{`
         @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
         @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
         @keyframes frameFadeIn{from{opacity:0}to{opacity:1}}
+        @keyframes pwaFadeIn{from{opacity:0}to{opacity:1}}
+        @keyframes pwaSlideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
         *{-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;}
         ::-webkit-scrollbar{display:none;}
         .gm-style-iw{padding:0!important;border-radius:6px!important;overflow:hidden!important;}
