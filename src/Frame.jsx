@@ -94,7 +94,7 @@ const T={
     days:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
     details:"Details",
     pwaHeadline:"Your art guide, one tap away.",
-    pwaBody:"Frame on your home screen like any other app. No download, no App Store.",
+    pwaBody:"Follow these steps to add Frame to your home screen, just like any other app.",
     pwaStep1Safari:"Tap ••• in the Safari toolbar",
     pwaStep2Safari:"Tap Share",
     pwaStep3Safari:"Tap Add to Home Screen",
@@ -124,7 +124,7 @@ const T={
     days:["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"],
     details:"Détails",
     pwaHeadline:"Votre guide d'art, à portée de main.",
-    pwaBody:"Frame sur votre écran d'accueil comme une vraie app. Sans téléchargement, sans App Store.",
+    pwaBody:"Suivez ces étapes pour ajouter Frame à votre écran d'accueil, comme n'importe quelle autre app.",
     pwaStep1Safari:"Appuyez sur ••• dans Safari",
     pwaStep2Safari:"Appuyez sur Partager",
     pwaStep3Safari:"Appuyez sur Sur l'écran d'accueil",
@@ -195,49 +195,63 @@ function PWAPrompt({ t, onDismiss }) {
 
   const stepStyle = {
     display: "flex", alignItems: "center", gap: 16,
-    padding: "15px 0", borderBottom: `1px solid ${BORDER}`,
+    padding: "16px 0", borderBottom: `1px solid ${BORDER}`,
   };
 
   const stepNumStyle = {
-    fontFamily: "'Cormorant Garamond', serif",
-    fontSize: 22, fontStyle: "italic", fontWeight: 400,
-    color: "#D4D0CB", width: 20, flexShrink: 0, lineHeight: 1,
+    fontFamily: "'DM Sans', sans-serif",
+    fontSize: 20, fontWeight: 700,
+    color: BLUE, width: 24, flexShrink: 0, lineHeight: 1, textAlign: "center",
   };
 
   const stepTextStyle = {
-    fontSize: 16, fontWeight: 600, color: INK, flex: 1,
+    fontSize: 16, fontWeight: 500, color: INK, flex: 1, lineHeight: 1.4,
+  };
+
+  const pulseStyle = {
+    animation: "pwaPulse 1.6s ease-in-out infinite",
+    flexShrink: 0,
+    display: "flex", alignItems: "center", justifyContent: "center",
   };
 
   const ShareIcon = () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{opacity:0.45,flexShrink:0}}>
-      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-      <polyline points="16 6 12 2 8 6"/>
-      <line x1="12" y1="2" x2="12" y2="15"/>
-    </svg>
+    <div style={pulseStyle}>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+        <polyline points="16 6 12 2 8 6"/>
+        <line x1="12" y1="2" x2="12" y2="15"/>
+      </svg>
+    </div>
   );
 
   const PlusBoxIcon = () => (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style={{opacity:0.45,flexShrink:0}}>
-      <rect x="1" y="1" width="16" height="16" rx="3" stroke={INK} strokeWidth="1.8"/>
-      <line x1="9" y1="5" x2="9" y2="13" stroke={INK} strokeWidth="1.8" strokeLinecap="round"/>
-      <line x1="5" y1="9" x2="13" y2="9" stroke={INK} strokeWidth="1.8" strokeLinecap="round"/>
-    </svg>
+    <div style={pulseStyle}>
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <rect x="1" y="1" width="20" height="20" rx="4" stroke={BLUE} strokeWidth="2"/>
+        <line x1="11" y1="6" x2="11" y2="16" stroke={BLUE} strokeWidth="2" strokeLinecap="round"/>
+        <line x1="6" y1="11" x2="16" y2="11" stroke={BLUE} strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+    </div>
   );
 
   const DotsHIcon = () => (
-    <svg width="18" height="6" viewBox="0 0 18 6" style={{opacity:0.45,flexShrink:0}}>
-      <circle cx="2.5" cy="3" r="2.5" fill={INK}/>
-      <circle cx="9" cy="3" r="2.5" fill={INK}/>
-      <circle cx="15.5" cy="3" r="2.5" fill={INK}/>
-    </svg>
+    <div style={pulseStyle}>
+      <svg width="22" height="8" viewBox="0 0 22 8">
+        <circle cx="3" cy="4" r="3" fill={BLUE}/>
+        <circle cx="11" cy="4" r="3" fill={BLUE}/>
+        <circle cx="19" cy="4" r="3" fill={BLUE}/>
+      </svg>
+    </div>
   );
 
   const DotsVIcon = () => (
-    <svg width="5" height="18" viewBox="0 0 5 18" style={{opacity:0.45,flexShrink:0}}>
-      <circle cx="2.5" cy="2.5" r="2.5" fill={INK}/>
-      <circle cx="2.5" cy="9" r="2.5" fill={INK}/>
-      <circle cx="2.5" cy="15.5" r="2.5" fill={INK}/>
-    </svg>
+    <div style={pulseStyle}>
+      <svg width="8" height="22" viewBox="0 0 8 22">
+        <circle cx="4" cy="3" r="3" fill={BLUE}/>
+        <circle cx="4" cy="11" r="3" fill={BLUE}/>
+        <circle cx="4" cy="19" r="3" fill={BLUE}/>
+      </svg>
+    </div>
   );
 
   return (
@@ -246,17 +260,14 @@ function PWAPrompt({ t, onDismiss }) {
         {/* Handle */}
         <div style={{width:36,height:4,borderRadius:2,background:BORDER,margin:"12px auto 24px"}}/>
 
-        {/* Top row */}
+        {/* Frame wordmark + close */}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px",marginBottom:20}}>
-          <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:13,fontStyle:"italic",fontWeight:600,color:MID,letterSpacing:"0.08em"}}>Frame</span>
-          <button onClick={handleDismiss} style={{width:28,height:28,borderRadius:"50%",background:LIGHT,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:MID,fontSize:14,fontFamily:"sans-serif",lineHeight:1}}>✕</button>
+          <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:36,fontStyle:"italic",fontWeight:600,color:INK,letterSpacing:"0.01em"}}>Frame</span>
+          <button onClick={handleDismiss} style={{width:32,height:32,borderRadius:"50%",background:LIGHT,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:MID,fontSize:16,fontFamily:"sans-serif",lineHeight:1}}>✕</button>
         </div>
 
-        {/* Headline */}
-        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:30,fontStyle:"italic",fontWeight:600,color:INK,lineHeight:1.15,padding:"0 24px",marginBottom:8}}>{t.pwaHeadline}</div>
-
-        {/* Body */}
-        <div style={{fontSize:15,color:MID,padding:"0 24px",marginBottom:28,lineHeight:1.55}}>{t.pwaBody}</div>
+        {/* Instruction */}
+        <div style={{fontSize:16,color:MID,padding:"0 24px",marginBottom:24,lineHeight:1.6}}>{t.pwaBody}</div>
 
         {/* iOS Safari steps */}
         {(ctx.isIOSSafari || true) && ( // TESTING: || true, revert before launch
@@ -1302,6 +1313,7 @@ export default function App(){
         @keyframes frameFadeIn{from{opacity:0}to{opacity:1}}
         @keyframes pwaFadeIn{from{opacity:0}to{opacity:1}}
         @keyframes pwaSlideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+        @keyframes pwaPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.85)}}
         *{-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;}
         ::-webkit-scrollbar{display:none;}
         .gm-style-iw{padding:0!important;border-radius:6px!important;overflow:hidden!important;}
