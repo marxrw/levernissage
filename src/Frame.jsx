@@ -160,20 +160,29 @@ function detectPWAContext() {
   const isIOSOther = isIOS && !isIOSSafari;
   const isAndroidChrome = isAndroid && /Chrome/.test(ua) && !/OPR/.test(ua);
   const isMobile = isIOS || isAndroid;
-  // ?pwa=1 bypasses localStorage check for testing
-  const forceShow = new URLSearchParams(window.location.search).get('pwa') === '1';
-  const alreadySeen = !forceShow && !!localStorage.getItem(PWA_STORAGE_KEY);
-  return { isStandalone, isIOSSafari, isIOSOther, isAndroidChrome, isMobile, alreadySeen };
+  const dismissCount = parseInt(localStorage.getItem(PWA_STORAGE_KEY) || '0', 10);
+  const alreadySeen = dismissCount >= 2;
+  // Track visits to show on first and second visit only
+  const visitCount = parseInt(localStorage.getItem(PWA_STORAGE_KEY + '_visits') || '0', 10);
+  return { isStandalone, isIOSSafari, isIOSOther, isAndroidChrome, isMobile, alreadySeen, dismissCount, visitCount };
 }
 
 function PWAPrompt({ t, onDismiss }) {
   const ctx = detectPWAContext();
-  // TESTING: comment out guards below, revert before launch
-  // if (ctx.isStandalone || ctx.alreadySeen || !ctx.isMobile) return null;
-  // if (!ctx.isIOSSafari && !ctx.isIOSOther && !ctx.isAndroidChrome) return null;
+  if (ctx.isStandalone || ctx.alreadySeen || !ctx.isMobile) return null;
+  if (!ctx.isIOSSafari && !ctx.isIOSOther && !ctx.isAndroidChrome) return null;
+  // Only show on visit 1 and visit 2
+  if (ctx.visitCount >= 2) return null;
 
   const handleDismiss = () => {
-    localStorage.setItem(PWA_STORAGE_KEY, '1');
+    const newCount = ctx.dismissCount + 1;
+    localStorage.setItem(PWA_STORAGE_KEY, String(newCount));
+    onDismiss();
+  };
+
+  const handleGotIt = () => {
+    // "Got it" = permanently done
+    localStorage.setItem(PWA_STORAGE_KEY, '2');
     onDismiss();
   };
 
@@ -262,8 +271,7 @@ function PWAPrompt({ t, onDismiss }) {
 
         {/* Close button */}
         <div style={{display:"flex",justifyContent:"flex-end",padding:"8px 20px 8px"}}>
-          <button onClick={handleDismiss} style={{width:32,height:32,borderRadius:"50%",background:LIGHT,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:MID,fontSize:16,fontFamily:"sans-serif",lineHeight:1}}>✕</button>
-        </div>
+          <button onClick={handleDismiss} style={{width:32,height:32,borderRadius:"50%",background:LIGHT,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:MID,fontSize:16,fontFamily:"sans-serif",lineHeight:1}}>✕</button>        </div>
 
         {/* Instruction */}
         <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:17,fontWeight:700,color:INK,padding:"0 24px",marginBottom:24,lineHeight:1.55}}>
@@ -271,7 +279,7 @@ function PWAPrompt({ t, onDismiss }) {
         </div>
 
         {/* iOS Safari steps */}
-        {(ctx.isIOSSafari || true) && ( // TESTING: || true, revert before launch
+        {ctx.isIOSSafari && (
           <div style={{padding:"0 24px",marginBottom:28}}>
             <div style={{...stepStyle,borderTop:`1px solid ${BORDER}`}}>
               <div style={stepNumStyle}>1</div>
@@ -323,7 +331,7 @@ function PWAPrompt({ t, onDismiss }) {
         )}
 
         {/* CTA */}
-        <button onClick={handleDismiss} style={{margin:"0 24px",width:"calc(100% - 48px)",padding:16,borderRadius:6,background:INK,color:WHITE,border:"none",fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",cursor:"pointer"}}>
+        <button onClick={handleGotIt} style={{margin:"0 24px",width:"calc(100% - 48px)",padding:16,borderRadius:6,background:INK,color:WHITE,border:"none",fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",cursor:"pointer"}}>
           {t.pwaGotIt}
         </button>
       </div>
@@ -928,7 +936,7 @@ export default function App(){
   const[emailSheet,setEmailSheet]=useState(null);
   const[splashVisible,setSplashVisible]=useState(true);
   const[feedVisible,setFeedVisible]=useState(false);
-  const[showPWA,setShowPWA]=useState(true); // TESTING: force show, revert before launch
+  const[showPWA,setShowPWA]=useState(false);
   const initialLoadsRef=useRef(0);
   const feedRevealedRef=useRef(false);
   const tapTimer=useRef(null);
@@ -948,6 +956,9 @@ export default function App(){
     feedRevealedRef.current=true;
     setFeedVisible(true);
     setTimeout(()=>setSplashVisible(false),600);
+    // Increment visit counter for two-visit PWA logic
+    const visits = parseInt(localStorage.getItem(PWA_STORAGE_KEY + '_visits') || '0', 10);
+    localStorage.setItem(PWA_STORAGE_KEY + '_visits', String(visits + 1));
     pwaTimer.current=setTimeout(()=>setShowPWA(true),3000);
   };
 
