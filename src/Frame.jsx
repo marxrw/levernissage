@@ -274,7 +274,7 @@ function PWAPrompt({ t, onDismiss }) {
           <button onClick={handleDismiss} style={{width:32,height:32,borderRadius:"50%",background:LIGHT,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:MID,fontSize:16,fontFamily:"sans-serif",lineHeight:1}}>✕</button>        </div>
 
         {/* Instruction */}
-        <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:17,fontWeight:700,color:INK,padding:"0 24px",marginBottom:24,lineHeight:1.55}}>
+        <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:15,fontWeight:700,color:INK,padding:"0 24px",marginBottom:24,lineHeight:1.55}}>
           Follow these steps to add <span style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontWeight:800,fontSize:21,color:INK,WebkitTextStroke:"0.4px currentColor"}}>Frame</span> to your home screen. It will look like any other app.
         </div>
 
