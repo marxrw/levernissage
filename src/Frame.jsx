@@ -168,8 +168,9 @@ function detectPWAContext() {
 
 function PWAPrompt({ t, onDismiss }) {
   const ctx = detectPWAContext();
-  if (ctx.isStandalone || ctx.alreadySeen || !ctx.isMobile) return null;
-  if (!ctx.isIOSSafari && !ctx.isIOSOther && !ctx.isAndroidChrome) return null;
+  // TESTING: comment out guards below, revert before launch
+  // if (ctx.isStandalone || ctx.alreadySeen || !ctx.isMobile) return null;
+  // if (!ctx.isIOSSafari && !ctx.isIOSOther && !ctx.isAndroidChrome) return null;
 
   const handleDismiss = () => {
     localStorage.setItem(PWA_STORAGE_KEY, '1');
@@ -258,7 +259,7 @@ function PWAPrompt({ t, onDismiss }) {
         <div style={{fontSize:15,color:MID,padding:"0 24px",marginBottom:28,lineHeight:1.55}}>{t.pwaBody}</div>
 
         {/* iOS Safari steps */}
-        {ctx.isIOSSafari && (
+        {(ctx.isIOSSafari || true) && ( // TESTING: || true, revert before launch
           <div style={{padding:"0 24px",marginBottom:28}}>
             <div style={{...stepStyle,borderTop:`1px solid ${BORDER}`}}>
               <div style={stepNumStyle}>1</div>
@@ -915,7 +916,7 @@ export default function App(){
   const[emailSheet,setEmailSheet]=useState(null);
   const[splashVisible,setSplashVisible]=useState(true);
   const[feedVisible,setFeedVisible]=useState(false);
-  const[showPWA,setShowPWA]=useState(false);
+  const[showPWA,setShowPWA]=useState(true); // TESTING: force show, revert before launch
   const initialLoadsRef=useRef(0);
   const feedRevealedRef=useRef(false);
   const tapTimer=useRef(null);
