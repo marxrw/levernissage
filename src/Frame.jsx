@@ -64,6 +64,28 @@ async function fetchPendingShows(){
   return res.json();
 }
 
+async function fetchAllShows(){
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/shows?status=eq.approved&order=gallery.asc`,{headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`}});
+  if(!res.ok)throw new Error("Failed to fetch all shows");
+  const data=await res.json();
+  return data.map(s=>({
+    id:s.id,gallery:s.gallery,title:s.title||"",artist:s.artist||"",
+    dates:s.dates||"",openDate:s.open_date||"",closeDate:s.close_date||"",
+    hood:s.neighbourhood||"",color:s.color||"#C8A882",
+    reviewed:s.reviewed||false,featured:s.featured||false,
+    editors_pick:s.editors_pick||false,between:s.between||false,
+    quote:s.quote||"",by:s.quote_by||"",desc:s.description||"",
+    address:s.address||"",hours:s.hours||"",
+    byAppointment:s.by_appointment||false,
+    image_url:s.image_url||null,image_url_2:s.image_url_2||null,
+    image_url_3:s.image_url_3||null,image_url_4:s.image_url_4||null,
+    image_url_5:s.image_url_5||null,
+    website_url:s.website_url||null,instagram_url:s.instagram_url||null,
+    contact_email:s.contact_email||null,
+    lat:parseFloat(s.lat)||null,lng:parseFloat(s.lng)||null,
+  }));
+}
+
 async function adminAction(action,id,featured=false){
   const res=await fetch(ADMIN_FUNCTION_URL,{
     method:"POST",
@@ -93,6 +115,9 @@ const T={
     badgeOpeningToday:"Opening Today",badgeOpening:"Opening",badgeUpcoming:"Upcoming",
     days:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
     details:"Details",
+    searchPlaceholder:"Search by gallery, artist, title…",
+    onView:"On View",upcoming:"Upcoming",past:"Past",
+    noResults:"No results",
     pwaHeadline:"Your art guide, one tap away.",
     pwaBody:"Follow these steps to add Frame to your home screen, just like any other app.",
     pwaStep1Safari:"Tap ••• in the Safari toolbar",
@@ -123,6 +148,9 @@ const T={
     badgeOpeningToday:"Ouvre aujourd'hui",badgeOpening:"Ouverture",badgeUpcoming:"À venir",
     days:["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"],
     details:"Détails",
+    searchPlaceholder:"Galerie, artiste, titre…",
+    onView:"En cours",upcoming:"À venir",past:"Passées",
+    noResults:"Aucun résultat",
     pwaHeadline:"Votre guide d'art, à portée de main.",
     pwaBody:"Suivez ces étapes pour ajouter Frame à votre écran d'accueil. Il ressemblera à n'importe quelle autre app.",
     pwaStep1Safari:"Appuyez sur ••• dans Safari",
@@ -937,6 +965,11 @@ export default function App(){
   const[splashVisible,setSplashVisible]=useState(true);
   const[feedVisible,setFeedVisible]=useState(false);
   const[showPWA,setShowPWA]=useState(false);
+  const[searchActive,setSearchActive]=useState(false);
+  const[searchQuery,setSearchQuery]=useState("");
+  const[allShowsCache,setAllShowsCache]=useState(null);
+  const[searchLoading,setSearchLoading]=useState(false);
+  const searchInputRef=useRef(null);
   const initialLoadsRef=useRef(0);
   const feedRevealedRef=useRef(false);
   const tapTimer=useRef(null);
@@ -1025,6 +1058,21 @@ export default function App(){
   const toggleSave=(id)=>setSaved(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n;});
   const showToast=(id)=>{setToastId(id);setToastVisible(true);clearTimeout(toastTimer.current);toastTimer.current=setTimeout(()=>setToastVisible(false),2000);};
 
+  const openSearch=async()=>{
+    setSearchActive(true);
+    setTimeout(()=>searchInputRef.current?.focus(),50);
+    if(!allShowsCache){
+      setSearchLoading(true);
+      try{const data=await fetchAllShows();setAllShowsCache(data);}catch(_){}
+      setSearchLoading(false);
+    }
+  };
+
+  const closeSearch=()=>{
+    setSearchActive(false);
+    setSearchQuery("");
+  };
+
   const requestLocation=()=>{
     if(!navigator.geolocation)return;
     navigator.geolocation.getCurrentPosition(
@@ -1052,6 +1100,7 @@ export default function App(){
 
   const handleTabSwitch=(key)=>{
     capture("tab_switched",{tab:key,from:tab});
+    if(key!=="shows")closeSearch();
     setTab(key);
   };
 
@@ -1212,14 +1261,48 @@ export default function App(){
 
       <SplashScreen visible={splashVisible}/>
 
-      <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,height:52,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",flexShrink:0,zIndex:10}}>
+      <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,height:52,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",flexShrink:0,zIndex:10,position:"relative"}}>
         <div onClick={handleHeaderTap} style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic",fontWeight:600,color:INK,cursor:"default",userSelect:"none"}}>{t.city}</div>
+        {tab==="shows"&&(
+          <div onClick={searchActive?closeSearch:openSearch} style={{position:"absolute",left:"50%",transform:"translateX(-50%)",cursor:"pointer",padding:8,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={searchActive?BLUE:MID} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </div>
+        )}
         <div style={{display:"flex",gap:4}}>
           {["en","fr"].map(l=>(
             <button key={l} onClick={()=>setLang(l)} style={{padding:"5px 10px",borderRadius:3,border:`1px solid ${lang===l?INK:BORDER}`,background:lang===l?INK:WHITE,color:lang===l?WHITE:MID,fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>{l}</button>
           ))}
         </div>
       </div>
+
+      {/* Search bar row — slides down when active on Shows tab */}
+      {tab==="shows"&&(
+        <div style={{
+          height:searchActive?52:0,overflow:"hidden",
+          transition:"height 0.28s cubic-bezier(0.16,1,0.3,1)",
+          background:WHITE,borderBottom:searchActive?`1px solid ${BORDER}`:"none",
+          flexShrink:0,zIndex:9,display:"flex",alignItems:"center",padding:"0 16px",gap:10,
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}>
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={e=>setSearchQuery(e.target.value)}
+            placeholder={t.searchPlaceholder}
+            style={{flex:1,border:"none",outline:"none",fontSize:15,fontFamily:"'DM Sans',sans-serif",color:INK,background:"transparent"}}
+          />
+          {searchQuery.length>0&&(
+            <button onClick={()=>setSearchQuery("")} style={{border:"none",background:"none",cursor:"pointer",padding:4,display:"flex",alignItems:"center",color:MID}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          )}
+        </div>
+      )}
 
       <div style={{flex:1,overflow:"hidden",position:"relative",background:WHITE,display:"flex",flexDirection:"column"}}>
 
@@ -1243,44 +1326,75 @@ export default function App(){
         )}
 
         {tab==="shows"&&(
-          <div style={{height:"100%",overflowY:"auto"}}>
+          <div style={{height:"100%",overflowY:"auto"}} onClick={searchActive&&!searchQuery?closeSearch:undefined}>
             {loading&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.loading}</div>}
             {loadError&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.error}</div>}
             {!loading&&!loadError&&(<>
-              {allCurrent.length>0&&<SectionRow title={t.allShows} onClick={()=>setSubPage({title:t.allShows,shows:allCurrent})}/>}
-              {editorsPicks.length>0&&<SectionRow title={t.editorsPicks} onClick={()=>setSubPage({title:t.editorsPicks,shows:editorsPicks})}/>}
-              {openingThisWeek.length>0&&<SectionRow title={t.openingThisWeek} onClick={()=>setSubPage({title:t.openingThisWeek,shows:openingThisWeek})}/>}
-              {closingThisWeek.length>0&&<SectionRow title={t.closingThisWeek} onClick={()=>setSubPage({title:t.closingThisWeek,shows:closingThisWeek})}/>}
-              {!userLocation&&!locationDenied&&(
-                <div onClick={requestLocation} style={{padding:"20px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:12}}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-                    <span style={{fontSize:15,color:MID,fontWeight:500}}>{t.enableLocation}</span>
+              {searchActive?(()=>{
+                if(searchLoading)return<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.loading}</div>;
+                if(!searchQuery)return<div style={{padding:"60px 20px",textAlign:"center",color:MID,fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontStyle:"italic"}}>{t.searchPlaceholder}</div>;
+                const q=searchQuery.toLowerCase();
+                const all=(allShowsCache||[]).filter(s=>!s.between&&(
+                  s.gallery.toLowerCase().includes(q)||
+                  s.title.toLowerCase().includes(q)||
+                  s.artist.toLowerCase().includes(q)||
+                  s.hood.toLowerCase().includes(q)
+                ));
+                const onView=all.filter(s=>isOnNow(s)||isClosingToday(s));
+                const upcoming=all.filter(s=>isOpeningToday(s)||isOpeningThisWeek(s)||isUpcoming(s));
+                const past=all.filter(s=>{
+                  if(!s.closeDate)return false;
+                  return parseLocalDate(s.closeDate)<TODAY;
+                });
+                if(all.length===0)return<div style={{padding:"60px 20px",textAlign:"center",color:MID,fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontStyle:"italic"}}>{t.noResults}</div>;
+                const StickyHeader=({label})=>(
+                  <div style={{padding:"10px 16px 6px",background:WHITE,position:"sticky",top:0,zIndex:5,borderBottom:`1px solid ${BORDER}`}}>
+                    <span style={{fontSize:10,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE}}>{label}</span>
                   </div>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BORDER} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-                </div>
+                );
+                return(<>
+                  {onView.length>0&&<><StickyHeader label={t.onView}/>{onView.map(s=><TextCard key={s.id} s={s} onClick={()=>{closeSearch();openDetail(s,"shows");}} saved={saved.has(s.id)} onToggleSave={()=>toggleSave(s.id)} t={t}/>)}</>}
+                  {upcoming.length>0&&<><StickyHeader label={t.upcoming}/>{upcoming.map(s=><TextCard key={s.id} s={s} onClick={()=>{closeSearch();openDetail(s,"shows");}} saved={saved.has(s.id)} onToggleSave={()=>toggleSave(s.id)} t={t}/>)}</>}
+                  {past.length>0&&<><StickyHeader label={t.past}/>{past.map(s=><TextCard key={s.id} s={s} onClick={()=>{closeSearch();openDetail(s,"shows");}} saved={saved.has(s.id)} onToggleSave={()=>toggleSave(s.id)} t={t}/>)}</>}
+                </>);
+              })():(
+                <>
+                  {allCurrent.length>0&&<SectionRow title={t.allShows} onClick={()=>setSubPage({title:t.allShows,shows:allCurrent})}/>}
+                  {editorsPicks.length>0&&<SectionRow title={t.editorsPicks} onClick={()=>setSubPage({title:t.editorsPicks,shows:editorsPicks})}/>}
+                  {openingThisWeek.length>0&&<SectionRow title={t.openingThisWeek} onClick={()=>setSubPage({title:t.openingThisWeek,shows:openingThisWeek})}/>}
+                  {closingThisWeek.length>0&&<SectionRow title={t.closingThisWeek} onClick={()=>setSubPage({title:t.closingThisWeek,shows:closingThisWeek})}/>}
+                  {!userLocation&&!locationDenied&&(
+                    <div onClick={requestLocation} style={{padding:"20px 16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:12}}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                        <span style={{fontSize:15,color:MID,fontWeight:500}}>{t.enableLocation}</span>
+                      </div>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BORDER} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                    </div>
+                  )}
+                  {userLocation&&nearbyShows.length>0&&<SectionRow title={t.nearby} onClick={()=>setSubPage({title:t.nearby,shows:nearbyShows})}/>}
+                  {activeHoods.map(hood=>{
+                    const hs=SHOWS.filter(s=>!s.between&&s.hood===hood&&(isOnNow(s)||isClosingToday(s)||isOpeningToday(s)||isOpeningThisWeek(s)));
+                    return hs.length>0?<SectionRow key={hood} title={hood} onClick={()=>setSubPage({title:hood,shows:hs})}/>:null;
+                  })}
+                  <div style={{padding:"32px 16px 48px",background:LIGHT,marginTop:8}}>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                      {[
+                        {icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M3 15v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/></svg>,label:t.listYourShow,subtitle:t.listingSubtitle,action:()=>window.open("https://tally.so/r/D4Je7b","_blank")},
+                        {icon:<svg width="24" height="24" viewBox="0 0 26 28" fill="none" strokeLinecap="round" strokeLinejoin="round"><defs><clipPath id="ctafc"><path d="M9 5 L17 5 L22 11 L13 26 L4 11 Z"/></clipPath></defs><path d="M9 5 L17 5 L22 11 L13 26 L4 11 Z" stroke={INK} strokeWidth="1.5"/><line x1="4" y1="11" x2="22" y2="11" stroke={INK} strokeWidth="1.5"/><line x1="9" y1="5" x2="4" y2="11" stroke={INK} strokeWidth="0.6"/><line x1="17" y1="5" x2="22" y2="11" stroke={INK} strokeWidth="0.6"/><line x1="9" y1="5" x2="13" y2="11" stroke={INK} strokeWidth="0.6"/><line x1="17" y1="5" x2="13" y2="11" stroke={INK} strokeWidth="0.6"/><line x1="4" y1="11" x2="13" y2="26" stroke={INK} strokeWidth="0.6"/><line x1="22" y1="11" x2="13" y2="26" stroke={INK} strokeWidth="0.6"/><g clipPath="url(#ctafc)"><line x1="4" y1="11" x2="22" y2="26" stroke={INK} strokeWidth="0.5"/><line x1="22" y1="11" x2="4" y2="26" stroke={INK} strokeWidth="0.5"/></g></svg>,label:t.featureYourShow,subtitle:t.featureSubtitle,action:()=>{capture("feature_tapped");window.open("https://tally.so/r/44Nz2o","_blank");}},
+                        {icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>,label:t.getInTouch,subtitle:null,action:()=>setEmailSheet({subject:"Hello from Frame",body:""})},
+                        {icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 1C3.5 1 1 3.5 1 7c0 5 6 11 6 11s6-6 6-11c0-3.5-2.5-6-6-6z"/><circle cx="7" cy="7" r="2.5" fill="none" stroke={INK} strokeWidth="1.5"/><path d="M19 6C17 6 15.5 7.5 15.5 9.5c0 3 3.5 7 3.5 7s3.5-4 3.5-7c0-2-1.5-3.5-3.5-3.5z"/><circle cx="19" cy="9.5" r="1.8" fill="none" stroke={INK} strokeWidth="1.5"/><path d="M7 18 Q13 23 19 16" fill="none" stroke={INK} strokeWidth="1.2" strokeLinecap="round" strokeDasharray="2 3"/></svg>,label:t.comeToMyCity,subtitle:null,action:()=>window.open("https://tally.so/r/ja9zeJ","_blank")},
+                      ].map(({icon,label,subtitle,action})=>(
+                        <button key={label} onClick={action} style={{padding:"20px 16px",background:WHITE,border:`1px solid ${BORDER}`,borderRadius:10,display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
+                          {icon}
+                          <span style={{fontSize:13,fontWeight:600,color:INK,textAlign:"center"}}>{label}</span>
+                          {subtitle&&<span style={{fontSize:11,fontWeight:400,color:MID,textAlign:"center"}}>{subtitle}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
               )}
-              {userLocation&&nearbyShows.length>0&&<SectionRow title={t.nearby} onClick={()=>setSubPage({title:t.nearby,shows:nearbyShows})}/>}
-              {activeHoods.map(hood=>{
-                const hs=SHOWS.filter(s=>!s.between&&s.hood===hood&&(isOnNow(s)||isClosingToday(s)||isOpeningToday(s)||isOpeningThisWeek(s)));
-                return hs.length>0?<SectionRow key={hood} title={hood} onClick={()=>setSubPage({title:hood,shows:hs})}/>:null;
-              })}
-              <div style={{padding:"32px 16px 48px",background:LIGHT,marginTop:8}}>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                  {[
-                    {icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M3 15v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"/></svg>,label:t.listYourShow,subtitle:t.listingSubtitle,action:()=>window.open("https://tally.so/r/D4Je7b","_blank")},
-                    {icon:<svg width="24" height="24" viewBox="0 0 26 28" fill="none" strokeLinecap="round" strokeLinejoin="round"><defs><clipPath id="ctafc"><path d="M9 5 L17 5 L22 11 L13 26 L4 11 Z"/></clipPath></defs><path d="M9 5 L17 5 L22 11 L13 26 L4 11 Z" stroke={INK} strokeWidth="1.5"/><line x1="4" y1="11" x2="22" y2="11" stroke={INK} strokeWidth="1.5"/><line x1="9" y1="5" x2="4" y2="11" stroke={INK} strokeWidth="0.6"/><line x1="17" y1="5" x2="22" y2="11" stroke={INK} strokeWidth="0.6"/><line x1="9" y1="5" x2="13" y2="11" stroke={INK} strokeWidth="0.6"/><line x1="17" y1="5" x2="13" y2="11" stroke={INK} strokeWidth="0.6"/><line x1="4" y1="11" x2="13" y2="26" stroke={INK} strokeWidth="0.6"/><line x1="22" y1="11" x2="13" y2="26" stroke={INK} strokeWidth="0.6"/><g clipPath="url(#ctafc)"><line x1="4" y1="11" x2="22" y2="26" stroke={INK} strokeWidth="0.5"/><line x1="22" y1="11" x2="4" y2="26" stroke={INK} strokeWidth="0.5"/></g></svg>,label:t.featureYourShow,subtitle:t.featureSubtitle,action:()=>{capture("feature_tapped");window.open("https://tally.so/r/44Nz2o","_blank");}},
-                    {icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg>,label:t.getInTouch,subtitle:null,action:()=>setEmailSheet({subject:"Hello from Frame",body:""})},
-                    {icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 1C3.5 1 1 3.5 1 7c0 5 6 11 6 11s6-6 6-11c0-3.5-2.5-6-6-6z"/><circle cx="7" cy="7" r="2.5" fill="none" stroke={INK} strokeWidth="1.5"/><path d="M19 6C17 6 15.5 7.5 15.5 9.5c0 3 3.5 7 3.5 7s3.5-4 3.5-7c0-2-1.5-3.5-3.5-3.5z"/><circle cx="19" cy="9.5" r="1.8" fill="none" stroke={INK} strokeWidth="1.5"/><path d="M7 18 Q13 23 19 16" fill="none" stroke={INK} strokeWidth="1.2" strokeLinecap="round" strokeDasharray="2 3"/></svg>,label:t.comeToMyCity,subtitle:null,action:()=>window.open("https://tally.so/r/ja9zeJ","_blank")},
-                  ].map(({icon,label,subtitle,action})=>(
-                    <button key={label} onClick={action} style={{padding:"20px 16px",background:WHITE,border:`1px solid ${BORDER}`,borderRadius:10,display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
-                      {icon}
-                      <span style={{fontSize:13,fontWeight:600,color:INK,textAlign:"center"}}>{label}</span>
-                      {subtitle&&<span style={{fontSize:11,fontWeight:400,color:MID,textAlign:"center"}}>{subtitle}</span>}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </>)}
           </div>
         )}
