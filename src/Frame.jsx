@@ -258,16 +258,17 @@ function PWAPrompt({ t, onDismiss }) {
     <div style={overlayStyle} onClick={handleDismiss}>
       <div style={sheetStyle} onClick={e => e.stopPropagation()}>
         {/* Handle */}
-        <div style={{width:36,height:4,borderRadius:2,background:BORDER,margin:"12px auto 24px"}}/>
+        <div style={{width:36,height:4,borderRadius:2,background:BORDER,margin:"12px auto 0"}}/>
 
-        {/* Frame wordmark + close */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px",marginBottom:20}}>
-          <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:36,fontStyle:"italic",fontWeight:600,color:INK,letterSpacing:"0.01em"}}>Frame</span>
+        {/* Close button */}
+        <div style={{display:"flex",justifyContent:"flex-end",padding:"8px 20px 8px"}}>
           <button onClick={handleDismiss} style={{width:32,height:32,borderRadius:"50%",background:LIGHT,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:MID,fontSize:16,fontFamily:"sans-serif",lineHeight:1}}>✕</button>
         </div>
 
         {/* Instruction */}
-        <div style={{fontSize:16,color:MID,padding:"0 24px",marginBottom:24,lineHeight:1.6}}>{t.pwaBody}</div>
+        <div style={{fontSize:19,color:INK,padding:"0 24px",marginBottom:24,lineHeight:1.55}}>
+          Follow these steps to add <span style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontWeight:600}}>Frame</span> to your home screen, just like any other app.
+        </div>
 
         {/* iOS Safari steps */}
         {(ctx.isIOSSafari || true) && ( // TESTING: || true, revert before launch
