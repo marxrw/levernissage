@@ -192,14 +192,14 @@ function PWAPrompt({ t, onDismiss }) {
     backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)",
     display: "flex", flexDirection: "column", justifyContent: "flex-end",
     maxWidth: 430, margin: "0 auto",
-    animation: "pwaFadeIn 0.3s ease forwards",
+    animation: "pwaFadeIn 0.6s ease forwards",
   };
 
   const sheetStyle = {
     background: WHITE,
     borderRadius: "20px 20px 0 0",
     paddingBottom: "max(env(safe-area-inset-bottom), 36px)",
-    animation: "pwaSlideUp 0.42s cubic-bezier(0.16,1,0.3,1) forwards",
+    animation: "pwaSlideUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.2s both",
   };
 
   const stepStyle = {
