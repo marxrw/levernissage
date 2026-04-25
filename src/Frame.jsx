@@ -267,7 +267,7 @@ function PWAPrompt({ t, onDismiss }) {
 
         {/* Instruction */}
         <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:19,fontWeight:500,color:INK,padding:"0 24px",marginBottom:24,lineHeight:1.55}}>
-          Follow these steps to add <span style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontWeight:600,fontSize:22}}>Frame</span> to your home screen, just like any other app.
+          Follow these steps to add <span style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontWeight:600,fontSize:22,color:BLUE}}>Frame</span> to your home screen, just like any other app.
         </div>
 
         {/* iOS Safari steps */}
