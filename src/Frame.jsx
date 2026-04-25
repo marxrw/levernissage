@@ -351,8 +351,8 @@ function isUpcoming(s){if(!s.openDate)return false;return dayDiff(s.openDate)>7;
 function statusBadgeInfo(s,t){
   if(isClosingToday(s))return{label:t.badgeClosingToday,color:BADGE_RED};
   if(isOpeningToday(s))return{label:t.badgeOpeningToday,color:BADGE_BLUE};
-  if(isOpeningThisWeek(s)){const d=new Date(s.openDate);return{label:`${t.badgeOpening} ${t.days[d.getDay()]}`,color:BADGE_BLUE};}
-  if(isClosingThisWeek(s)){const d=new Date(s.closeDate);return{label:`${t.badgeClosing} ${t.days[d.getDay()]}`,color:BADGE_RED};}
+  if(isOpeningThisWeek(s)){const d=parseLocalDate(s.openDate);return{label:`${t.badgeOpening} ${t.days[d.getDay()]}`,color:BADGE_BLUE};}
+  if(isClosingThisWeek(s)){const d=parseLocalDate(s.closeDate);return{label:`${t.badgeClosing} ${t.days[d.getDay()]}`,color:BADGE_RED};}
   if(isOnNow(s))return{label:t.badgeOnNow,color:BADGE_GREEN};
   if(isUpcoming(s))return{label:t.badgeUpcoming,color:BADGE_AMBER};
   return null;
