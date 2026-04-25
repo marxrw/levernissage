@@ -933,9 +933,8 @@ export default function App(){
   const revealFeed=()=>{
     if(feedRevealedRef.current)return;
     feedRevealedRef.current=true;
-    // Fade splash out first — feed renders underneath invisibly, no brown flash
-    setSplashVisible(false);
-    setTimeout(()=>setFeedVisible(true),50);
+    setFeedVisible(true);
+    setTimeout(()=>setSplashVisible(false),600);
     pwaTimer.current=setTimeout(()=>setShowPWA(true),3000);
   };
 
