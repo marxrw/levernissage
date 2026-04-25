@@ -124,7 +124,7 @@ const T={
     days:["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"],
     details:"Détails",
     pwaHeadline:"Votre guide d'art, à portée de main.",
-    pwaBody:"Suivez ces étapes pour ajouter Frame à votre écran d'accueil, comme n'importe quelle autre app.",
+    pwaBody:"Suivez ces étapes pour ajouter Frame à votre écran d'accueil. Il ressemblera à n'importe quelle autre app.",
     pwaStep1Safari:"Appuyez sur ••• dans Safari",
     pwaStep2Safari:"Appuyez sur Partager",
     pwaStep3Safari:"Appuyez sur Sur l'écran d'accueil",
@@ -275,7 +275,7 @@ function PWAPrompt({ t, onDismiss }) {
 
         {/* Instruction */}
         <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:17,fontWeight:700,color:INK,padding:"0 24px",marginBottom:24,lineHeight:1.55}}>
-          Follow these steps to add <span style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontWeight:800,fontSize:21,color:INK,WebkitTextStroke:"0.4px currentColor"}}>Frame</span> to your home screen, just like any other app.
+          Follow these steps to add <span style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontWeight:800,fontSize:21,color:INK,WebkitTextStroke:"0.4px currentColor"}}>Frame</span> to your home screen. It will look like any other app.
         </div>
 
         {/* iOS Safari steps */}
