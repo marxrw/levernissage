@@ -1294,7 +1294,7 @@ export default function App(){
             value={searchQuery}
             onChange={e=>setSearchQuery(e.target.value)}
             placeholder={t.searchPlaceholder}
-            style={{flex:1,border:"none",outline:"none",fontSize:15,fontFamily:"'DM Sans',sans-serif",color:INK,background:"transparent"}}
+            style={{flex:1,border:"none",outline:"none",fontSize:16,fontFamily:"'DM Sans',sans-serif",color:INK,background:"transparent"}}
           />
           {searchQuery.length>0&&(
             <button onClick={()=>setSearchQuery("")} style={{border:"none",background:"none",cursor:"pointer",padding:4,display:"flex",alignItems:"center",color:MID}}>
