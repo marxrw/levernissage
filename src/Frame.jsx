@@ -116,6 +116,7 @@ const T={
     days:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
     details:"Details",
     searchPlaceholder:"Search by gallery, artist, title…",
+    searchLabel:"Search",
     onView:"On View",upcoming:"Upcoming",past:"Past",
     noResults:"No results",
     pwaHeadline:"Your art guide, one tap away.",
@@ -149,6 +150,7 @@ const T={
     days:["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"],
     details:"Détails",
     searchPlaceholder:"Galerie, artiste, titre…",
+    searchLabel:"Recherche",
     onView:"En cours",upcoming:"À venir",past:"Passées",
     noResults:"Aucun résultat",
     pwaHeadline:"Votre guide d'art, à portée de main.",
@@ -1264,10 +1266,12 @@ export default function App(){
       <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,height:52,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",flexShrink:0,zIndex:10,position:"relative"}}>
         <div onClick={handleHeaderTap} style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic",fontWeight:600,color:INK,cursor:"default",userSelect:"none"}}>{t.city}</div>
         {tab==="shows"&&(
-          <div onClick={searchActive?closeSearch:openSearch} style={{position:"absolute",left:"50%",transform:"translateX(-50%)",cursor:"pointer",padding:8,display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={searchActive?BLUE:MID} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          <div onClick={searchActive?closeSearch:openSearch} style={{position:"absolute",left:"50%",transform:"translateX(-50%)",cursor:"pointer",padding:"4px 8px",display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="10.5" cy="10.5" r="7.5" fill={searchActive?"rgba(43,91,232,0.18)":"rgba(107,101,96,0.10)"} stroke={searchActive?BLUE:MID} strokeWidth="1.8"/>
+              <line x1="22" y1="22" x2="16.5" y2="16.5" stroke={searchActive?BLUE:MID} strokeWidth="2.5"/>
             </svg>
+            <span style={{fontSize:10,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",color:searchActive?BLUE:MID,fontFamily:"'DM Sans',sans-serif"}}>{t.searchLabel}</span>
           </div>
         )}
         <div style={{display:"flex",gap:4}}>
