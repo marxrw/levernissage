@@ -640,13 +640,31 @@ function FeaturedCard({s,onClick,saved,onToggleSave,t,onFirstImageLoad}){
   );
 }
 
+function DiamondIcon(){
+  return(
+    <span style={{display:"inline-flex",alignItems:"center",flexShrink:0,position:"relative",top:"-2px",animation:"featuredPulse 2.5s ease-in-out infinite"}}>
+      <svg width="11" height="11" viewBox="2 4 22 23" fill="none" stroke={BLUE} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 5 L17 5 L22 11 L13 26 L4 11 Z" strokeWidth="1.8"/>
+        <line x1="4" y1="11" x2="22" y2="11" strokeWidth="1.8"/>
+        <line x1="9" y1="5" x2="4" y2="11" strokeWidth="0.8"/>
+        <line x1="17" y1="5" x2="22" y2="11" strokeWidth="0.8"/>
+        <line x1="9" y1="5" x2="13" y2="11" strokeWidth="0.8"/>
+        <line x1="17" y1="5" x2="13" y2="11" strokeWidth="0.8"/>
+        <line x1="4" y1="11" x2="13" y2="26" strokeWidth="0.8"/>
+        <line x1="22" y1="11" x2="13" y2="26" strokeWidth="0.8"/>
+      </svg>
+    </span>
+  );
+}
+
 function TextCard({s,onClick,saved,onToggleSave,t}){
   const badgeInfo=statusBadgeInfo(s,t);
   const displayArtist=artistDisplayName(s.artist);
   return(
     <div onClick={onClick} style={{padding:"16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
       <div style={{flex:1,minWidth:0}}>
-        <div style={{fontSize:12,letterSpacing:"0.12em",textTransform:"uppercase",color:INK,fontWeight:700,marginBottom:5}}>{s.gallery}</div>
+        {s.editors_pick&&<div style={{marginBottom:5}}><span style={{display:"inline-flex",alignItems:"center",padding:"2px 9px",borderRadius:20,background:INK,color:WHITE,fontSize:9,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase"}}>Editor's Pick</span></div>}
+        <div style={{fontSize:12,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:5,display:"flex",alignItems:"center",gap:5}}>{s.gallery}{s.featured&&<DiamondIcon/>}</div>
         <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontStyle:"italic",fontWeight:600,color:INK,lineHeight:1.2,marginBottom:4}}>{s.title}</div>
         <div style={{fontSize:15,color:MID,marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{displayArtist}</div>
         <div style={{fontSize:13,color:MID}}>{s.hood}{s.dates?` · ${s.dates}`:""}</div>
@@ -740,7 +758,8 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
       </div>
       <ImageCarousel slides={slides} height={280}/>
       <div style={{padding:"24px 20px 0"}}>
-        <div style={{fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",color:INK,fontWeight:700,marginBottom:8}}>{detail.gallery}</div>
+        {detail.editors_pick&&<div style={{marginBottom:6}}><span style={{display:"inline-flex",alignItems:"center",padding:"2px 9px",borderRadius:20,background:INK,color:WHITE,fontSize:9,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase"}}>Editor's Pick</span></div>}
+        <div style={{fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:8,display:"flex",alignItems:"center",gap:5}}>{detail.gallery}{detail.featured&&<DiamondIcon/>}</div>
         {!detail.between&&<div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,fontStyle:"italic",fontWeight:500,lineHeight:1.15,marginBottom:6}}>{detail.title}</div>}
         {!detail.between&&detail.artist&&<div style={{fontSize:17,fontWeight:400,marginBottom:20,color:INK}}>{detail.artist}</div>}
         {!detail.between&&(
@@ -1445,6 +1464,7 @@ export default function App(){
         @keyframes pwaFadeIn{from{opacity:0}to{opacity:1}}
         @keyframes pwaSlideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
         @keyframes pwaPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.85)}}
+        @keyframes featuredPulse{0%,100%{opacity:1}50%{opacity:0.35}}
         *{-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;}
         ::-webkit-scrollbar{display:none;}
         .gm-style-iw{padding:0!important;border-radius:6px!important;overflow:hidden!important;}
