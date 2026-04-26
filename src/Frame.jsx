@@ -1171,9 +1171,13 @@ export default function App(){
         const pulse=new PulseOverlay(marker.getPosition());
         pulse.setMap(map);
         activePulse=pulse;
-        if(map.getZoom()<15)map.setZoom(15);
-        map.panTo(marker.getPosition());
-        setTimeout(()=>map.panBy(0,-130),350);
+        if(map.getZoom()<15){
+          map.setZoom(15);
+          setTimeout(()=>{map.panTo(marker.getPosition());map.panBy(0,-130);},350);
+        } else {
+          map.panTo(marker.getPosition());
+          map.panBy(0,-130);
+        }
       });
       markersRef.current.push({id:s.id,marker,iw:infoWindow,getInfoContent});
       return marker;
