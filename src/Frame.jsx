@@ -644,7 +644,7 @@ function TextCard({s,onClick,saved,onToggleSave,t}){
   return(
     <div onClick={onClick} style={{padding:"16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
       <div style={{flex:1,minWidth:0}}>
-        <div style={{fontSize:12,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:5}}>{s.gallery}</div>
+        <div style={{fontSize:12,letterSpacing:"0.12em",textTransform:"uppercase",color:INK,fontWeight:700,marginBottom:5}}>{s.gallery}</div>
         <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontStyle:"italic",fontWeight:600,color:INK,lineHeight:1.2,marginBottom:4}}>{s.title}</div>
         <div style={{fontSize:15,color:MID,marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{displayArtist}</div>
         <div style={{fontSize:13,color:MID}}>{s.hood}{s.dates?` · ${s.dates}`:""}</div>
@@ -738,7 +738,7 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
       </div>
       <ImageCarousel slides={slides} height={280}/>
       <div style={{padding:"24px 20px 0"}}>
-        <div style={{fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:8}}>{detail.gallery}</div>
+        <div style={{fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",color:INK,fontWeight:700,marginBottom:8}}>{detail.gallery}</div>
         {!detail.between&&<div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,fontStyle:"italic",fontWeight:500,lineHeight:1.15,marginBottom:6}}>{detail.title}</div>}
         {!detail.between&&detail.artist&&<div style={{fontSize:17,fontWeight:400,marginBottom:20,color:INK}}>{detail.artist}</div>}
         {!detail.between&&(
@@ -782,7 +782,7 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
         {detail.desc&&<div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:400,lineHeight:1.8,marginBottom:28,color:INK}}>{detail.desc}</div>}
         {detail.reviewed&&detail.quote&&(
           <div style={{background:"#EEF2FD",borderLeft:`3px solid ${BLUE}`,padding:"18px 16px",marginBottom:28,borderRadius:"0 4px 4px 0"}}>
-            <div style={{fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:10}}>{t.frameReview}</div>
+            <div style={{fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",color:INK,fontWeight:700,marginBottom:10}}>{t.frameReview}</div>
             <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontStyle:"italic",lineHeight:1.8,marginBottom:10,color:INK}}>{detail.quote}</div>
             <div style={{fontSize:12,color:MID}}>{detail.by}</div>
           </div>
@@ -930,7 +930,7 @@ function AdminPage({onExit}){
           {liveShows.map(s=>(
             <div key={s.id} style={{background:WHITE,borderRadius:6,border:`1px solid ${BORDER}`,padding:"12px 14px",marginBottom:10,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:2}}>{s.gallery}</div>
+                <div style={{fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",color:INK,fontWeight:700,marginBottom:2}}>{s.gallery}</div>
                 <div style={{fontSize:13,color:INK,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.title||"Between exhibitions"}</div>
                 {s.featured&&<div style={{fontSize:10,color:FEATURED_COLOR,fontWeight:700,marginTop:2}}>⭐ Featured</div>}
               </div>
@@ -1326,7 +1326,7 @@ export default function App(){
         )}
 
         {tab==="shows"&&(
-          <div style={{height:"100%",overflowY:"auto"}} onClick={searchActive&&!searchQuery?closeSearch:undefined}>
+          <div style={{height:"100%",display:"flex",flexDirection:"column",overflow:"hidden"}}><div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}} onClick={searchActive&&!searchQuery?closeSearch:undefined}>
             {loading&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.loading}</div>}
             {loadError&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.error}</div>}
             {!loading&&!loadError&&(<>
@@ -1348,8 +1348,8 @@ export default function App(){
                 });
                 if(all.length===0)return<div style={{padding:"60px 20px",textAlign:"center",color:MID,fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontStyle:"italic"}}>{t.noResults}</div>;
                 const StickyHeader=({label})=>(
-                  <div style={{padding:"10px 16px 6px",background:WHITE,position:"sticky",top:0,zIndex:5,borderBottom:`1px solid ${BORDER}`}}>
-                    <span style={{fontSize:10,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE}}>{label}</span>
+                  <div style={{padding:"10px 16px 8px",background:"#ECEAE4",position:"sticky",top:0,zIndex:5,borderBottom:`1px solid ${BORDER}`,borderTop:`1px solid ${BORDER}`}}>
+                    <span style={{fontSize:10,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:INK}}>{label}</span>
                   </div>
                 );
                 return(<>
@@ -1396,6 +1396,7 @@ export default function App(){
                 </>
               )}
             </>)}
+          </div>
           </div>
         )}
 
