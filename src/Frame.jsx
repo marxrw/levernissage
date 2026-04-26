@@ -1162,6 +1162,7 @@ export default function App(){
       };
       const infoWindow=new google.maps.InfoWindow({content:getInfoContent(),disableAutoPan:false});
       infoWindow.addListener("closeclick",()=>{if(activePulse){activePulse.setMap(null);activePulse=null;}});
+      infoWindow.addListener("visible_changed",()=>{if(!infoWindow.getMap()&&activePulse){activePulse.setMap(null);activePulse=null;}});
       marker.addListener("click",()=>{
         markersRef.current.forEach(m=>m.iw.close());
         infoWindow.setContent(getInfoContent());
