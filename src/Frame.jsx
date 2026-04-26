@@ -879,6 +879,8 @@ function AdminPage({onExit}){
       body:JSON.stringify({id,action:"editors_pick",editors_pick:newVal}),
     });
   };
+
+  if(!authed)return(
     <div style={{position:"fixed",inset:0,background:INK,zIndex:3000,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:32,maxWidth:430,margin:"0 auto"}}>
       <div style={{marginBottom:8,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:MID,fontWeight:600}}>Frame</div>
       <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontStyle:"italic",color:WHITE,marginBottom:40}}>Admin</div>
