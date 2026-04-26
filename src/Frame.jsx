@@ -829,6 +829,7 @@ function AdminPage({onExit}){
   const[liveShows,setLiveShows]=useState([]);
   const[loading,setLoading]=useState(false);
   const[featuredMap,setFeaturedMap]=useState({});
+  const[editorsPickMap,setEditorsPickMap]=useState({});
   const[actionStates,setActionStates]=useState({});
 
   const handleLogin=()=>{
@@ -843,7 +844,11 @@ function AdminPage({onExit}){
       setPendingShows(pending);
       const fm={};pending.forEach(s=>{fm[s.id]=s.featured||false;});setFeaturedMap(fm);
       const liveRes=await fetch(`${SUPABASE_URL}/rest/v1/shows?status=eq.approved&order=gallery.asc`,{headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`}});
-      if(liveRes.ok)setLiveShows(await liveRes.json());
+      if(liveRes.ok){
+        const live=await liveRes.json();
+        setLiveShows(live);
+        const em={};live.forEach(s=>{em[s.id]=s.editors_pick||false;});setEditorsPickMap(em);
+      }
     }catch(e){console.error(e);}
     setLoading(false);
   };
@@ -865,7 +870,15 @@ function AdminPage({onExit}){
     else{setActionStates(prev=>({...prev,[id]:"error"}));alert("Failed to remove.");}
   };
 
-  if(!authed)return(
+  const handleEditorsPick=async(id)=>{
+    const newVal=!editorsPickMap[id];
+    setEditorsPickMap(prev=>({...prev,[id]:newVal}));
+    await fetch(ADMIN_FUNCTION_URL,{
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-admin-secret":ADMIN_PASSWORD},
+      body:JSON.stringify({id,action:"editors_pick",editors_pick:newVal}),
+    });
+  };
     <div style={{position:"fixed",inset:0,background:INK,zIndex:3000,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:32,maxWidth:430,margin:"0 auto"}}>
       <div style={{marginBottom:8,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:MID,fontWeight:600}}>Frame</div>
       <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontStyle:"italic",color:WHITE,marginBottom:40}}>Admin</div>
@@ -955,9 +968,14 @@ function AdminPage({onExit}){
                 <div style={{fontSize:13,color:INK,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.title||"Between exhibitions"}</div>
                 {s.featured&&<div style={{fontSize:10,color:FEATURED_COLOR,fontWeight:700,marginTop:2}}>⭐ Featured</div>}
               </div>
-              <button onClick={(e)=>handleRemove(e,s.id,s.title||"this show")} disabled={actionStates[s.id]==="removing"} style={{flexShrink:0,padding:"7px 14px",border:`1px solid #E8251A`,borderRadius:3,background:WHITE,color:"#E8251A",fontSize:11,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
-                {actionStates[s.id]==="removing"?"…":"Remove"}
-              </button>
+              <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+                <button onClick={()=>handleEditorsPick(s.id)} style={{padding:"5px 10px",border:`1px solid ${editorsPickMap[s.id]?INK:BORDER}`,borderRadius:20,background:editorsPickMap[s.id]?INK:WHITE,color:editorsPickMap[s.id]?WHITE:MID,fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap"}}>
+                  {editorsPickMap[s.id]?"✦ Pick":"Pick"}
+                </button>
+                <button onClick={(e)=>handleRemove(e,s.id,s.title||"this show")} disabled={actionStates[s.id]==="removing"} style={{flexShrink:0,padding:"7px 14px",border:`1px solid #E8251A`,borderRadius:3,background:WHITE,color:"#E8251A",fontSize:11,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
+                  {actionStates[s.id]==="removing"?"…":"Remove"}
+                </button>
+              </div>
             </div>
           ))}
         </div>
