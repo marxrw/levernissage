@@ -687,7 +687,7 @@ function ShowsSubPage({title,shows,onBack,onSelect,saved,toggleSave,t}){
           <span style={{fontSize:16,fontWeight:600,color:INK}}>{title}</span>
         </button>
       </div>
-      <div style={{flex:1,overflowY:"auto"}}>
+      <div style={{flex:1,overflowY:"auto",paddingBottom:32}}>
         {shows.length===0&&<div style={{padding:"60px 20px",textAlign:"center",color:MID,fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontStyle:"italic"}}>No shows in this section</div>}
         {shows.map(s=><TextCard key={s.id} s={s} onClick={()=>onSelect(s)} saved={saved.has(s.id)} onToggleSave={()=>toggleSave(s.id)} t={t}/>)}
       </div>
