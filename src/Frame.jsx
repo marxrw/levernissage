@@ -372,9 +372,9 @@ function PWAPrompt({ t, onDismiss }) {
 function parseLocalDate(str){if(!str)return null;const[y,m,d]=str.split("-");return new Date(y,m-1,d);}
 function dayDiff(dateStr){if(!dateStr)return null;return(parseLocalDate(dateStr)-TODAY)/86400000;}
 function isClosingToday(s){if(!s.closeDate)return false;const d=dayDiff(s.closeDate);return d>=0&&d<1;}
-function isClosingThisWeek(s){if(!s.closeDate)return false;const d=dayDiff(s.closeDate);return d>=1&&d<=7;}
+function isClosingThisWeek(s){if(!s.closeDate)return false;const d=dayDiff(s.closeDate);return d>=1&&d<7;}
 function isOpeningToday(s){if(!s.openDate)return false;const d=dayDiff(s.openDate);return d>=0&&d<1;}
-function isOpeningThisWeek(s){if(!s.openDate)return false;const d=dayDiff(s.openDate);return d>=1&&d<=7;}
+function isOpeningThisWeek(s){if(!s.openDate)return false;const d=dayDiff(s.openDate);return d>=1&&d<7;}
 function isOnNow(s){if(!s.openDate||!s.closeDate)return false;const od=parseLocalDate(s.openDate);const cd=parseLocalDate(s.closeDate);return od<TODAY&&cd>=TODAY;}
 function isUpcoming(s){if(!s.openDate)return false;return dayDiff(s.openDate)>7;}
 
