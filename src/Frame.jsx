@@ -392,7 +392,7 @@ function statusBadgeInfo(s,t){
   return null;
 }
 
-function mapsUrl(addr){return`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}`;}
+function mapsUrl(addr,lat,lng){if(lat&&lng&&!isNaN(lat)&&!isNaN(lng))return`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;return`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}`;}
 function staticMapUrl(lat,lng){return`https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=600x300&scale=2&maptype=roadmap&markers=color:red%7C${lat},${lng}&key=${GMAPS_KEY}&style=feature:poi|visibility:off`;}
 function shortAddr(a){if(!a)return"";const firstComma=a.indexOf(",");return firstComma>-1?a.slice(0,firstComma).trim():a.trim();}
 function getImages(s){return[s.image_url,s.image_url_2,s.image_url_3,s.image_url_4,s.image_url_5].filter(Boolean);}
@@ -590,7 +590,7 @@ function ImageCarousel({slides,height=220,onTap,directionsBottom=10,onFirstImage
                 <img src={slide.mapUrl} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block",pointerEvents:"none"}}
                   onLoad={i===0?handleFirstLoad:undefined}
                   onError={e=>{e.target.style.display="none";if(i===0)handleFirstLoad();}}/>
-                <a href={mapsUrl(slide.address)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={dirBtnStyle}>
+                <a href={mapsUrl(slide.address,slide.lat,slide.lng)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={dirBtnStyle}>
                   {(window.__lvT&&window.__lvT.getDirections)||"Directions"}<svg width="9" height="9" viewBox="0 0 12 12" fill="none" style={{marginLeft:4,flexShrink:0}}><path d="M2 10L10 2M10 2H4M10 2V8" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </a>
               </>
@@ -598,7 +598,7 @@ function ImageCarousel({slides,height=220,onTap,directionsBottom=10,onFirstImage
               <div style={{width:"100%",height:"100%",background:CARD_PLACEHOLDER,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,position:"relative"}}>
                 <div style={{fontSize:28}}>📍</div>
                 <div style={{fontSize:13,fontWeight:600,color:INK,textAlign:"center",padding:"0 20px",lineHeight:1.4}}>{slide.address}</div>
-                <a href={mapsUrl(slide.address)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={dirBtnStyle}>
+                <a href={mapsUrl(slide.address,slide.lat,slide.lng)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={dirBtnStyle}>
                   {(window.__lvT&&window.__lvT.getDirections)||"Directions"}<svg width="9" height="9" viewBox="0 0 12 12" fill="none" style={{marginLeft:4,flexShrink:0}}><path d="M2 10L10 2M10 2H4M10 2V8" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </a>
               </div>
@@ -621,7 +621,7 @@ function FeaturedCard({s,onClick,saved,onToggleSave,t,onFirstImageLoad}){
   const badgeInfo=statusBadgeInfo(s,t);
   const images=getImages(s);
   const hasCoords=s.lat&&s.lng&&!isNaN(s.lat)&&!isNaN(s.lng);
-  const mapSlide=hasCoords?{mapUrl:staticMapUrl(s.lat,s.lng),address:s.address||s.gallery}:{address:s.address||s.gallery};
+  const mapSlide=hasCoords?{mapUrl:staticMapUrl(s.lat,s.lng),address:s.address||s.gallery,lat:s.lat,lng:s.lng}:{address:s.address||s.gallery};
   const slides=[...images,mapSlide];
   const displayArtist=artistDisplayName(s.artist);
   return(
@@ -719,7 +719,7 @@ function VenuePage({show,onBack,t,onEmailSheet}){
         <iframe title="map" width="100%" height="100%" style={{border:0,display:"block"}} loading="lazy" allowFullScreen referrerPolicy="no-referrer-when-downgrade" src={embedSrc}/>
       </div>
       <div style={{borderTop:`1px solid ${BORDER}`}}>
-        <a href={mapsUrl(show.address)} target="_blank" rel="noopener noreferrer" onClick={()=>capture("directions_tapped",{gallery:show.gallery,source:"venue"})} style={{display:"flex",alignItems:"center",gap:14,padding:"18px 20px",borderBottom:`1px solid ${BORDER}`,textDecoration:"none",color:BLUE,fontSize:16,fontWeight:500}}>
+        <a href={mapsUrl(show.address,show.lat,show.lng)} target="_blank" rel="noopener noreferrer" onClick={()=>capture("directions_tapped",{gallery:show.gallery,source:"venue"})} style={{display:"flex",alignItems:"center",gap:14,padding:"18px 20px",borderBottom:`1px solid ${BORDER}`,textDecoration:"none",color:BLUE,fontSize:16,fontWeight:500}}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
           {t.getDirections}
         </a>
@@ -743,7 +743,7 @@ function VenuePage({show,onBack,t,onEmailSheet}){
 function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastId,toastVisible,t,onVenue,onApptEmail}){
   const images=getImages(detail);
   const hasCoords=detail.lat&&detail.lng&&!isNaN(detail.lat)&&!isNaN(detail.lng);
-  const mapSlide=hasCoords?{mapUrl:staticMapUrl(detail.lat,detail.lng),address:detail.address||detail.gallery}:{address:detail.address||detail.gallery};
+  const mapSlide=hasCoords?{mapUrl:staticMapUrl(detail.lat,detail.lng),address:detail.address||detail.gallery,lat:detail.lat,lng:detail.lng}:{address:detail.address||detail.gallery};
   const slides=[...images,mapSlide];
   const on=saved.has(detail.id);
   const staticRows=[
@@ -1166,7 +1166,7 @@ export default function App(){
         const badgeHtml=badge?`<div style="padding:8px 14px 0;"><span style="display:inline-block;padding:3px 7px;border-radius:3px;background:${badge.color};color:#fff;font-size:9px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;">${badge.label}</span></div>`:`<div style="padding:8px 0 0;"></div>`;
         const epHtml=s.editors_pick?`<div style="padding:4px 14px 0;"><span style="display:inline-block;padding:2px 9px;border-radius:20px;background:#0F0E0C;color:#fff;font-size:9px;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;">Editor's Pick</span></div>`:"";
         const diamondHtml=s.featured?`<svg width="11" height="11" viewBox="2 4 22 23" fill="none" stroke="#2B5BE8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-left:4px;position:relative;top:-1px;"><path d="M9 5 L17 5 L22 11 L13 26 L4 11 Z" stroke-width="1.8"/><line x1="4" y1="11" x2="22" y2="11" stroke-width="1.8"/><line x1="9" y1="5" x2="4" y2="11" stroke-width="0.8"/><line x1="17" y1="5" x2="22" y2="11" stroke-width="0.8"/><line x1="9" y1="5" x2="13" y2="11" stroke-width="0.8"/><line x1="17" y1="5" x2="13" y2="11" stroke-width="0.8"/><line x1="4" y1="11" x2="13" y2="26" stroke-width="0.8"/><line x1="22" y1="11" x2="13" y2="26" stroke-width="0.8"/></svg>`:"";
-        return `<div style="width:220px;font-family:'DM Sans',sans-serif;background:#fff;border-radius:6px;overflow:hidden;">${badgeHtml}${epHtml}<div style="padding:8px 14px 14px;"><div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#2B5BE8;font-weight:700;margin-bottom:6px;">${s.gallery}${diamondHtml}</div><div style="font-family:'Cormorant Garamond',serif;font-size:17px;font-style:italic;font-weight:600;color:#0F0E0C;line-height:1.2;margin-bottom:3px;">${s.title}</div><div style="font-size:12px;color:#6B6560;margin-bottom:10px;">${s.artist}</div><div style="font-size:11px;color:#9B9590;margin-bottom:13px;">📍 ${sa}</div><div style="display:flex;gap:6px;"><a href="${mapsUrl(s.address)}" target="_blank" style="flex:1;background:rgba(15,14,12,0.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:#fff;border:1px solid rgba(255,255,255,0.20);border-radius:20px;padding:4px 8px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;outline:none;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;">${dir}<svg width="9" height="9" viewBox="0 0 12 12" fill="none" style="flex-shrink:0"><path d="M2 10L10 2M10 2H4M10 2V8" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a><button onclick="window.__lvOpen('${s.id}')" ontouchend="event.preventDefault();window.__lvOpen('${s.id}')" style="flex:1;background:rgba(15,14,12,0.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:#fff;border:1px solid rgba(255,255,255,0.20);border-radius:20px;padding:4px 8px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;outline:none;">${details}</button></div></div></div>`;
+        return `<div style="width:220px;font-family:'DM Sans',sans-serif;background:#fff;border-radius:6px;overflow:hidden;">${badgeHtml}${epHtml}<div style="padding:8px 14px 14px;"><div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#2B5BE8;font-weight:700;margin-bottom:6px;">${s.gallery}${diamondHtml}</div><div style="font-family:'Cormorant Garamond',serif;font-size:17px;font-style:italic;font-weight:600;color:#0F0E0C;line-height:1.2;margin-bottom:3px;">${s.title}</div><div style="font-size:12px;color:#6B6560;margin-bottom:10px;">${s.artist}</div><div style="font-size:11px;color:#9B9590;margin-bottom:13px;">📍 ${sa}</div><div style="display:flex;gap:6px;"><a href="${mapsUrl(s.address,s.lat,s.lng)}" target="_blank" style="flex:1;background:rgba(15,14,12,0.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:#fff;border:1px solid rgba(255,255,255,0.20);border-radius:20px;padding:4px 8px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;outline:none;display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;">${dir}<svg width="9" height="9" viewBox="0 0 12 12" fill="none" style="flex-shrink:0"><path d="M2 10L10 2M10 2H4M10 2V8" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a><button onclick="window.__lvOpen('${s.id}')" ontouchend="event.preventDefault();window.__lvOpen('${s.id}')" style="flex:1;background:rgba(15,14,12,0.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:#fff;border:1px solid rgba(255,255,255,0.20);border-radius:20px;padding:4px 8px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;outline:none;">${details}</button></div></div></div>`;
       };
       const infoWindow=new google.maps.InfoWindow({content:getInfoContent(),disableAutoPan:false});
       infoWindow.addListener("closeclick",()=>{if(activePulse){activePulse.setMap(null);activePulse=null;}});
