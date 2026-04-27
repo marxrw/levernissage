@@ -113,6 +113,7 @@ const T={
     enableLocation:"Enable location for nearby shows",
     badgeOnNow:"On Now",badgeClosingToday:"Closing Today",badgeClosing:"Closing",
     badgeOpeningToday:"Opening Today",badgeOpening:"Opening",badgeUpcoming:"Upcoming",
+    badgeOpeningSoon:"Opening Soon",badgeClosingSoon:"Closing Soon",
     days:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
     details:"Details",
     searchPlaceholder:"Search by gallery, artist, title…",
@@ -147,6 +148,7 @@ const T={
     enableLocation:"Activer la localisation",
     badgeOnNow:"En cours",badgeClosingToday:"Ferme aujourd'hui",badgeClosing:"Ferme",
     badgeOpeningToday:"Ouvre aujourd'hui",badgeOpening:"Ouverture",badgeUpcoming:"À venir",
+    badgeOpeningSoon:"Ouverture prochaine",badgeClosingSoon:"Fermeture prochaine",
     days:["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"],
     details:"Détails",
     searchPlaceholder:"Galerie, artiste, titre…",
@@ -372,17 +374,17 @@ function PWAPrompt({ t, onDismiss }) {
 function parseLocalDate(str){if(!str)return null;const[y,m,d]=str.split("-");return new Date(y,m-1,d);}
 function dayDiff(dateStr){if(!dateStr)return null;return(parseLocalDate(dateStr)-TODAY)/86400000;}
 function isClosingToday(s){if(!s.closeDate)return false;const d=dayDiff(s.closeDate);return d>=0&&d<1;}
-function isClosingThisWeek(s){if(!s.closeDate)return false;const d=dayDiff(s.closeDate);return d>=1&&d<7;}
+function isClosingThisWeek(s){if(!s.closeDate)return false;const d=dayDiff(s.closeDate);return d>=1&&d<=7;}
 function isOpeningToday(s){if(!s.openDate)return false;const d=dayDiff(s.openDate);return d>=0&&d<1;}
-function isOpeningThisWeek(s){if(!s.openDate)return false;const d=dayDiff(s.openDate);return d>=1&&d<7;}
+function isOpeningThisWeek(s){if(!s.openDate)return false;const d=dayDiff(s.openDate);return d>=1&&d<=7;}
 function isOnNow(s){if(!s.openDate||!s.closeDate)return false;const od=parseLocalDate(s.openDate);const cd=parseLocalDate(s.closeDate);return od<TODAY&&cd>=TODAY;}
 function isUpcoming(s){if(!s.openDate)return false;return dayDiff(s.openDate)>7;}
 
 function statusBadgeInfo(s,t){
   if(isClosingToday(s))return{label:t.badgeClosingToday,color:BADGE_RED};
   if(isOpeningToday(s))return{label:t.badgeOpeningToday,color:BADGE_BLUE};
-  if(isOpeningThisWeek(s)){const d=parseLocalDate(s.openDate);return{label:`${t.badgeOpening} ${t.days[d.getDay()]}`,color:BADGE_BLUE};}
-  if(isClosingThisWeek(s)){const d=parseLocalDate(s.closeDate);return{label:`${t.badgeClosing} ${t.days[d.getDay()]}`,color:BADGE_RED};}
+  if(isOpeningThisWeek(s)){const d=parseLocalDate(s.openDate);const diff=dayDiff(s.openDate);return{label:diff>=7?t.badgeOpeningSoon:`${t.badgeOpening} ${t.days[d.getDay()]}`,color:BADGE_BLUE};}
+  if(isClosingThisWeek(s)){const d=parseLocalDate(s.closeDate);const diff=dayDiff(s.closeDate);return{label:diff>=7?t.badgeClosingSoon:`${t.badgeClosing} ${t.days[d.getDay()]}`,color:BADGE_RED};}
   if(isOnNow(s))return{label:t.badgeOnNow,color:BADGE_GREEN};
   if(isUpcoming(s))return{label:t.badgeUpcoming,color:BADGE_AMBER};
   return null;
