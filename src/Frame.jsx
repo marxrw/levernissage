@@ -49,6 +49,8 @@ async function fetchShows(){
       lat:parseFloat(s.lat)||null,lng:parseFloat(s.lng)||null,
     }))
     .filter(s=>{
+      if(s.between)return true;
+      if(s.closeDate&&new Date(s.closeDate.split("-")[0],s.closeDate.split("-")[1]-1,s.closeDate.split("-")[2])<today)return false;
       if(s.featured)return true;
       if(s.editors_pick)return true;
       if(!s.openDate)return true;
