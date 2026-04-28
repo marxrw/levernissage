@@ -394,7 +394,7 @@ function statusBadgeInfo(s,t){
 
 function mapsUrl(addr,lat,lng){if(lat&&lng&&!isNaN(lat)&&!isNaN(lng))return`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;return`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}`;}
 function staticMapUrl(lat,lng){return`https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=600x300&scale=2&maptype=roadmap&markers=color:red%7C${lat},${lng}&key=${GMAPS_KEY}&style=feature:poi|visibility:off`;}
-function shortAddr(a){if(!a)return"";const firstComma=a.indexOf(",");return firstComma>-1?a.slice(0,firstComma).trim():a.trim();}
+function shortAddr(a){if(!a)return"";const cityIndex=a.indexOf(", Montréal, QC");const stripped=cityIndex>-1?a.slice(0,cityIndex):a;return stripped.trim();}
 function getImages(s){return[s.image_url,s.image_url_2,s.image_url_3,s.image_url_4,s.image_url_5].filter(Boolean);}
 function distanceKm(lat1,lng1,lat2,lng2){
   const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;
