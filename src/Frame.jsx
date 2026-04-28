@@ -669,7 +669,7 @@ function TextCard({s,onClick,saved,onToggleSave,t}){
         {s.editors_pick&&<div style={{marginBottom:5}}><span style={{display:"inline-flex",alignItems:"center",padding:"2px 9px",borderRadius:20,background:INK,color:WHITE,fontSize:9,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase"}}>Editor's Pick</span></div>}
         <div style={{fontSize:12,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:6,display:"flex",alignItems:"center",gap:5}}>{s.gallery}{s.featured&&<DiamondIcon/>}</div>
         <div style={{fontSize:19,fontWeight:600,color:INK,lineHeight:1.25,marginBottom:6,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{displayArtist}</div>
-        <div style={{fontSize:14,fontWeight:500,color:INK}}>{s.hood}{s.dates?` · ${s.dates}`:""}</div>
+        <div style={{fontSize:14,fontWeight:500,color:INK,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.hood}{s.dates?` · ${s.dates.replace(/,\s*\d{4}/g,"")}`:""}</div>
       </div>
       <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",justifyContent:"space-evenly",alignSelf:"stretch",flexShrink:0}}>
         {badgeInfo&&<span style={{fontSize:10,padding:"3px 8px",background:badgeInfo.color,color:WHITE,borderRadius:3,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase"}}>{badgeInfo.label}</span>}
