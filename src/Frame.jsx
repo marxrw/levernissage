@@ -1001,6 +1001,7 @@ export default function App(){
   const[loading,setLoading]=useState(true);
   const[loadError,setLoadError]=useState(false);
   const[showAdmin,setShowAdmin]=useState(false);
+  const[showIdentify,setShowIdentify]=useState(false);
   const[tapCount,setTapCount]=useState(0);
   const[userLocation,setUserLocation]=useState(null);
   const[locationDenied,setLocationDenied]=useState(false);
@@ -1136,6 +1137,7 @@ export default function App(){
   const handleHeaderTap=()=>{
     setTapCount(prev=>{
       const next=prev+1;clearTimeout(tapTimer.current);
+      if(next>=8){setShowIdentify(true);return 0;}
       if(next>=5){setShowAdmin(true);return 0;}
       tapTimer.current=setTimeout(()=>setTapCount(0),2000);return next;
     });
@@ -1490,6 +1492,19 @@ export default function App(){
       {emailSheet&&<EmailSheet email={emailSheet.email||CONTACT_EMAIL} subject={emailSheet.subject} body={emailSheet.body} onClose={()=>setEmailSheet(null)}/>}
       {showPWA&&<PWAPrompt t={t} onDismiss={()=>setShowPWA(false)}/>}
 
+      {showIdentify&&(
+        <div style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(15,14,12,0.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:32}} onClick={()=>setShowIdentify(false)}>
+          <div style={{background:"#FFFFFF",borderRadius:12,padding:24,width:"100%",maxWidth:320}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:"#0F0E0C",marginBottom:16}}>Identify this device</div>
+            <input id="identifyInput" type="text" placeholder="e.g. marx-iphone" defaultValue="" autoFocus style={{width:"100%",padding:"12px 14px",borderRadius:6,border:"1.5px solid #E8E5E0",fontSize:15,fontFamily:"'DM Sans',sans-serif",outline:"none",boxSizing:"border-box",marginBottom:12}}/>
+            <button onClick={()=>{
+              const val=document.getElementById("identifyInput").value.trim();
+              if(val){window.posthog?.identify(val);alert("Identified as: "+val);}
+              setShowIdentify(false);
+            }} style={{width:"100%",padding:"12px 0",borderRadius:6,background:"#0F0E0C",color:"#FFFFFF",border:"none",fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",cursor:"pointer"}}>Identify</button>
+          </div>
+        </div>
+      )}
       <style>{`
         @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
         @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
