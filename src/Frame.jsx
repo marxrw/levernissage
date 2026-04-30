@@ -1002,6 +1002,7 @@ export default function App(){
   const[loadError,setLoadError]=useState(false);
   const[showAdmin,setShowAdmin]=useState(false);
   const[showIdentify,setShowIdentify]=useState(false);
+  const[identifyValue,setIdentifyValue]=useState("");
   const[tapCount,setTapCount]=useState(0);
   const[userLocation,setUserLocation]=useState(null);
   const[locationDenied,setLocationDenied]=useState(false);
@@ -1497,10 +1498,11 @@ export default function App(){
         <div style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(15,14,12,0.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:32}} onClick={()=>setShowIdentify(false)}>
           <div style={{background:"#FFFFFF",borderRadius:12,padding:24,width:"100%",maxWidth:320}} onClick={e=>e.stopPropagation()}>
             <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:"#0F0E0C",marginBottom:16}}>Identify this device</div>
-            <input id="identifyInput" type="text" placeholder="e.g. marx-iphone" defaultValue="" autoFocus style={{width:"100%",padding:"12px 14px",borderRadius:6,border:"1.5px solid #E8E5E0",fontSize:15,fontFamily:"'DM Sans',sans-serif",outline:"none",boxSizing:"border-box",marginBottom:12}}/>
+            <input type="text" placeholder="e.g. marx-iphone" value={identifyValue} onChange={e=>setIdentifyValue(e.target.value)} autoFocus style={{width:"100%",padding:"12px 14px",borderRadius:6,border:"1.5px solid #E8E5E0",fontSize:15,fontFamily:"'DM Sans',sans-serif",outline:"none",boxSizing:"border-box",marginBottom:12}}/>
             <button onClick={()=>{
-              const val=document.getElementById("identifyInput").value.trim();
+              const val=identifyValue.trim();
               if(val){window.posthog?.identify(val);alert("Identified as: "+val);}
+              setIdentifyValue("");
               setShowIdentify(false);
             }} style={{width:"100%",padding:"12px 0",borderRadius:6,background:"#0F0E0C",color:"#FFFFFF",border:"none",fontFamily:"'DM Sans',sans-serif",fontSize:12,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",cursor:"pointer"}}>Identify</button>
           </div>
