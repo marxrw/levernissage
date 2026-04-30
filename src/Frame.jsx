@@ -1017,6 +1017,8 @@ export default function App(){
   const initialLoadsRef=useRef(0);
   const feedRevealedRef=useRef(false);
   const tapTimer=useRef(null);
+  const langTapCount=useRef(0);
+  const langTapTimer=useRef(null);
   const mapRef=useRef(null);
   const gMapRef=useRef(null);
   const markersRef=useRef([]);
@@ -1137,7 +1139,6 @@ export default function App(){
   const handleHeaderTap=()=>{
     setTapCount(prev=>{
       const next=prev+1;clearTimeout(tapTimer.current);
-      if(next>=8){setShowIdentify(true);return 0;}
       if(next>=5){setShowAdmin(true);return 0;}
       tapTimer.current=setTimeout(()=>setTapCount(0),2000);return next;
     });
@@ -1330,7 +1331,7 @@ export default function App(){
         )}
         <div style={{display:"flex",gap:4}}>
           {["en","fr"].map(l=>(
-            <button key={l} onClick={()=>setLang(l)} style={{padding:"5px 10px",borderRadius:3,border:`1px solid ${lang===l?INK:BORDER}`,background:lang===l?INK:WHITE,color:lang===l?WHITE:MID,fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>{l}</button>
+            <button key={l} onClick={()=>{setLang(l);langTapCount.current+=1;clearTimeout(langTapTimer.current);if(langTapCount.current>=8){langTapCount.current=0;setShowIdentify(true);}else{langTapTimer.current=setTimeout(()=>{langTapCount.current=0;},2000);}}} style={{padding:"5px 10px",borderRadius:3,border:`1px solid ${lang===l?INK:BORDER}`,background:lang===l?INK:WHITE,color:lang===l?WHITE:MID,fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>{l}</button>
           ))}
         </div>
       </div>
