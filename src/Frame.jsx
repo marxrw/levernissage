@@ -1050,29 +1050,23 @@ export default function App(){
   };
 
   const sortShows=(data)=>{
-    const now=new Date();
-    const diffDays=(s)=>{
-      if(s.openDate&&new Date(s.openDate)>now)return(new Date(s.openDate)-now)/86400000;
-      if(s.closeDate)return(new Date(s.closeDate)-now)/86400000;
-      return 999;
-    };
     const tier=(s)=>{
-      if(!s.openDate&&!s.closeDate)return 3;
-      const od=s.openDate?new Date(s.openDate):null;
-      const cd=s.closeDate?new Date(s.closeDate):null;
-      const daysToOpen=od?(od-now)/86400000:null;
-      const daysToClose=cd?(cd-now)/86400000:null;
-      if(daysToOpen!==null&&daysToOpen>=0&&daysToOpen<=3)return 1;
-      if(daysToClose!==null&&daysToClose>=0&&daysToClose<=3)return 1;
-      if(daysToOpen!==null&&daysToOpen>=0&&daysToOpen<=7)return 2;
-      if(daysToClose!==null&&daysToClose>=0&&daysToClose<=7)return 2;
-      if(od&&cd&&od<=now&&cd>=now)return 2;
-      return 3;
+      if(isClosingToday(s))return 1;
+      if(isOpeningToday(s))return 2;
+      if(isOnNow(s))return 3;
+      if(isClosingThisWeek(s))return 4;
+      if(isOpeningThisWeek(s))return 5;
+      return 6;
+    };
+    const diffDays=(s)=>{
+      if(s.openDate&&parseLocalDate(s.openDate)>TODAY)return(parseLocalDate(s.openDate)-TODAY)/86400000;
+      if(s.closeDate)return(parseLocalDate(s.closeDate)-TODAY)/86400000;
+      return 999;
     };
     return dailyShuffle(data).sort((a,b)=>{
       const ta=tier(a),tb=tier(b);
       if(ta!==tb)return ta-tb;
-      if(ta<3)return diffDays(a)-diffDays(b);
+      if(ta<6)return diffDays(a)-diffDays(b);
       return 0;
     });
   };
