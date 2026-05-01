@@ -1250,7 +1250,7 @@ export default function App(){
     clustererRef.current.addMarkers(toShow.map(m=>m.marker));
   },[mapMode,saved]);
 
-  const allCurrent=SHOWS.filter(s=>!s.between&&(isOnNow(s)||isClosingToday(s)));
+  const allCurrent=SHOWS.filter(s=>!s.between&&(isOnNow(s)||isClosingToday(s)||isOpeningToday(s)));
   const openingThisWeek=SHOWS.filter(s=>!s.between&&(isOpeningToday(s)||isOpeningThisWeek(s)));
   const closingThisWeek=SHOWS.filter(s=>!s.between&&(isClosingToday(s)||isClosingThisWeek(s)));
   const editorsPicks=SHOWS.filter(s=>!s.between&&s.editors_pick);
