@@ -373,6 +373,42 @@ function PWAPrompt({ t, onDismiss }) {
   );
 }
 
+
+// ── FR date/hours translation ─────────────────────────────────────────────────
+const EN_TO_FR_MONTHS = {
+  "Jan":"janv.","Feb":"févr.","Mar":"mars","Apr":"avr.","May":"mai","Jun":"juin",
+  "Jul":"juill.","Aug":"août","Sep":"sept.","Oct":"oct.","Nov":"nov.","Dec":"déc."
+};
+const EN_TO_FR_DAYS = {
+  "Mon":"lun","Tue":"mar","Wed":"mer","Thu":"jeu","Fri":"ven","Sat":"sam","Sun":"dim"
+};
+
+function translateDates(dates, lang) {
+  if(!dates || lang !== "fr") return dates;
+  // Convert "Apr 5 – May 31, 2026" → "5 avr. – 31 mai 2026"
+  return dates.replace(/([A-Z][a-z]{2})\s+(\d{1,2})/g, (_, month, day) => {
+    const frMonth = EN_TO_FR_MONTHS[month] || month;
+    return `${day} ${frMonth}`;
+  }).replace(/,\s*(\d{4})/g, " $1");
+}
+
+function translateHours(hours, lang) {
+  if(!hours || lang !== "fr") return hours;
+  // Replace day abbreviations
+  let fr = hours;
+  Object.entries(EN_TO_FR_DAYS).forEach(([en, frDay]) => {
+    fr = fr.replace(new RegExp(en, "g"), frDay);
+  });
+  // Convert 12h to 24h: 12am→0h, 12pm→12h, Xpm→(X+12)h, Xam→Xh
+  fr = fr.replace(/(\d{1,2})(am|pm)/gi, (_, h, period) => {
+    let hour = parseInt(h);
+    if(period.toLowerCase() === "pm" && hour !== 12) hour += 12;
+    if(period.toLowerCase() === "am" && hour === 12) hour = 0;
+    return `${hour}h`;
+  });
+  return fr;
+}
+
 function parseLocalDate(str){if(!str)return null;const[y,m,d]=str.split("-");return new Date(y,m-1,d);}
 function dayDiff(dateStr){if(!dateStr)return null;return(parseLocalDate(dateStr)-TODAY)/86400000;}
 function isClosingToday(s){if(!s.closeDate)return false;const d=dayDiff(s.closeDate);return d>=0&&d<1;}
@@ -669,7 +705,7 @@ function TextCard({s,onClick,saved,onToggleSave,t}){
         {s.editors_pick&&<div style={{marginBottom:5}}><span style={{display:"inline-flex",alignItems:"center",padding:"2px 9px",borderRadius:20,background:INK,color:WHITE,fontSize:9,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase"}}>Editor's Pick</span></div>}
         <div style={{fontSize:12,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:6,display:"flex",alignItems:"center",gap:5}}>{s.gallery}{s.featured&&<DiamondIcon/>}</div>
         <div style={{fontSize:19,fontWeight:600,color:INK,lineHeight:1.25,marginBottom:6,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{displayArtist}</div>
-        <div style={{fontSize:14,fontWeight:500,color:INK,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.hood}{s.dates?` · ${s.dates.replace(/,\s*\d{4}/g,"")}`:""}</div>
+        <div style={{fontSize:14,fontWeight:500,color:INK,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.hood}{s.dates?` · ${translateDates(s.dates.replace(/,\s*\d{4}/g,""),t.city==="Montréal"?"fr":"en")}`:""}</div>
       </div>
       <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",justifyContent:"space-evenly",alignSelf:"stretch",flexShrink:0}}>
         {badgeInfo&&<span style={{fontSize:10,padding:"3px 8px",background:badgeInfo.color,color:WHITE,borderRadius:3,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase"}}>{badgeInfo.label}</span>}
@@ -746,8 +782,8 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
   const slides=[...images,mapSlide];
   const on=saved.has(detail.id);
   const staticRows=[
-    [t.dates,detail.dates],
-    [t.hours,detail.hours||"—"],
+    [t.dates,translateDates(detail.dates,t.city==="Montréal"?"fr":"en")],
+    [t.hours,translateHours(detail.hours,t.city==="Montréal"?"fr":"en")||"—"],
     [t.area,detail.hood],
   ];
   return(
