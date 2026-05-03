@@ -1144,7 +1144,7 @@ export default function App(){
 
   const openSearch=async()=>{
     setSearchActive(true);
-    setTimeout(()=>searchInputRef.current?.focus(),150);
+    searchInputRef.current?.focus();
     if(!allShowsCache){
       setSearchLoading(true);
       try{const data=await fetchAllShows();setAllShowsCache(data);}catch(_){}
