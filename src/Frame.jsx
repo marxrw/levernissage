@@ -508,7 +508,7 @@ function PlanPill({saved,onToggle}){
   );
 }
 
-function ImageCarousel({slides,height=220,onTap,directionsBottom=10,onFirstImageLoad}){
+function ImageCarousel({slides,height=220,onTap,directionsBottom=10,onFirstImageLoad,hideDirections=false}){
   const[idx,setIdx]=useState(0);
   const touchStartX=useRef(null);
   const touchStartY=useRef(null);
@@ -628,17 +628,17 @@ function ImageCarousel({slides,height=220,onTap,directionsBottom=10,onFirstImage
                 <img src={slide.mapUrl} alt="" style={{width:"100%",height:"100%",objectFit:"cover",display:"block",pointerEvents:"none"}}
                   onLoad={i===0?handleFirstLoad:undefined}
                   onError={e=>{e.target.style.display="none";if(i===0)handleFirstLoad();}}/>
-                <a href={mapsUrl(slide.address,slide.lat,slide.lng)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={dirBtnStyle}>
+                {!hideDirections&&<a href={mapsUrl(slide.address,slide.lat,slide.lng)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={dirBtnStyle}>
                   {(window.__lvT&&window.__lvT.getDirections)||"Directions"}<svg width="9" height="9" viewBox="0 0 12 12" fill="none" style={{marginLeft:4,flexShrink:0}}><path d="M2 10L10 2M10 2H4M10 2V8" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                </a>
+                </a>}
               </>
             ):(
               <div style={{width:"100%",height:"100%",background:CARD_PLACEHOLDER,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8,position:"relative"}}>
                 <div style={{fontSize:28}}>📍</div>
                 <div style={{fontSize:13,fontWeight:600,color:INK,textAlign:"center",padding:"0 20px",lineHeight:1.4}}>{slide.address}</div>
-                <a href={mapsUrl(slide.address,slide.lat,slide.lng)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={dirBtnStyle}>
+                {!hideDirections&&<a href={mapsUrl(slide.address,slide.lat,slide.lng)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={dirBtnStyle}>
                   {(window.__lvT&&window.__lvT.getDirections)||"Directions"}<svg width="9" height="9" viewBox="0 0 12 12" fill="none" style={{marginLeft:4,flexShrink:0}}><path d="M2 10L10 2M10 2H4M10 2V8" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                </a>
+                </a>}
               </div>
             )}
           </div>
@@ -784,12 +784,13 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
   const slides=[...images,mapSlide];
   const on=saved.has(detail.id);
   const lang=t.city==="Montréal"?"fr":"en";
+  const isExpired=detail.closeDate&&parseLocalDate(detail.closeDate)<TODAY;
   const showVernissage=detail.vernissage&&detail.openDate&&parseLocalDate(detail.openDate)>=TODAY;
   const vernissageDisplay=showVernissage?translateHours(translateDates(detail.vernissage,lang),lang):null;
   const staticRows=[
     ...(showVernissage?[[t.vernissage,vernissageDisplay]]:[]),
     [t.dates,translateDates(detail.dates,lang)],
-    [t.hours,translateHours(detail.hours,lang)||"—"],
+    ...(!isExpired?[[t.hours,translateHours(detail.hours,lang)||"—"]]:[]),
     [t.area,detail.hood],
   ];
   return(
@@ -800,7 +801,7 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
           <span style={{fontSize:16,fontWeight:600,color:INK}}>{sourceLabel}</span>
         </button>
       </div>
-      <ImageCarousel slides={slides} height={280}/>
+      <ImageCarousel slides={slides} height={280} hideDirections={isExpired}/>
       <div style={{padding:"24px 20px 0"}}>
         {detail.editors_pick&&<div style={{marginBottom:6}}><span style={{display:"inline-flex",alignItems:"center",padding:"2px 9px",borderRadius:20,background:INK,color:WHITE,fontSize:9,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase"}}>Editor's Pick</span></div>}
         <div style={{fontSize:11,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:8,display:"flex",alignItems:"center",gap:5}}>{detail.gallery}{detail.featured&&<DiamondIcon/>}</div>
@@ -814,7 +815,7 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
                 <div style={{fontSize:13,fontWeight:600,color:INK,textAlign:"right"}}>{val}</div>
               </div>
             ))}
-            {detail.byAppointment&&(
+            {detail.byAppointment&&!isExpired&&(
               <div onClick={()=>onApptEmail&&onApptEmail()} style={{padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,cursor:"pointer"}}>
                 <div style={{fontSize:10,letterSpacing:"0.10em",textTransform:"uppercase",color:MID,fontWeight:600,flexShrink:0}}>{t.byAppointment}</div>
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
@@ -825,7 +826,7 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
             )}
           </div>
         )}
-        {!detail.between&&(
+        {!detail.between&&!isExpired&&(
           <div style={{position:"relative",marginBottom:20}}>
             {toastId===detail.id&&toastVisible&&<div style={{position:"absolute",top:-36,left:"50%",transform:"translateX(-50%)",background:INK,color:WHITE,fontSize:11,fontWeight:600,whiteSpace:"nowrap",padding:"6px 10px",borderRadius:4,pointerEvents:"none",zIndex:10}}>{on?t.inPlan:"Removed from Plan"}</div>}
             <button onClick={e=>{e.stopPropagation();toggleSave(detail.id);showToast(detail.id);}} style={{width:"100%",padding:"13px 0",borderRadius:4,border:`1.5px solid ${on?BLUE:BORDER}`,background:on?`${BLUE}12`:"transparent",display:"flex",alignItems:"center",justifyContent:"center",gap:8,cursor:"pointer",transition:"all 0.2s"}}>
