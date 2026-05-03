@@ -46,6 +46,7 @@ async function fetchShows(){
       image_url_5:s.image_url_5||null,
       website_url:s.website_url||null,instagram_url:s.instagram_url||null,
       contact_email:s.contact_email||null,
+      vernissage:s.vernissage||null,
       lat:parseFloat(s.lat)||null,lng:parseFloat(s.lng)||null,
     }))
     .filter(s=>{
@@ -84,6 +85,7 @@ async function fetchAllShows(){
     image_url_5:s.image_url_5||null,
     website_url:s.website_url||null,instagram_url:s.instagram_url||null,
     contact_email:s.contact_email||null,
+    vernissage:s.vernissage||null,
     lat:parseFloat(s.lat)||null,lng:parseFloat(s.lng)||null,
   }));
 }
@@ -103,7 +105,7 @@ const T={
     allShows:"All Current Shows",neighbourhoods:"Neighbourhoods",editorsPicks:"Editor's Picks",
     openingThisWeek:"Opening This Week",closingThisWeek:"Closing This Week",nearby:"Nearby",
     myPlan:"My Plan",getDirections:"Directions",openWebsite:"Open website",
-    openInstagram:"Instagram",share:"Share",dates:"Dates",hours:"Hours",area:"Area",
+    openInstagram:"Instagram",share:"Share",dates:"Dates",hours:"Hours",area:"Area",vernissage:"Vernissage",
     byAppointment:"By Appointment",requestAppt:"Request a visit",
     noShowsInPlan:"No shows in your plan yet",addFromShows:"Add shows from the Shows tab",
     frameReview:"Frame Review",onNow:"On Now",loading:"Loading…",error:"Could not load shows.",
@@ -138,7 +140,7 @@ const T={
     allShows:"Toutes les expositions",neighbourhoods:"Quartiers",editorsPicks:"Sélection",
     openingThisWeek:"Ouvertures cette semaine",closingThisWeek:"Fermetures cette semaine",nearby:"À proximité",
     myPlan:"Mon plan",getDirections:"Itinéraire",openWebsite:"Site web",
-    openInstagram:"Instagram",share:"Partager",dates:"Dates",hours:"Heures",area:"Quartier",
+    openInstagram:"Instagram",share:"Partager",dates:"Dates",hours:"Heures",area:"Quartier",vernissage:"Vernissage",
     byAppointment:"Sur rendez-vous",requestAppt:"Demander une visite",
     noShowsInPlan:"Aucune exposition dans votre plan",addFromShows:"Ajoutez des expositions depuis Expositions",
     frameReview:"Critique Frame",onNow:"En cours",loading:"Chargement…",error:"Impossible de charger.",
@@ -781,9 +783,13 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
   const mapSlide=hasCoords?{mapUrl:staticMapUrl(detail.lat,detail.lng),address:detail.address||detail.gallery,lat:detail.lat,lng:detail.lng}:{address:detail.address||detail.gallery};
   const slides=[...images,mapSlide];
   const on=saved.has(detail.id);
+  const lang=t.city==="Montréal"?"fr":"en";
+  const showVernissage=detail.vernissage&&detail.openDate&&parseLocalDate(detail.openDate)>=TODAY;
+  const vernissageDisplay=showVernissage?translateHours(translateDates(detail.vernissage,lang),lang):null;
   const staticRows=[
-    [t.dates,translateDates(detail.dates,t.city==="Montréal"?"fr":"en")],
-    [t.hours,translateHours(detail.hours,t.city==="Montréal"?"fr":"en")||"—"],
+    ...(showVernissage?[[t.vernissage,vernissageDisplay]]:[]),
+    [t.dates,translateDates(detail.dates,lang)],
+    [t.hours,translateHours(detail.hours,lang)||"—"],
     [t.area,detail.hood],
   ];
   return(
