@@ -845,7 +845,7 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={MID} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
           </div>
         )}
-        {detail.desc&&<div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:400,lineHeight:1.8,marginBottom:28,color:INK}}>{detail.desc}</div>}
+        {detail.desc&&<div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:400,lineHeight:1.8,marginBottom:28,color:INK,whiteSpace:"pre-line"}}>{detail.desc}</div>}
         {detail.reviewed&&detail.quote&&(
           <div style={{background:"#EEF2FD",borderLeft:`3px solid ${BLUE}`,padding:"18px 16px",marginBottom:28,borderRadius:"0 4px 4px 0"}}>
             <div style={{fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",color:INK,fontWeight:700,marginBottom:10}}>{t.frameReview}</div>
