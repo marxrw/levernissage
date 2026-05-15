@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Frame — Outreach</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: #F5F1EB; min-height: 100vh; display: flex; justify-content: center; padding: 3rem 1rem 5rem; }
+
+    .page { width: 100%; max-width: 520px; }
+
+    .wordmark { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; color: #0F0E0C; letter-spacing: 0.04em; margin-bottom: 3rem; }
+
+    .field-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #6B6560; margin-bottom: 8px; display: block; }
+
+    .email-input {
+      width: 100%; height: 46px; border: 1px solid #E8E5E0; border-radius: 4px;
+      padding: 0 14px; font-family: 'DM Sans', sans-serif; font-size: 15px;
+      color: #0F0E0C; background: #fff; outline: none; transition: border-color 0.15s;
+    }
+    .email-input:focus { border-color: #2B5BE8; }
+    .email-input::placeholder { color: #B0ADA8; }
+
+    .section { margin-top: 2rem; }
+
+    .toggle-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+    .toggle-btn {
+      padding: 9px 20px; border: 1px solid #E8E5E0; border-radius: 3px;
+      background: #fff; font-family: 'DM Sans', sans-serif; font-size: 11px;
+      font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      color: #6B6560; cursor: pointer; transition: all 0.15s; user-select: none;
+    }
+    .toggle-btn.active { background: #0F0E0C; color: #fff; border-color: #0F0E0C; }
+    .toggle-btn:hover:not(.active) { border-color: #0F0E0C; color: #0F0E0C; }
+
+    .divider { border: none; border-top: 1px solid #E8E5E0; margin: 2.5rem 0; }
+
+    .preview-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #6B6560; margin-bottom: 1rem; }
+
+    .preview-box {
+      border: 1px solid #E8E5E0; border-radius: 4px; background: #fff;
+      padding: 1.75rem;
+    }
+    .preview-subject { font-size: 13px; font-weight: 600; color: #0F0E0C; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #E8E5E0; }
+    .preview-body { font-size: 14px; color: #3D3A36; line-height: 1.8; white-space: pre-wrap; }
+
+    .empty-state {
+      font-family: 'Cormorant Garamond', serif; font-size: 18px;
+      font-style: italic; color: #B0ADA8; text-align: center; padding: 3rem 0;
+    }
+
+    .send-btn {
+      margin-top: 1.5rem; width: 100%; height: 50px; background: #2B5BE8;
+      color: #fff; border: none; border-radius: 4px; font-family: 'DM Sans', sans-serif;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase;
+      cursor: pointer; transition: opacity 0.15s;
+    }
+    .send-btn:hover { opacity: 0.88; }
+    .send-btn:disabled { opacity: 0.25; cursor: default; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="wordmark">Frame</div>
+
+    <div class="section">
+      <label class="field-label">Recipient</label>
+      <input class="email-input" type="email" id="emailInput" placeholder="gallery@example.com" />
+    </div>
+
+    <div class="section">
+      <label class="field-label">Language</label>
+      <div class="toggle-group" id="langGroup">
+        <button class="toggle-btn active" data-val="en">EN</button>
+        <button class="toggle-btn" data-val="fr">FR</button>
+        <button class="toggle-btn" data-val="both">Both</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <label class="field-label">Content</label>
+      <div class="toggle-group" id="contentGroup">
+        <button class="toggle-btn" data-val="app">App</button>
+        <button class="toggle-btn" data-val="featured">Featured</button>
+        <button class="toggle-btn" data-val="free">Free</button>
+      </div>
+    </div>
+
+    <hr class="divider" />
+
+    <div class="preview-label">Preview</div>
+    <div id="previewArea"><div class="empty-state">Select language and content to preview</div></div>
+
+    <button class="send-btn" id="sendBtn" disabled>Open in Mail</button>
+  </div>
+
+  <script>
+    const FEATURED_FORM = "https://tally.so/r/ZjRNDz";
+    const FREE_FORM = "https://tally.so/r/D4Je7b";
+
+    const templates = {
+      en: {
+        app: {
+          subject: "Frame — exhibition discovery for Montreal",
+          body: `Frame is an exhibition discovery app for Montreal's contemporary art scene.
+
+Find what's on. Plan your visits. Discover shows you'd otherwise miss.
+
+useframe.ca`
+        },
+        featured: {
+          subject: "Feature your exhibition on Frame",
+          body: `Feature your exhibition on Frame.
+
+Each featured listing includes up to 5 photos, a status badge, and immediate visibility before the opening, from the moment you submit.
+
+To get started: ${FEATURED_FORM}
+
+Have ready: exhibition title, artist name, opening and closing dates, gallery hours, a short description, and at least one high-resolution image.
+
+Once submitted, your show goes live within 24 hours.
+
+Questions? Reply to this email.`
+        },
+        free: {
+          subject: "List your exhibition on Frame",
+          body: `List your exhibition on Frame.
+
+Free to submit. Your show appears in search, by neighbourhood, and in opening and closing this week, reaching collectors and art lovers actively looking for what's on.
+
+To get started: ${FREE_FORM}
+
+Have ready: exhibition title, artist name, opening and closing dates, gallery hours, and a short description.
+
+Once submitted, your show goes live within 24 hours.
+
+Questions? Reply to this email.`
+        }
+      },
+      fr: {
+        app: {
+          subject: "Frame — découverte d'expositions à Montréal",
+          body: `Frame est une application de découverte d'expositions pour la scène artistique contemporaine de Montréal.
+
+Trouvez ce qui s'affiche. Planifiez vos visites. Découvrez des expositions que vous n'auriez pas trouvées autrement.
+
+useframe.ca`
+        },
+        featured: {
+          subject: "Mettez votre exposition en vedette sur Frame",
+          body: `Mettez votre exposition en vedette sur Frame.
+
+Chaque listing vedette inclut jusqu'à 5 photos, un badge de statut et une visibilité immédiate dès la soumission, avant même le vernissage.
+
+Pour commencer : ${FEATURED_FORM}
+
+Préparez : le titre de l'exposition, le nom de l'artiste, les dates d'ouverture et de fermeture, les heures d'ouverture, une courte description et au moins une image haute résolution.
+
+Une fois soumise, votre exposition est en ligne dans les 24 heures.
+
+Questions ? Répondez à ce courriel.`
+        },
+        free: {
+          subject: "Inscrivez votre exposition sur Frame",
+          body: `Inscrivez votre exposition sur Frame.
+
+Gratuit. Votre exposition apparaît dans la recherche, par quartier, et dans les ouvertures et fermetures de la semaine, visible auprès des collectionneurs et amateurs d'art qui cherchent activement ce qui s'affiche.
+
+Pour commencer : ${FREE_FORM}
+
+Préparez : le titre de l'exposition, le nom de l'artiste, les dates d'ouverture et de fermeture, les heures d'ouverture et une courte description.
+
+Une fois soumise, votre exposition est en ligne dans les 24 heures.
+
+Questions ? Répondez à ce courriel.`
+        }
+      }
+    };
+
+    let selectedLang = 'en';
+    let selectedContent = new Set();
+
+    function setupToggleGroup(groupId, single) {
+      const group = document.getElementById(groupId);
+      group.querySelectorAll('.toggle-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (single) {
+            group.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedLang = btn.dataset.val;
+          } else {
+            btn.classList.toggle('active');
+            const val = btn.dataset.val;
+            if (selectedContent.has(val)) selectedContent.delete(val);
+            else selectedContent.add(val);
+          }
+          updatePreview();
+        });
+      });
+    }
+
+    setupToggleGroup('langGroup', true);
+    setupToggleGroup('contentGroup', false);
+
+    function buildEmailContent() {
+      const langs = selectedLang === 'both' ? ['en', 'fr'] : [selectedLang];
+      const contents = ['app', 'featured', 'free'].filter(c => selectedContent.has(c));
+      if (!contents.length) return null;
+
+      let subjects = [];
+      let bodies = [];
+
+      langs.forEach(lang => {
+        contents.forEach(content => {
+          const t = templates[lang][content];
+          subjects.push(t.subject);
+          bodies.push(t.body);
+        });
+      });
+
+      return {
+        subject: subjects[0],
+        body: bodies.join('\n\n---\n\n')
+      };
+    }
+
+    function updatePreview() {
+      const area = document.getElementById('previewArea');
+      const btn = document.getElementById('sendBtn');
+      const email = document.getElementById('emailInput').value.trim();
+      const result = buildEmailContent();
+
+      if (!result) {
+        area.innerHTML = '<div class="empty-state">Select content to preview</div>';
+        btn.disabled = true;
+        return;
+      }
+
+      area.innerHTML = `<div class="preview-box">
+        <div class="preview-subject">${result.subject}</div>
+        <div class="preview-body">${result.body.replace(/</g, '&lt;')}</div>
+      </div>`;
+
+      btn.disabled = !email;
+    }
+
+    document.getElementById('emailInput').addEventListener('input', updatePreview);
+
+    document.getElementById('sendBtn').addEventListener('click', () => {
+      const email = document.getElementById('emailInput').value.trim();
+      const result = buildEmailContent();
+      if (!email || !result) return;
+      const mailto = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(result.subject)}&body=${encodeURIComponent(result.body)}`;
+      window.location.href = mailto;
+    });
+  </script>
+</body>
+</html>
