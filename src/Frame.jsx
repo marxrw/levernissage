@@ -701,6 +701,7 @@ function DiamondIcon(){
 function TextCard({s,onClick,saved,onToggleSave,t}){
   const badgeInfo=statusBadgeInfo(s,t);
   const displayArtist=artistDisplayName(s.artist);
+  const isPast=s.closeDate&&parseLocalDate(s.closeDate)<TODAY;
   return(
     <div onClick={onClick} style={{padding:"16px",borderBottom:`1px solid ${BORDER}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
       <div style={{flex:1,minWidth:0}}>
@@ -711,7 +712,7 @@ function TextCard({s,onClick,saved,onToggleSave,t}){
       </div>
       <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",justifyContent:"space-evenly",alignSelf:"stretch",flexShrink:0}}>
         {badgeInfo&&<span style={{fontSize:10,padding:"3px 8px",background:badgeInfo.color,color:WHITE,borderRadius:3,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase"}}>{badgeInfo.label}</span>}
-        <PlanPill saved={saved} onToggle={onToggleSave}/>
+        {!isPast&&<PlanPill saved={saved} onToggle={onToggleSave}/>}
       </div>
     </div>
   );
