@@ -91,6 +91,7 @@
         <button class="toggle-btn" data-val="app">App</button>
         <button class="toggle-btn" data-val="featured">Featured</button>
         <button class="toggle-btn" data-val="free">Free</button>
+        <button class="toggle-btn" data-val="visitor">Visitor</button>
       </div>
     </div>
 
@@ -172,6 +173,20 @@ Approved and live on Frame within 24 hours.
 
 Questions? Reply to this email.`
         }
+        visitor: {
+          subject: "Montreal's contemporary art scene, all in one app",
+          body: `Frame is an exhibition discovery app for Montreal's contemporary art scene.
+
+Every gallery. Every show. All in one place.
+
+Browse exhibitions by neighbourhood, see them on a map, and build your own visit plan with a single tap. Frame tracks every opening and closing date, so you always know what's on, what's opening soon, and what you're about to miss.
+
+No algorithms. No noise. Just the shows worth seeing, right when you need to know about them.
+
+Frame runs in your browser — no download required. Save it to your home screen and it works just like any other app.
+
+useframe.ca`
+        }
       },
       fr: {
         app: {
@@ -238,6 +253,20 @@ Approuvée et visible sur Frame dans les 24 heures.
 
 Questions ? Répondez à ce courriel.`
         }
+        visitor: {
+          subject: "La scène artistique contemporaine de Montréal, dans une seule application",
+          body: `Frame est une application de découverte d'expositions pour la scène artistique contemporaine de Montréal.
+
+Toutes les galeries. Toutes les expositions. Au même endroit.
+
+Parcourez les expositions par quartier, visualisez-les sur une carte et planifiez vos visites en un seul geste. Frame suit chaque date d'ouverture et de fermeture, pour que vous sachiez toujours ce qui est à l'affiche, ce qui ouvre bientôt et ce que vous êtes sur le point de manquer.
+
+Pas d'algorithmes. Pas de bruit. Juste les expositions qui valent le détour, au bon moment.
+
+Frame fonctionne dans votre navigateur, sans téléchargement. Ajoutez-le à votre écran d'accueil et il se comporte comme n'importe quelle autre application.
+
+useframe.ca`
+        }
       }
     };
 
@@ -272,7 +301,7 @@ Questions ? Répondez à ce courriel.`
 
     function buildEmail() {
       var langs = selectedLang === 'both' ? ['en', 'fr'] : [selectedLang];
-      var contents = ['app', 'featured', 'free'].filter(function(c) { return selectedContent.has(c); });
+      var contents = ['app', 'featured', 'free', 'visitor'].filter(function(c) { return selectedContent.has(c); });
       if (!contents.length) return null;
       var subject = templates[langs[0]][contents[0]].subject;
       var bodies = [];
