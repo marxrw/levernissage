@@ -4,62 +4,163 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Frame — Outreach</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'DM Sans', sans-serif; background: #F5F1EB; min-height: 100vh; display: flex; justify-content: center; padding: 3rem 1rem 5rem; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #F5F1EB;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 3rem 1rem 5rem;
+      color: #0F0E0C;
+    }
 
     .page { width: 100%; max-width: 520px; }
 
-    .wordmark { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; color: #0F0E0C; letter-spacing: 0.04em; margin-bottom: 3rem; }
-
-    .field-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #6B6560; margin-bottom: 8px; display: block; }
-
-    .email-input {
-      width: 100%; height: 46px; border: 1px solid #E8E5E0; border-radius: 4px;
-      padding: 0 14px; font-family: 'DM Sans', sans-serif; font-size: 15px;
-      color: #0F0E0C; background: #fff; outline: none; transition: border-color 0.15s;
+    .wordmark {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 24px;
+      font-weight: 600;
+      color: #0F0E0C;
+      letter-spacing: 0.04em;
+      margin-bottom: 3rem;
     }
-    .email-input:focus { border-color: #2B5BE8; }
-    .email-input::placeholder { color: #B0ADA8; }
+
+    .field-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #6B6560;
+      margin-bottom: 8px;
+      display: block;
+    }
 
     .section { margin-top: 2rem; }
 
     .toggle-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 
     .toggle-btn {
-      padding: 9px 20px; border: 1px solid #E8E5E0; border-radius: 3px;
-      background: #fff; font-family: 'DM Sans', sans-serif; font-size: 11px;
-      font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-      color: #6B6560; cursor: pointer; transition: all 0.15s; user-select: none;
+      padding: 9px 20px;
+      border: 1.5px solid #B0ADA8;
+      border-radius: 3px;
+      background: #FFFFFF;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #6B6560;
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
     }
-    .toggle-btn.active { background: #0F0E0C; color: #fff; border-color: #0F0E0C; }
-    .toggle-btn:hover:not(.active) { border-color: #0F0E0C; color: #0F0E0C; }
+    .toggle-btn:hover:not(.active) {
+      border-color: #0F0E0C;
+      color: #0F0E0C;
+      background: #EDEAE4;
+    }
+    .toggle-btn.active {
+      background: #2B5BE8;
+      color: #FFFFFF;
+      border-color: #2B5BE8;
+    }
 
     .divider { border: none; border-top: 1px solid #E8E5E0; margin: 2.5rem 0; }
 
-    .preview-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #6B6560; margin-bottom: 1rem; }
+    .preview-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #6B6560;
+      margin-bottom: 1rem;
+      display: block;
+    }
 
     .preview-box {
-      border: 1px solid #E8E5E0; border-radius: 4px; background: #fff;
-      padding: 1.75rem;
+      border: 1px solid #D8D5D0;
+      border-radius: 6px;
+      background: #FFFFFF;
+      overflow: hidden;
     }
-    .preview-subject { font-size: 13px; font-weight: 600; color: #0F0E0C; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #E8E5E0; }
-    .preview-body { font-size: 14px; color: #3D3A36; line-height: 1.8; white-space: pre-wrap; }
+
+    .preview-subject-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid #E8E5E0;
+      gap: 12px;
+      background: #FFFFFF;
+    }
+
+    .preview-subject-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: #0F0E0C;
+      flex: 1;
+    }
+
+    .copy-subject-btn {
+      flex-shrink: 0;
+      padding: 7px 14px;
+      border: 1.5px solid #B0ADA8;
+      border-radius: 4px;
+      background: #EDEAE4;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #3D3A36;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .copy-subject-btn:hover { border-color: #0F0E0C; color: #0F0E0C; }
+    .copy-subject-btn.copied { background: #1a7a4a; color: #fff; border-color: #1a7a4a; }
+
+    .preview-body-text {
+      font-size: 14px;
+      color: #0F0E0C;
+      line-height: 1.85;
+      white-space: pre-wrap;
+      padding: 1.5rem 1.25rem;
+      background: #FFFFFF;
+    }
 
     .empty-state {
-      font-family: 'Cormorant Garamond', serif; font-size: 18px;
-      font-style: italic; color: #B0ADA8; text-align: center; padding: 3rem 0;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 18px;
+      font-style: italic;
+      color: #B0ADA8;
+      text-align: center;
+      padding: 3rem 0;
     }
 
-    .send-btn {
-      margin-top: 1.5rem; width: 100%; height: 50px; background: #2B5BE8;
-      color: #fff; border: none; border-radius: 4px; font-family: 'DM Sans', sans-serif;
-      font-size: 11px; font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase;
-      cursor: pointer; transition: opacity 0.15s;
+    .copy-body-btn {
+      margin-top: 1.25rem;
+      width: 100%;
+      height: 50px;
+      background: #2B5BE8;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 4px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s;
     }
-    .send-btn:hover { opacity: 0.88; }
-    .send-btn:disabled { opacity: 0.25; cursor: default; }
+    .copy-body-btn:hover { opacity: 0.88; }
+    .copy-body-btn:disabled { opacity: 0.25; cursor: default; }
+    .copy-body-btn.copied { background: #1a7a4a; }
   </style>
 </head>
 <body>
@@ -67,12 +168,7 @@
     <div class="wordmark">Frame</div>
 
     <div class="section">
-      <label class="field-label">Recipient</label>
-      <input class="email-input" type="email" id="emailInput" placeholder="gallery@example.com" />
-    </div>
-
-    <div class="section">
-      <label class="field-label">Language</label>
+      <span class="field-label">Language</span>
       <div class="toggle-group" id="langGroup">
         <button class="toggle-btn active" data-val="en">EN</button>
         <button class="toggle-btn" data-val="fr">FR</button>
@@ -81,7 +177,7 @@
     </div>
 
     <div class="section">
-      <label class="field-label">Content</label>
+      <span class="field-label">Content</span>
       <div class="toggle-group" id="contentGroup">
         <button class="toggle-btn" data-val="app">App</button>
         <button class="toggle-btn" data-val="featured">Featured</button>
@@ -91,10 +187,9 @@
 
     <hr class="divider" />
 
-    <div class="preview-label">Preview</div>
-    <div id="previewArea"><div class="empty-state">Select language and content to preview</div></div>
-
-    <button class="send-btn" id="sendBtn" disabled>Open in Gmail</button>
+    <span class="preview-label">Preview</span>
+    <div id="previewArea"><div class="empty-state">Select content to preview</div></div>
+    <button class="copy-body-btn" id="copyBodyBtn" disabled>Copy body</button>
   </div>
 
   <script>
@@ -105,125 +200,29 @@
       en: {
         app: {
           subject: "Frame — exhibition discovery for Montreal",
-          body: `Frame is an exhibition discovery app for Montreal's contemporary art scene.
-
-Find what's on. Plan your visits. Discover shows you'd otherwise miss.
-
-useframe.ca`
+          body: "Frame is an exhibition discovery app for Montreal's contemporary art scene.\n\nFind what's on. Plan your visits. Discover shows you'd otherwise miss.\n\nuseframe.ca"
         },
         featured: {
           subject: "Feature your exhibition on Frame",
-          body: `Feature your exhibition on Frame.
-
-Frame is an exhibition discovery app for Montreal's contemporary art scene. Here's how to get your show listed.
-
-Before you start, have the following ready:
-— Exhibition title
-— Artist name(s)
-— Opening and closing dates
-— Gallery hours
-— A short description (2–4 sentences)
-— At least one high-resolution image (required — up to 5 accepted)
-
-Step 1 — Fill out the form
-${FEATURED_FORM}
-
-Step 2 — I review your submission
-Once submitted, I receive it and review it personally.
-
-Step 3 — Your show goes live
-Approved and live on Frame within 24 hours.
-
-Need to add more photos later? Submit with what you have now and I'll send a separate link once you have full documentation.
-
-Questions? Reply to this email.`
+          body: "Feature your exhibition on Frame.\n\nEach featured listing includes up to 5 photos, a status badge, and immediate visibility before the opening, from the moment you submit.\n\nTo get started: " + FEATURED_FORM + "\n\nHave ready: exhibition title, artist name, opening and closing dates, gallery hours, a short description, and at least one high-resolution image.\n\nOnce submitted, your show goes live within 24 hours.\n\nQuestions? Reply to this email."
         },
         free: {
           subject: "List your exhibition on Frame",
-          body: `List your exhibition on Frame.
-
-Frame is an exhibition discovery app for Montreal's contemporary art scene. Here's how to get your show listed.
-
-Before you start, have the following ready:
-— Exhibition title
-— Artist name(s)
-— Opening and closing dates
-— Gallery hours
-— A short description (2–4 sentences)
-— One high-resolution image
-
-Step 1 — Fill out the form
-${FREE_FORM}
-
-Step 2 — I review your submission
-Once submitted, I receive it and review it personally.
-
-Step 3 — Your show goes live
-Approved and live on Frame within 24 hours.
-
-Questions? Reply to this email.`
+          body: "List your exhibition on Frame.\n\nFree to submit. Your show appears in search, by neighbourhood, and in opening and closing this week, reaching collectors and art lovers actively looking for what's on.\n\nTo get started: " + FREE_FORM + "\n\nHave ready: exhibition title, artist name, opening and closing dates, gallery hours, and a short description.\n\nOnce submitted, your show goes live within 24 hours.\n\nQuestions? Reply to this email."
         }
       },
       fr: {
         app: {
           subject: "Frame — découverte d'expositions à Montréal",
-          body: `Frame est une application de découverte d'expositions pour la scène artistique contemporaine de Montréal.
-
-Trouvez ce qui s'affiche. Planifiez vos visites. Découvrez des expositions que vous n'auriez pas trouvées autrement.
-
-useframe.ca`
+          body: "Frame est une application de découverte d'expositions pour la scène artistique contemporaine de Montréal.\n\nTrouvez ce qui s'affiche. Planifiez vos visites. Découvrez des expositions que vous n'auriez pas trouvées autrement.\n\nuseframe.ca"
         },
         featured: {
           subject: "Mettez votre exposition en vedette sur Frame",
-          body: `Mettez votre exposition en vedette sur Frame.
-
-Frame est une application de découverte d'expositions pour la scène artistique contemporaine de Montréal. Voici comment faire afficher votre exposition.
-
-Avant de commencer, préparez les éléments suivants :
-— Titre de l'exposition
-— Nom(s) de l'artiste
-— Dates d'ouverture et de fermeture
-— Heures d'ouverture
-— Une courte description (2 à 4 phrases)
-— Au moins une image haute résolution (obligatoire — jusqu'à 5 acceptées)
-
-Étape 1 — Remplissez le formulaire
-${FEATURED_FORM}
-
-Étape 2 — Je révise votre soumission
-Une fois soumise, je la reçois et la révise personnellement.
-
-Étape 3 — Votre exposition est en ligne
-Approuvée et visible sur Frame dans les 24 heures.
-
-Vous souhaitez ajouter des photos plus tard ? Soumettez avec ce que vous avez maintenant et je vous enverrai un lien distinct une fois que vous aurez la documentation complète.
-
-Questions ? Répondez à ce courriel.`
+          body: "Mettez votre exposition en vedette sur Frame.\n\nChaque listing vedette inclut jusqu'à 5 photos, un badge de statut et une visibilité immédiate dès la soumission, avant même le vernissage.\n\nPour commencer : " + FEATURED_FORM + "\n\nPréparez : le titre de l'exposition, le nom de l'artiste, les dates d'ouverture et de fermeture, les heures d'ouverture, une courte description et au moins une image haute résolution.\n\nUne fois soumise, votre exposition est en ligne dans les 24 heures.\n\nQuestions ? Répondez à ce courriel."
         },
         free: {
           subject: "Inscrivez votre exposition sur Frame",
-          body: `Inscrivez votre exposition sur Frame.
-
-Frame est une application de découverte d'expositions pour la scène artistique contemporaine de Montréal. Voici comment faire afficher votre exposition.
-
-Avant de commencer, préparez les éléments suivants :
-— Titre de l'exposition
-— Nom(s) de l'artiste
-— Dates d'ouverture et de fermeture
-— Heures d'ouverture
-— Une courte description (2 à 4 phrases)
-— Une image haute résolution
-
-Étape 1 — Remplissez le formulaire
-${FREE_FORM}
-
-Étape 2 — Je révise votre soumission
-Une fois soumise, je la reçois et la révise personnellement.
-
-Étape 3 — Votre exposition est en ligne
-Approuvée et visible sur Frame dans les 24 heures.
-
-Questions ? Répondez à ce courriel.`
+          body: "Inscrivez votre exposition sur Frame.\n\nGratuit. Votre exposition apparaît dans la recherche, par quartier, et dans les ouvertures et fermetures de la semaine, visible auprès des collectionneurs et amateurs d'art qui cherchent activement ce qui s'affiche.\n\nPour commencer : " + FREE_FORM + "\n\nPréparez : le titre de l'exposition, le nom de l'artiste, les dates d'ouverture et de fermeture, les heures d'ouverture et une courte description.\n\nUne fois soumise, votre exposition est en ligne dans les 24 heures.\n\nQuestions ? Répondez à ce courriel."
         }
       }
     };
@@ -231,78 +230,94 @@ Questions ? Répondez à ce courriel.`
     let selectedLang = 'en';
     let selectedContent = new Set();
 
-    function setupToggleGroup(groupId, single) {
-      const group = document.getElementById(groupId);
-      group.querySelectorAll('.toggle-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          if (single) {
-            group.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            selectedLang = btn.dataset.val;
-          } else {
-            btn.classList.toggle('active');
-            const val = btn.dataset.val;
-            if (selectedContent.has(val)) selectedContent.delete(val);
-            else selectedContent.add(val);
-          }
-          updatePreview();
+    document.getElementById('langGroup').querySelectorAll('.toggle-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.getElementById('langGroup').querySelectorAll('.toggle-btn').forEach(function(b) {
+          b.classList.remove('active');
+        });
+        btn.classList.add('active');
+        selectedLang = btn.getAttribute('data-val');
+        updatePreview();
+      });
+    });
+
+    document.getElementById('contentGroup').querySelectorAll('.toggle-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var val = btn.getAttribute('data-val');
+        if (selectedContent.has(val)) {
+          selectedContent.delete(val);
+          btn.classList.remove('active');
+        } else {
+          selectedContent.add(val);
+          btn.classList.add('active');
+        }
+        updatePreview();
+      });
+    });
+
+    function buildEmail() {
+      var langs = selectedLang === 'both' ? ['en', 'fr'] : [selectedLang];
+      var contents = ['app', 'featured', 'free'].filter(function(c) { return selectedContent.has(c); });
+      if (!contents.length) return null;
+      var subject = templates[langs[0]][contents[0]].subject;
+      var bodies = [];
+      langs.forEach(function(lang) {
+        contents.forEach(function(content) {
+          bodies.push(templates[lang][content].body);
         });
       });
+      return { subject: subject, body: bodies.join('\n\n---\n\n') };
     }
 
-    setupToggleGroup('langGroup', true);
-    setupToggleGroup('contentGroup', false);
-
-    function buildEmailContent() {
-      const langs = selectedLang === 'both' ? ['en', 'fr'] : [selectedLang];
-      const contents = ['app', 'featured', 'free'].filter(c => selectedContent.has(c));
-      if (!contents.length) return null;
-
-      let subjects = [];
-      let bodies = [];
-
-      langs.forEach(lang => {
-        contents.forEach(content => {
-          const t = templates[lang][content];
-          subjects.push(t.subject);
-          bodies.push(t.body);
-        });
+    function doCopy(text, btn, origLabel) {
+      navigator.clipboard.writeText(text).then(function() {
+        btn.textContent = 'Copied ✓';
+        btn.classList.add('copied');
+        setTimeout(function() { btn.textContent = origLabel; btn.classList.remove('copied'); }, 2000);
+      }).catch(function() {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.cssText = 'position:fixed;top:0;left:0;width:200px;height:60px;opacity:0.01;';
+        document.body.appendChild(ta);
+        ta.focus(); ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        btn.textContent = 'Copied ✓';
+        btn.classList.add('copied');
+        setTimeout(function() { btn.textContent = origLabel; btn.classList.remove('copied'); }, 2000);
       });
-
-      return {
-        subject: subjects[0],
-        body: bodies.join('\n\n---\n\n')
-      };
     }
 
     function updatePreview() {
-      const area = document.getElementById('previewArea');
-      const btn = document.getElementById('sendBtn');
-      const email = document.getElementById('emailInput').value.trim();
-      const result = buildEmailContent();
+      var area = document.getElementById('previewArea');
+      var bodyBtn = document.getElementById('copyBodyBtn');
+      var email = buildEmail();
 
-      if (!result) {
+      if (!email) {
         area.innerHTML = '<div class="empty-state">Select content to preview</div>';
-        btn.disabled = true;
+        bodyBtn.disabled = true;
         return;
       }
 
-      area.innerHTML = `<div class="preview-box">
-        <div class="preview-subject">${result.subject}</div>
-        <div class="preview-body">${result.body.replace(/</g, '&lt;')}</div>
-      </div>`;
+      area.innerHTML =
+        '<div class="preview-box">' +
+          '<div class="preview-subject-row">' +
+            '<div class="preview-subject-text">' + email.subject + '</div>' +
+            '<button class="copy-subject-btn" id="copySubjectBtn">Copy subject</button>' +
+          '</div>' +
+          '<div class="preview-body-text">' + email.body.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</div>' +
+        '</div>';
 
-      btn.disabled = !email;
+      document.getElementById('copySubjectBtn').addEventListener('click', function() {
+        doCopy(email.subject, this, 'Copy subject');
+      });
+
+      bodyBtn.disabled = false;
+      bodyBtn._email = email;
     }
 
-    document.getElementById('emailInput').addEventListener('input', updatePreview);
-
-    document.getElementById('sendBtn').addEventListener('click', () => {
-      const email = document.getElementById('emailInput').value.trim();
-      const result = buildEmailContent();
-      if (!email || !result) return;
-      const gmailUrl = `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(email)}&su=${encodeURIComponent(result.subject)}&body=${encodeURIComponent(result.body)}`;
-      window.open(gmailUrl, '_blank');
+    document.getElementById('copyBodyBtn').addEventListener('click', function() {
+      if (this._email) doCopy(this._email.body, this, 'Copy body');
     });
   </script>
 </body>
