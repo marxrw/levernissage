@@ -94,7 +94,7 @@
     <div class="preview-label">Preview</div>
     <div id="previewArea"><div class="empty-state">Select language and content to preview</div></div>
 
-    <button class="send-btn" id="sendBtn" disabled>Open in Gmail</button>
+    <button class="send-btn" id="sendBtn" disabled>Open in Mail</button>
   </div>
 
   <script>
@@ -301,8 +301,8 @@ Questions ? Répondez à ce courriel.`
       const email = document.getElementById('emailInput').value.trim();
       const result = buildEmailContent();
       if (!email || !result) return;
-      const gmailUrl = `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(email)}&su=${encodeURIComponent(result.subject)}&body=${encodeURIComponent(result.body)}`;
-      window.open(gmailUrl, '_blank');
+      const mailto = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(result.subject)}&body=${encodeURIComponent(result.body)}`;
+      window.location.href = mailto;
     });
   </script>
 </body>
