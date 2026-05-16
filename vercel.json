@@ -1,0 +1,5 @@
+{
+  "routes": [
+    { "src": "/outreach", "dest": "/outreach.html" }
+  ]
+}
