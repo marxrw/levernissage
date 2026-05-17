@@ -90,11 +90,13 @@ async function fetchAllShows(){
   }));
 }
 
-async function adminAction(action,id,featured=false){
+async function adminAction(action,id,featured=false,image_urls=null){
+  const body={id,action,featured};
+  if(image_urls)body.image_urls=image_urls;
   const res=await fetch(ADMIN_FUNCTION_URL,{
     method:"POST",
     headers:{"Content-Type":"application/json","x-admin-secret":ADMIN_PASSWORD},
-    body:JSON.stringify({id,action,featured}),
+    body:JSON.stringify(body),
   });
   return res.ok;
 }
@@ -878,6 +880,8 @@ function AdminPage({onExit}){
   const[editorsPickMap,setEditorsPickMap]=useState({});
   const[actionStates,setActionStates]=useState({});
   const[previewShow,setPreviewShow]=useState(null);
+  const[photoOrderMap,setPhotoOrderMap]=useState({});
+  const[photosOverlay,setPhotosOverlay]=useState(null);
 
   const handleLogin=()=>{
     if(pwInput===ADMIN_PASSWORD){setAuthed(true);loadShows();}
@@ -902,7 +906,8 @@ function AdminPage({onExit}){
 
   const handleAction=async(id,status)=>{
     setActionStates(prev=>({...prev,[id]:status==="approved"?"approving":"rejecting"}));
-    const ok=await adminAction(status==="approved"?"approve":"reject",id,featuredMap[id]||false);
+    const urls=photoOrderMap[id]||null;
+    const ok=await adminAction(status==="approved"?"approve":"reject",id,featuredMap[id]||false,urls);
     if(ok){setPendingShows(prev=>prev.filter(s=>s.id!==id));setActionStates(prev=>({...prev,[id]:"done"}));}
     else{setActionStates(prev=>({...prev,[id]:"error"}));}
   };
@@ -925,6 +930,22 @@ function AdminPage({onExit}){
       headers:{"Content-Type":"application/json","x-admin-secret":ADMIN_PASSWORD},
       body:JSON.stringify({id,action:"editors_pick",editors_pick:newVal}),
     });
+  };
+
+  const handleReorderPhotos=async(id,urls)=>{
+    await fetch(ADMIN_FUNCTION_URL,{
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-admin-secret":ADMIN_PASSWORD},
+      body:JSON.stringify({id,action:"reorder_photos",image_urls:urls}),
+    });
+  };
+
+  const getPhotoUrls=(s)=>[s.image_url,s.image_url_2,s.image_url_3,s.image_url_4,s.image_url_5].filter(Boolean);
+
+  const promotePhoto=(id,urls,promotedUrl)=>{
+    const reordered=[promotedUrl,...urls.filter(u=>u!==promotedUrl)];
+    setPhotoOrderMap(prev=>({...prev,[id]:reordered}));
+    return reordered;
   };
 
   if(!authed)return(
@@ -989,6 +1010,19 @@ function AdminPage({onExit}){
                     </div>
                   )}
                   {s.description&&<div style={{fontSize:13,color:MID,lineHeight:1.6,marginBottom:14,fontStyle:"italic"}}>{s.description.length>160?s.description.slice(0,160)+"…":s.description}</div>}
+                  {(()=>{const urls=photoOrderMap[s.id]||getPhotoUrls(s);return urls.length>1?(
+                    <div style={{marginBottom:14}}>
+                      <div style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:MID,fontWeight:600,marginBottom:8}}>Photos — tap to set lead</div>
+                      <div style={{display:"flex",gap:6,overflowX:"auto"}}>
+                        {urls.map((url,i)=>(
+                          <div key={url} onClick={()=>setPhotoOrderMap(prev=>({...prev,[s.id]:promotePhoto(s.id,urls,url)}))} style={{position:"relative",flexShrink:0,width:72,height:72,borderRadius:4,overflow:"hidden",cursor:"pointer",border:i===0?`2.5px solid ${BLUE}`:`2px solid ${BORDER}`}}>
+                            <img src={url} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+                            {i===0&&<div style={{position:"absolute",bottom:0,left:0,right:0,background:"rgba(43,91,232,0.85)",fontSize:8,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:WHITE,textAlign:"center",padding:"3px 0"}}>Lead</div>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ):null;})()}
                 </div>
                 <div style={{margin:"0 16px 16px",borderRadius:6,border:`2.5px solid ${featuredMap[s.id]?FEATURED_COLOR:BORDER}`,background:featuredMap[s.id]?"#FFF8EC":LIGHT,padding:"14px 16px",transition:"all 0.2s",cursor:"pointer"}} onClick={()=>setFeaturedMap(prev=>({...prev,[s.id]:!prev[s.id]}))}>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -1025,6 +1059,7 @@ function AdminPage({onExit}){
                 <button onClick={()=>handleEditorsPick(s.id)} style={{padding:"5px 10px",border:`1px solid ${editorsPickMap[s.id]?INK:BORDER}`,borderRadius:20,background:editorsPickMap[s.id]?INK:WHITE,color:editorsPickMap[s.id]?WHITE:MID,fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap"}}>
                   {editorsPickMap[s.id]?"✦ Pick":"Pick"}
                 </button>
+                {getPhotoUrls(s).length>1&&<button onClick={()=>setPhotosOverlay({id:s.id,urls:photoOrderMap[s.id]||getPhotoUrls(s)})} style={{padding:"5px 10px",border:`1px solid ${BORDER}`,borderRadius:20,background:WHITE,color:MID,fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap"}}>Photos</button>}
                 <button onClick={(e)=>handleRemove(e,s.id,s.title||"this show")} disabled={actionStates[s.id]==="removing"} style={{flexShrink:0,padding:"7px 14px",border:`1px solid #E8251A`,borderRadius:3,background:WHITE,color:"#E8251A",fontSize:11,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
                   {actionStates[s.id]==="removing"?"…":"Remove"}
                 </button>
@@ -1035,6 +1070,28 @@ function AdminPage({onExit}){
       </div>
     </div>
     {previewShow&&<DetailPage detail={previewShow} sourceLabel="Preview" onBack={()=>setPreviewShow(null)} saved={new Set()} toggleSave={()=>{}} showToast={()=>{}} toastId={null} toastVisible={false} t={T.en} onVenue={()=>{}} onApptEmail={undefined}/>}
+    {photosOverlay&&(
+      <div style={{position:"fixed",inset:0,zIndex:4000,background:INK,display:"flex",flexDirection:"column",maxWidth:430,margin:"0 auto"}}>
+        <div style={{background:INK,padding:"16px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontStyle:"italic",color:WHITE}}>Photos</div>
+          <button onClick={()=>setPhotosOverlay(null)} style={{background:"transparent",border:`1px solid #333`,color:MID,padding:"6px 12px",borderRadius:3,fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:600,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>Done</button>
+        </div>
+        <div style={{fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",color:MID,fontWeight:600,padding:"0 20px 12px"}}>Tap any photo to make it the lead</div>
+        <div style={{flex:1,overflowY:"auto",padding:"0 20px 40px",display:"flex",flexDirection:"column",gap:10}}>
+          {photosOverlay.urls.map((url,i)=>(
+            <div key={url} onClick={async()=>{
+              const reordered=[url,...photosOverlay.urls.filter(u=>u!==url)];
+              setPhotosOverlay(prev=>({...prev,urls:reordered}));
+              setPhotoOrderMap(prev=>({...prev,[photosOverlay.id]:reordered}));
+              await handleReorderPhotos(photosOverlay.id,reordered);
+            }} style={{position:"relative",width:"100%",borderRadius:6,overflow:"hidden",cursor:"pointer",border:i===0?`3px solid ${BLUE}`:`1px solid #333`,flexShrink:0}}>
+              <img src={url} style={{width:"100%",display:"block",objectFit:"cover",maxHeight:200}}/>
+              {i===0&&<div style={{position:"absolute",top:10,left:10,background:BLUE,fontSize:9,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",color:WHITE,padding:"4px 10px",borderRadius:3}}>Lead</div>}
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
     </>
   );
 }
