@@ -877,6 +877,7 @@ function AdminPage({onExit}){
   const[featuredMap,setFeaturedMap]=useState({});
   const[editorsPickMap,setEditorsPickMap]=useState({});
   const[actionStates,setActionStates]=useState({});
+  const[previewShow,setPreviewShow]=useState(null);
 
   const handleLogin=()=>{
     if(pwInput===ADMIN_PASSWORD){setAuthed(true);loadShows();}
@@ -999,6 +1000,9 @@ function AdminPage({onExit}){
                     </div>
                   </div>
                 </div>
+                <div style={{borderTop:`1px solid ${BORDER}`,padding:"10px 16px"}}>
+                  <button onClick={()=>setPreviewShow({id:s.id,gallery:s.gallery,title:s.title||"",artist:s.artist||"",dates:s.dates||"",openDate:s.open_date||"",closeDate:s.close_date||"",hood:s.neighbourhood||"",color:s.color||"#C8A882",reviewed:s.reviewed||false,featured:s.featured||false,editors_pick:s.editors_pick||false,between:s.between||false,quote:s.quote||"",by:s.quote_by||"",desc:s.description||"",address:s.address||"",hours:s.hours||"",byAppointment:s.by_appointment||false,image_url:s.image_url||null,image_url_2:s.image_url_2||null,image_url_3:s.image_url_3||null,image_url_4:s.image_url_4||null,image_url_5:s.image_url_5||null,website_url:s.website_url||null,instagram_url:s.instagram_url||null,contact_email:s.contact_email||null,vernissage:s.vernissage||null,lat:parseFloat(s.lat)||null,lng:parseFloat(s.lng)||null})} style={{width:"100%",padding:"11px 0",border:`1px solid ${BORDER}`,borderRadius:4,background:WHITE,color:INK,fontSize:11,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>Preview</button>
+                </div>
                 <div style={{display:"flex",gap:0,borderTop:`1px solid ${BORDER}`}}>
                   <button onClick={()=>handleAction(s.id,"rejected")} disabled={actionStates[s.id]==="rejecting"} style={{flex:1,padding:"14px 0",border:"none",borderRight:`1px solid ${BORDER}`,background:WHITE,color:"#E8251A",fontSize:12,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",borderRadius:"0 0 0 8px"}}>{actionStates[s.id]==="rejecting"?"Rejecting…":"✕ Reject"}</button>
                   <button onClick={()=>handleAction(s.id,"approved")} disabled={actionStates[s.id]==="approving"} style={{flex:1,padding:"14px 0",border:"none",background:actionStates[s.id]==="approving"?"#22A06B":INK,color:WHITE,fontSize:12,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",borderRadius:"0 0 8px 0",transition:"background 0.2s"}}>{actionStates[s.id]==="approving"?"Approving…":"✓ Approve"}</button>
@@ -1029,6 +1033,7 @@ function AdminPage({onExit}){
         </div>
       </div>
     </div>
+    {previewShow&&<DetailPage detail={previewShow} sourceLabel="Preview" onBack={()=>setPreviewShow(null)} saved={new Set()} toggleSave={()=>{}} showToast={()=>{}} toastId={null} toastVisible={false} t={T.en} onVenue={()=>{}} onApptEmail={undefined}/>}
   );
 }
 
