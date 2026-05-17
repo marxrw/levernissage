@@ -941,6 +941,7 @@ function AdminPage({onExit}){
   );
 
   return(
+    <>
     <div style={{position:"fixed",inset:0,background:LIGHT,zIndex:3000,display:"flex",flexDirection:"column",maxWidth:430,margin:"0 auto",overflowY:"auto"}}>
       <div style={{background:INK,padding:"16px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,position:"sticky",top:0,zIndex:10}}>
         <div>
@@ -1034,6 +1035,7 @@ function AdminPage({onExit}){
       </div>
     </div>
     {previewShow&&<DetailPage detail={previewShow} sourceLabel="Preview" onBack={()=>setPreviewShow(null)} saved={new Set()} toggleSave={()=>{}} showToast={()=>{}} toastId={null} toastVisible={false} t={T.en} onVenue={()=>{}} onApptEmail={undefined}/>}
+    </>
   );
 }
 
