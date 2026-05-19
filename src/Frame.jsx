@@ -885,6 +885,7 @@ function AdminPage({onExit}){
   const[photoUpdates,setPhotoUpdates]=useState([]);
   const[photoUpdateOrderMap,setPhotoUpdateOrderMap]=useState({});
   const[photoUpdateStates,setPhotoUpdateStates]=useState({});
+  const[copiedLink,setCopiedLink]=useState(null);
 
   const handleLogin=()=>{
     if(pwInput===ADMIN_PASSWORD){setAuthed(true);loadShows();loadPhotoUpdates();}
@@ -897,7 +898,7 @@ function AdminPage({onExit}){
       const pending=await fetchPendingShows();
       setPendingShows(pending);
       const fm={};pending.forEach(s=>{fm[s.id]=s.featured||false;});setFeaturedMap(fm);
-      const liveRes=await fetch(`${SUPABASE_URL}/rest/v1/shows?status=eq.approved&order=gallery.asc`,{headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`}});
+      const liveRes=await fetch(`${SUPABASE_URL}/rest/v1/shows?status=eq.approved&close_date=gte.${new Date().toISOString().slice(0,10)}&order=gallery.asc`,{headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`}});
       if(liveRes.ok){
         const live=await liveRes.json();
         setLiveShows(live);
@@ -1130,7 +1131,7 @@ function AdminPage({onExit}){
                   {editorsPickMap[s.id]?"✦ Pick":"Pick"}
                 </button>
                 {getPhotoUrls(s).length>1&&<button onClick={()=>setPhotosOverlay({id:s.id,urls:photoOrderMap[s.id]||getPhotoUrls(s)})} style={{padding:"5px 10px",border:`1px solid ${BORDER}`,borderRadius:20,background:WHITE,color:MID,fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap"}}>Photos</button>}
-                <button onClick={()=>{const url=`https://tally.so/r/WOlP2a?showId=${s.id}`;navigator.clipboard.writeText(url);}} style={{padding:"5px 10px",border:`1px solid ${BORDER}`,borderRadius:20,background:WHITE,color:MID,fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap"}}>Copy Link</button>
+                <button onClick={()=>{const url=`https://tally.so/r/WOlP2a?showId=${s.id}`;navigator.clipboard.writeText(url);setCopiedLink(s.id);setTimeout(()=>setCopiedLink(null),2000);}} style={{padding:"5px 10px",border:`1px solid ${copiedLink===s.id?"#22A06B":BORDER}`,borderRadius:20,background:copiedLink===s.id?"#22A06B":WHITE,color:copiedLink===s.id?WHITE:MID,fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap",transition:"all 0.2s"}}>{copiedLink===s.id?"Copied!":"Copy Link"}</button>
                 <button onClick={(e)=>handleRemove(e,s.id,s.title||"this show")} disabled={actionStates[s.id]==="removing"} style={{flexShrink:0,padding:"7px 14px",border:`1px solid #E8251A`,borderRadius:3,background:WHITE,color:"#E8251A",fontSize:11,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
                   {actionStates[s.id]==="removing"?"…":"Remove"}
                 </button>
