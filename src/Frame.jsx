@@ -882,9 +882,12 @@ function AdminPage({onExit}){
   const[previewShow,setPreviewShow]=useState(null);
   const[photoOrderMap,setPhotoOrderMap]=useState({});
   const[photosOverlay,setPhotosOverlay]=useState(null);
+  const[photoUpdates,setPhotoUpdates]=useState([]);
+  const[photoUpdateOrderMap,setPhotoUpdateOrderMap]=useState({});
+  const[photoUpdateStates,setPhotoUpdateStates]=useState({});
 
   const handleLogin=()=>{
-    if(pwInput===ADMIN_PASSWORD){setAuthed(true);loadShows();}
+    if(pwInput===ADMIN_PASSWORD){setAuthed(true);loadShows();loadPhotoUpdates();}
     else{setPwError(true);setPwInput("");setTimeout(()=>setPwError(false),1500);}
   };
 
@@ -902,6 +905,45 @@ function AdminPage({onExit}){
       }
     }catch(e){console.error(e);}
     setLoading(false);
+  };
+
+  const loadPhotoUpdates=async()=>{
+    try{
+      const res=await fetch(`${SUPABASE_URL}/rest/v1/photo_updates?status=eq.pending&order=created_at.asc`,{headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`}});
+      if(res.ok){
+        const updates=await res.json();
+        // fetch show info for each update
+        const withShows=await Promise.all(updates.map(async(u)=>{
+          const sr=await fetch(`${SUPABASE_URL}/rest/v1/shows?id=eq.${u.show_id}&select=id,gallery,title`,{headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`}});
+          const shows=sr.ok?await sr.json():[];
+          return{...u,show:shows[0]||null};
+        }));
+        setPhotoUpdates(withShows);
+      }
+    }catch(e){console.error("loadPhotoUpdates",e);}
+  };
+
+  const getPhotoUpdateUrls=(u)=>[u.image_url_1,u.image_url_2,u.image_url_3,u.image_url_4,u.image_url_5].filter(Boolean);
+
+  const handleApprovePhotoUpdate=async(u)=>{
+    setPhotoUpdateStates(prev=>({...prev,[u.id]:"approving"}));
+    const urls=photoUpdateOrderMap[u.id]||getPhotoUpdateUrls(u);
+    const res=await fetch(ADMIN_FUNCTION_URL,{
+      method:"POST",
+      headers:{"Content-Type":"application/json","x-admin-secret":ADMIN_PASSWORD},
+      body:JSON.stringify({id:u.show_id,action:"reorder_photos",image_urls:urls}),
+    });
+    if(!res.ok){setPhotoUpdateStates(prev=>({...prev,[u.id]:"error"}));return;}
+    await fetch(ADMIN_FUNCTION_URL,{method:"POST",headers:{"Content-Type":"application/json","x-admin-secret":ADMIN_PASSWORD},body:JSON.stringify({id:u.id,action:"delete_photo_update"})});
+    setPhotoUpdates(prev=>prev.filter(p=>p.id!==u.id));
+    setPhotoUpdateStates(prev=>({...prev,[u.id]:"done"}));
+  };
+
+  const handleRejectPhotoUpdate=async(u)=>{
+    setPhotoUpdateStates(prev=>({...prev,[u.id]:"rejecting"}));
+    await fetch(ADMIN_FUNCTION_URL,{method:"POST",headers:{"Content-Type":"application/json","x-admin-secret":ADMIN_PASSWORD},body:JSON.stringify({id:u.id,action:"delete_photo_update"})});
+    setPhotoUpdates(prev=>prev.filter(p=>p.id!==u.id));
+    setPhotoUpdateStates(prev=>({...prev,[u.id]:"done"}));
   };
 
   const handleAction=async(id,status)=>{
@@ -1047,6 +1089,34 @@ function AdminPage({onExit}){
           ))}
         </div>
         <div>
+          <div style={{fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",color:MID,fontWeight:700,marginBottom:16,paddingBottom:8,borderBottom:`1px solid ${BORDER}`}}>Photo Updates ({photoUpdates.length})</div>
+          {photoUpdates.length===0&&<div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,fontStyle:"italic",color:MID,textAlign:"center",padding:"20px 0"}}>No pending photo updates</div>}
+          {photoUpdates.map(u=>{
+            const urls=photoUpdateOrderMap[u.id]||getPhotoUpdateUrls(u);
+            return(
+              <div key={u.id} style={{background:WHITE,borderRadius:8,border:`1px solid ${BORDER}`,marginBottom:16,overflow:"hidden"}}>
+                <div style={{padding:"14px 16px 10px"}}>
+                  <div style={{fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",color:INK,fontWeight:700,marginBottom:2}}>{u.show?.gallery||"Unknown Gallery"}</div>
+                  <div style={{fontSize:13,color:MID,marginBottom:12}}>{u.show?.title||"Unknown Show"}</div>
+                  <div style={{fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:MID,fontWeight:600,marginBottom:8}}>Photos — tap to set lead</div>
+                  <div style={{display:"flex",gap:6,overflowX:"auto"}}>
+                    {urls.map((url,i)=>(
+                      <div key={url} onClick={()=>{const reordered=[url,...urls.filter(v=>v!==url)];setPhotoUpdateOrderMap(prev=>({...prev,[u.id]:reordered}));}} style={{position:"relative",flexShrink:0,width:80,height:80,borderRadius:4,overflow:"hidden",cursor:"pointer",border:i===0?`2.5px solid ${BLUE}`:`2px solid ${BORDER}`}}>
+                        <img src={url} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+                        {i===0&&<div style={{position:"absolute",bottom:0,left:0,right:0,background:"rgba(43,91,232,0.85)",fontSize:8,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:WHITE,textAlign:"center",padding:"3px 0"}}>Lead</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div style={{display:"flex",gap:0,borderTop:`1px solid ${BORDER}`}}>
+                  <button onClick={()=>handleRejectPhotoUpdate(u)} disabled={photoUpdateStates[u.id]==="rejecting"} style={{flex:1,padding:"14px 0",border:"none",borderRight:`1px solid ${BORDER}`,background:WHITE,color:"#E8251A",fontSize:12,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",borderRadius:"0 0 0 8px"}}>{photoUpdateStates[u.id]==="rejecting"?"Rejecting…":"✕ Reject"}</button>
+                  <button onClick={()=>handleApprovePhotoUpdate(u)} disabled={photoUpdateStates[u.id]==="approving"} style={{flex:1,padding:"14px 0",border:"none",background:photoUpdateStates[u.id]==="approving"?"#22A06B":INK,color:WHITE,fontSize:12,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",borderRadius:"0 0 8px 0",transition:"background 0.2s"}}>{photoUpdateStates[u.id]==="approving"?"Approving…":"✓ Approve"}</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div>
           <div style={{fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",color:MID,fontWeight:700,marginBottom:16,paddingBottom:8,borderBottom:`1px solid ${BORDER}`}}>Live Shows ({liveShows.length})</div>
           {liveShows.map(s=>(
             <div key={s.id} style={{background:WHITE,borderRadius:6,border:`1px solid ${BORDER}`,padding:"12px 14px",marginBottom:10,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
@@ -1060,6 +1130,7 @@ function AdminPage({onExit}){
                   {editorsPickMap[s.id]?"✦ Pick":"Pick"}
                 </button>
                 {getPhotoUrls(s).length>1&&<button onClick={()=>setPhotosOverlay({id:s.id,urls:photoOrderMap[s.id]||getPhotoUrls(s)})} style={{padding:"5px 10px",border:`1px solid ${BORDER}`,borderRadius:20,background:WHITE,color:MID,fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap"}}>Photos</button>}
+                <button onClick={()=>{const url=`https://tally.so/r/WOlP2a?showId=${s.id}`;navigator.clipboard.writeText(url);}} style={{padding:"5px 10px",border:`1px solid ${BORDER}`,borderRadius:20,background:WHITE,color:MID,fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap"}}>Copy Link</button>
                 <button onClick={(e)=>handleRemove(e,s.id,s.title||"this show")} disabled={actionStates[s.id]==="removing"} style={{flexShrink:0,padding:"7px 14px",border:`1px solid #E8251A`,borderRadius:3,background:WHITE,color:"#E8251A",fontSize:11,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>
                   {actionStates[s.id]==="removing"?"…":"Remove"}
                 </button>
