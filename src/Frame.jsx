@@ -17,6 +17,17 @@ function getDailySeed(){const d=new Date();return d.getFullYear()*10000+(d.getMo
 function seededRandom(seed){let s=seed;return()=>{s=(s*1664525+1013904223)&0xffffffff;return(s>>>0)/0xffffffff;};}
 function dailyShuffle(arr){const a=[...arr];const rand=seededRandom(getDailySeed());for(let i=a.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
+function groupByGallery(arr){
+  const seen=new Map();
+  const order=[];
+  arr.forEach(s=>{
+    const g=s.gallery||"";
+    if(!seen.has(g)){seen.set(g,[]);order.push(g);}
+    seen.get(g).push(s);
+  });
+  return order.flatMap(g=>seen.get(g));
+}
+
 function artistDisplayName(artist) {
   if (!artist) return "";
   const parts = artist.split(/\s*(?:,|&|\band\b)\s*/i).map(s => s.trim()).filter(Boolean);
@@ -1243,12 +1254,12 @@ export default function App(){
       if(s.closeDate)return(parseLocalDate(s.closeDate)-TODAY)/86400000;
       return 999;
     };
-    return dailyShuffle(data).sort((a,b)=>{
+    return groupByGallery(dailyShuffle(data).sort((a,b)=>{
       const ta=tier(a),tb=tier(b);
       if(ta!==tb)return ta-tb;
       if(ta<6)return diffDays(a)-diffDays(b);
       return 0;
-    });
+    }));
   };
 
   useEffect(()=>{
@@ -1424,10 +1435,10 @@ export default function App(){
     clustererRef.current.addMarkers(toShow.map(m=>m.marker));
   },[mapMode,saved]);
 
-  const allCurrent=SHOWS.filter(s=>!s.between&&(isOnNow(s)||isClosingToday(s)||isOpeningToday(s)));
-  const openingThisWeek=SHOWS.filter(s=>!s.between&&(isOpeningToday(s)||isOpeningThisWeek(s)));
-  const closingThisWeek=SHOWS.filter(s=>!s.between&&(isClosingToday(s)||isClosingThisWeek(s)));
-  const editorsPicks=SHOWS.filter(s=>!s.between&&s.editors_pick);
+  const allCurrent=groupByGallery(SHOWS.filter(s=>!s.between&&(isOnNow(s)||isClosingToday(s)||isOpeningToday(s))));
+  const openingThisWeek=groupByGallery(SHOWS.filter(s=>!s.between&&(isOpeningToday(s)||isOpeningThisWeek(s))));
+  const closingThisWeek=groupByGallery(SHOWS.filter(s=>!s.between&&(isClosingToday(s)||isClosingThisWeek(s))));
+  const editorsPicks=groupByGallery(SHOWS.filter(s=>!s.between&&s.editors_pick));
   const activeHoods=[...new Set(SHOWS.filter(s=>!s.between&&(isOnNow(s)||isClosingToday(s)||isOpeningToday(s)||isOpeningThisWeek(s))).map(s=>s.hood).filter(Boolean))].sort();
   const nearbyShows=userLocation
     ?SHOWS.filter(s=>!s.between&&(isOnNow(s)||isClosingToday(s)||isOpeningToday(s)||isOpeningThisWeek(s))&&s.lat&&s.lng&&distanceKm(userLocation.lat,userLocation.lng,s.lat,s.lng)<=NEARBY_RADIUS_KM)
@@ -1455,12 +1466,12 @@ export default function App(){
       if(s.closeDate)return dayDiff(s.closeDate);
       return 999;
     };
-    return dailyShuffle(featuredShows).sort((a,b)=>{
+    return groupByGallery(dailyShuffle(featuredShows).sort((a,b)=>{
       const ta=tier(a),tb=tier(b);
       if(ta!==tb)return ta-tb;
       if(ta===3||ta===4)return diffDays(a)-diffDays(b);
       return 0;
-    });
+    }));
   })();
 
   const SectionRow=({title,onClick})=>(
@@ -1574,8 +1585,8 @@ export default function App(){
                   s.artist.toLowerCase().includes(q)||
                   s.hood.toLowerCase().includes(q)
                 ));
-                const onView=all.filter(s=>isOnNow(s)||isClosingToday(s));
-                const upcoming=all.filter(s=>isOpeningToday(s)||isOpeningThisWeek(s)||isUpcoming(s));
+                const onView=groupByGallery(all.filter(s=>isOnNow(s)||isClosingToday(s)));
+                const upcoming=groupByGallery(all.filter(s=>isOpeningToday(s)||isOpeningThisWeek(s)||isUpcoming(s)));
                 const past=all.filter(s=>{
                   if(!s.closeDate)return false;
                   return parseLocalDate(s.closeDate)<TODAY;
@@ -1608,7 +1619,7 @@ export default function App(){
                   )}
                   {userLocation&&nearbyShows.length>0&&<SectionRow title={t.nearby} onClick={()=>setSubPage({title:t.nearby,shows:nearbyShows})}/>}
                   {activeHoods.map(hood=>{
-                    const hs=SHOWS.filter(s=>!s.between&&s.hood===hood&&(isOnNow(s)||isClosingToday(s)||isOpeningToday(s)||isOpeningThisWeek(s)));
+                    const hs=groupByGallery(SHOWS.filter(s=>!s.between&&s.hood===hood&&(isOnNow(s)||isClosingToday(s)||isOpeningToday(s)||isOpeningThisWeek(s))));
                     return hs.length>0?<SectionRow key={hood} title={hood} onClick={()=>setSubPage({title:hood,shows:hs})}/>:null;
                   })}
                   <div style={{padding:"32px 16px 48px",background:LIGHT,marginTop:8}}>
