@@ -114,7 +114,7 @@ async function adminAction(action,id,featured=false,image_urls=null){
 
 const T={
   en:{
-    city:"Montreal",featured:"Featured",shows:"Shows",map:"Map",reviews:"Reviews",
+    lang:"en",city:"Montreal",featured:"Featured",shows:"Shows",map:"Map",reviews:"Reviews",
     allShows:"All Current Shows",neighbourhoods:"Neighbourhoods",editorsPicks:"Editor's Picks",
     openingThisWeek:"Opening This Week",closingThisWeek:"Closing This Week",nearby:"Nearby",
     myPlan:"My Plan",getDirections:"Directions",openWebsite:"Open website",
@@ -149,7 +149,7 @@ const T={
     pwaGotIt:"Got it",
   },
   fr:{
-    city:"Montréal",featured:"En vedette",shows:"Expositions",map:"Carte",reviews:"Critiques",
+    lang:"fr",city:"Montréal",featured:"En vedette",shows:"Expositions",map:"Carte",reviews:"Critiques",
     allShows:"Toutes les expositions",neighbourhoods:"Quartiers",editorsPicks:"Sélection",
     openingThisWeek:"Ouvertures cette semaine",closingThisWeek:"Fermetures cette semaine",nearby:"À proximité",
     myPlan:"Mon plan",getDirections:"Itinéraire",openWebsite:"Site web",
@@ -721,7 +721,7 @@ function TextCard({s,onClick,saved,onToggleSave,t}){
         {s.editors_pick&&<div style={{marginBottom:5}}><span style={{display:"inline-flex",alignItems:"center",padding:"2px 9px",borderRadius:20,background:INK,color:WHITE,fontSize:9,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase"}}>Editor's Pick</span></div>}
         <div style={{fontSize:12,letterSpacing:"0.12em",textTransform:"uppercase",color:BLUE,fontWeight:700,marginBottom:6,display:"flex",alignItems:"center",gap:5}}>{s.gallery}{s.featured&&<DiamondIcon/>}</div>
         <div style={{fontSize:19,fontWeight:600,color:INK,lineHeight:1.25,marginBottom:6,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{displayArtist}</div>
-        <div style={{fontSize:14,fontWeight:500,color:INK,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.hood}{s.dates?` · ${translateDates(s.dates.replace(/,\s*\d{4}/g,""),t.city==="Montréal"?"fr":"en")}`:""}</div>
+        <div style={{fontSize:14,fontWeight:500,color:INK,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.hood}{s.dates?` · ${translateDates(s.dates.replace(/,\s*\d{4}/g,""),t.lang)}`:""}</div>
       </div>
       <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",justifyContent:"space-evenly",alignSelf:"stretch",flexShrink:0}}>
         {badgeInfo&&<span style={{fontSize:10,padding:"3px 8px",background:badgeInfo.color,color:WHITE,borderRadius:3,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase"}}>{badgeInfo.label}</span>}
@@ -797,7 +797,7 @@ function DetailPage({detail,sourceLabel,onBack,saved,toggleSave,showToast,toastI
   const mapSlide=hasCoords?{mapUrl:staticMapUrl(detail.lat,detail.lng),address:detail.address||detail.gallery,lat:detail.lat,lng:detail.lng}:{address:detail.address||detail.gallery};
   const slides=[...images,mapSlide];
   const on=saved.has(detail.id);
-  const lang=t.city==="Montréal"?"fr":"en";
+  const lang=t.lang;
   const isExpired=detail.closeDate&&parseLocalDate(detail.closeDate)<TODAY;
   const showVernissage=detail.vernissage&&detail.openDate&&parseLocalDate(detail.openDate)>=TODAY;
   const vernissageDisplay=showVernissage?translateHours(translateDates(detail.vernissage,lang),lang):null;
@@ -1505,7 +1505,7 @@ export default function App(){
       <SplashScreen visible={splashVisible}/>
 
       <div style={{background:WHITE,borderBottom:`1px solid ${BORDER}`,height:52,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",flexShrink:0,zIndex:10,position:"relative"}}>
-        <div onClick={handleHeaderTap} style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic",fontWeight:600,color:INK,cursor:"default",userSelect:"none"}}>{t.city}</div>
+        <div onClick={handleHeaderTap} style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontStyle:"italic",fontWeight:600,color:INK,cursor:"default",userSelect:"none"}}>Frame</div>
         {tab==="shows"&&(
           <div onClick={searchActive?closeSearch:openSearch} style={{position:"absolute",left:"50%",transform:"translateX(-50%)",cursor:"pointer",padding:"4px 8px",display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
