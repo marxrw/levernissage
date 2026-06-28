@@ -676,7 +676,8 @@ function FeaturedCard({s,onClick,saved,onToggleSave,t,onFirstImageLoad}){
   const slides=[...images,mapSlide];
   const displayArtist=artistDisplayName(s.artist);
   return(
-    <div style={{cursor:"pointer",position:"relative",height:FEATURED_CARD_HEIGHT,overflow:"hidden",background:CARD_PLACEHOLDER,borderBottom:`4px solid ${LIGHT}`}}>
+    <div style={{background:LIGHT,padding:"0 4px 4px"}}>
+    <div style={{cursor:"pointer",position:"relative",height:FEATURED_CARD_HEIGHT,overflow:"hidden",background:CARD_PLACEHOLDER}}>
       <div style={{position:"absolute",inset:0,zIndex:1}}>
         <ImageCarousel slides={slides} height={FEATURED_CARD_HEIGHT} onTap={onClick} directionsBottom={FEATURED_PILL_BOTTOM} onFirstImageLoad={onFirstImageLoad}/>
       </div>
@@ -686,10 +687,11 @@ function FeaturedCard({s,onClick,saved,onToggleSave,t,onFirstImageLoad}){
       <div style={{position:"absolute",bottom:FEATURED_PILL_BOTTOM,right:12,zIndex:6,pointerEvents:"auto"}} onClick={e=>{e.stopPropagation();onToggleSave();}}>
         <PlanPill saved={saved} onToggle={onToggleSave}/>
       </div>
-      <div style={{position:"absolute",bottom:0,left:0,right:0,background:"rgba(255,255,255,0.82)",padding:"5px 12px 6px",zIndex:4,pointerEvents:"none"}}>
+      <div style={{position:"absolute",bottom:0,left:0,right:0,background:"rgba(255,255,255,0.88)",padding:"5px 12px 6px",zIndex:4,pointerEvents:"none"}}>
         <div style={{fontSize:18,fontWeight:700,color:INK,lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:3}}>{displayArtist}</div>
         <div style={{fontSize:15,fontWeight:500,color:INK,lineHeight:1.25,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{s.gallery}{s.address?` · ${shortAddr(s.address)}`:""}</div>
       </div>
+    </div>
     </div>
   );
 }
@@ -1552,7 +1554,7 @@ export default function App(){
       <div style={{flex:1,overflow:"hidden",position:"relative",background:WHITE,display:"flex",flexDirection:"column"}}>
 
         {tab==="featured"&&(
-          <div style={{height:"100%",overflowY:"auto"}}>
+          <div style={{height:"100%",overflowY:"auto",paddingTop:4,background:LIGHT}}>
             {loadError&&<div style={{padding:"40px 20px",textAlign:"center",color:MID,fontSize:14}}>{t.error}</div>}
             {!loadError&&(()=>{
               if(featuredSorted.length===0)return(
