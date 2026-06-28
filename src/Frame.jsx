@@ -687,7 +687,7 @@ function FeaturedCard({s,onClick,saved,onToggleSave,t,onFirstImageLoad}){
       <div style={{position:"absolute",bottom:FEATURED_PILL_BOTTOM,right:12,zIndex:6,pointerEvents:"auto"}} onClick={e=>{e.stopPropagation();onToggleSave();}}>
         <PlanPill saved={saved} onToggle={onToggleSave}/>
       </div>
-      <div style={{position:"absolute",bottom:0,left:0,right:0,background:"linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.85) 45%, rgba(255,255,255,1) 70%, rgba(255,255,255,1) 100%)",padding:"14px 12px 7px",zIndex:4,pointerEvents:"none"}}>
+      <div style={{position:"absolute",bottom:0,left:0,right:0,background:"linear-gradient(to bottom, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.4) 40%, rgba(255,255,255,0.7) 65%, rgba(255,255,255,0.92) 85%, rgba(255,255,255,1) 100%)",padding:"26px 12px 7px",zIndex:4,pointerEvents:"none"}}>
         <div style={{fontSize:18,fontWeight:700,color:INK,lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:3}}>{displayArtist}</div>
         <div style={{fontSize:15,fontWeight:500,color:INK,lineHeight:1.25,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{s.gallery}{s.address?` · ${shortAddr(s.address)}`:""}</div>
       </div>
