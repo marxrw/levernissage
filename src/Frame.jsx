@@ -508,7 +508,7 @@ function EmailSheet({email,subject="",body="",onClose}){
 function PlanPill({saved,onToggle}){
   return(
     <button onClick={e=>{e.stopPropagation();onToggle();}} style={{
-      padding:"4px 10px",borderRadius:20,border:"none",
+      padding:"4px 10px",borderRadius:3,border:"none",
       background:saved?BLUE:"rgba(0,0,0,0.15)",
       backdropFilter:!saved?"blur(6px)":"none",
       WebkitBackdropFilter:!saved?"blur(6px)":"none",
@@ -517,7 +517,7 @@ function PlanPill({saved,onToggle}){
       cursor:"pointer",fontFamily:"'DM Sans',sans-serif",whiteSpace:"nowrap",flexShrink:0,
       transition:"all 0.18s",
       boxShadow:!saved?"0 1px 4px rgba(0,0,0,0.12)":"none",
-    }}>{saved?"✓ Plan":"+ Plan"}</button>
+    }}>{saved?"✓ My Plan":"+ My Plan"}</button>
   );
 }
 
