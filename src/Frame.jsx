@@ -194,7 +194,7 @@ const BADGE_BLUE="rgba(26,74,138,0.50)";
 const BADGE_RED="rgba(204,26,26,0.50)";
 const BADGE_AMBER="rgba(160,110,20,0.50)";
 const NEARBY_RADIUS_KM=2.5;
-const FEATURED_CARD_HEIGHT=180;
+const FEATURED_CARD_HEIGHT=170;
 const FEATURED_INFO_PANEL_HEIGHT=55;
 const FEATURED_PILL_BOTTOM=FEATURED_INFO_PANEL_HEIGHT+3;
 const INITIAL_CARDS_TO_WAIT=3;
@@ -676,7 +676,7 @@ function FeaturedCard({s,onClick,saved,onToggleSave,t,onFirstImageLoad}){
   const slides=[...images,mapSlide];
   const displayArtist=artistDisplayName(s.artist);
   return(
-    <div style={{cursor:"pointer",position:"relative",height:FEATURED_CARD_HEIGHT,overflow:"hidden",background:CARD_PLACEHOLDER,borderBottom:`3px solid ${LIGHT}`}}>
+    <div style={{cursor:"pointer",position:"relative",height:FEATURED_CARD_HEIGHT,overflow:"hidden",background:CARD_PLACEHOLDER,borderBottom:`4px solid ${LIGHT}`}}>
       <div style={{position:"absolute",inset:0,zIndex:1}}>
         <ImageCarousel slides={slides} height={FEATURED_CARD_HEIGHT} onTap={onClick} directionsBottom={FEATURED_PILL_BOTTOM} onFirstImageLoad={onFirstImageLoad}/>
       </div>
@@ -686,7 +686,7 @@ function FeaturedCard({s,onClick,saved,onToggleSave,t,onFirstImageLoad}){
       <div style={{position:"absolute",bottom:FEATURED_PILL_BOTTOM,right:12,zIndex:6,pointerEvents:"auto"}} onClick={e=>{e.stopPropagation();onToggleSave();}}>
         <PlanPill saved={saved} onToggle={onToggleSave}/>
       </div>
-      <div style={{position:"absolute",bottom:0,left:0,right:0,background:"rgba(255,255,255,0.78)",padding:"5px 12px 6px",zIndex:4,pointerEvents:"none"}}>
+      <div style={{position:"absolute",bottom:0,left:0,right:0,background:"rgba(255,255,255,0.82)",padding:"5px 12px 6px",zIndex:4,pointerEvents:"none"}}>
         <div style={{fontSize:18,fontWeight:700,color:INK,lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:3}}>{displayArtist}</div>
         <div style={{fontSize:15,fontWeight:500,color:INK,lineHeight:1.25,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{s.gallery}{s.address?` · ${shortAddr(s.address)}`:""}</div>
       </div>
