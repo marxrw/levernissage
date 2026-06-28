@@ -194,7 +194,7 @@ const BADGE_BLUE="rgba(26,74,138,0.50)";
 const BADGE_RED="rgba(204,26,26,0.50)";
 const BADGE_AMBER="rgba(160,110,20,0.50)";
 const NEARBY_RADIUS_KM=2.5;
-const FEATURED_CARD_HEIGHT=202;
+const FEATURED_CARD_HEIGHT=180;
 const FEATURED_INFO_PANEL_HEIGHT=55;
 const FEATURED_PILL_BOTTOM=FEATURED_INFO_PANEL_HEIGHT+3;
 const INITIAL_CARDS_TO_WAIT=3;
@@ -676,7 +676,7 @@ function FeaturedCard({s,onClick,saved,onToggleSave,t,onFirstImageLoad}){
   const slides=[...images,mapSlide];
   const displayArtist=artistDisplayName(s.artist);
   return(
-    <div style={{cursor:"pointer",position:"relative",height:FEATURED_CARD_HEIGHT,overflow:"hidden",background:CARD_PLACEHOLDER,borderBottom:`7px solid ${INK}`}}>
+    <div style={{cursor:"pointer",position:"relative",height:FEATURED_CARD_HEIGHT,overflow:"hidden",background:CARD_PLACEHOLDER,borderBottom:`3px solid ${LIGHT}`}}>
       <div style={{position:"absolute",inset:0,zIndex:1}}>
         <ImageCarousel slides={slides} height={FEATURED_CARD_HEIGHT} onTap={onClick} directionsBottom={FEATURED_PILL_BOTTOM} onFirstImageLoad={onFirstImageLoad}/>
       </div>
